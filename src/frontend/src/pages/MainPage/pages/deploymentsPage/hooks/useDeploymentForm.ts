@@ -12,6 +12,7 @@ export const useDeploymentForm = () => {
   const [deploymentType, setDeploymentType] = useState<DeploymentType>("Agent");
   const [deploymentName, setDeploymentName] = useState("");
   const [deploymentDescription, setDeploymentDescription] = useState("");
+  const [deploymentAccountId, setDeploymentAccountId] = useState("");
   const [deploymentUrl, setDeploymentUrl] = useState("");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [envVars, setEnvVars] = useState<EnvVar[]>([]);
@@ -21,6 +22,7 @@ export const useDeploymentForm = () => {
     setCurrentStep(1);
     setDeploymentName("");
     setDeploymentDescription("");
+    setDeploymentAccountId("");
     setDeploymentUrl("");
     setDeploymentType("Agent");
     setSelectedItems(new Set());
@@ -59,6 +61,8 @@ export const useDeploymentForm = () => {
     setDeploymentName,
     deploymentDescription,
     setDeploymentDescription,
+    deploymentAccountId,
+    setDeploymentAccountId,
     deploymentUrl,
     setDeploymentUrl,
     selectedItems,

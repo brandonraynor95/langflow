@@ -1,19 +1,19 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import LangflowLogoColor from "@/assets/LangflowLogoColor.svg?react";
-import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { usePostCreateDeploymentProvider } from "@/controllers/API/queries/deployments/use-deployments";
 import IBMSvg from "@/icons/IBM/ibm/IBM";
+import {
+  StepProvider,
+  type StepProviderOption,
+} from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
 import useAlertStore from "@/stores/alertStore";
 
 type RegisterDeploymentProviderModalProps = {
@@ -21,22 +21,26 @@ type RegisterDeploymentProviderModalProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-type ProviderOption = {
-  key: string;
-  label: string;
-  iconType: "langflow" | "icon";
-};
-
-const PROVIDER_OPTIONS: ProviderOption[] = [
+const PROVIDER_OPTIONS: StepProviderOption[] = [
   {
     key: "watsonx-orchestrate",
-    label: "watsonx Orchestrate",
-    iconType: "icon",
+    label: "Watsonx",
+    tool: "Orchestrate",
+    serviceUrlPlaceholder:
+      "https://api.<region>.watson-orchestrate.ibm.com/instances/<id>",
+    iconNode: (
+      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white">
+        <IBMSvg className="h-5 w-5 text-[#0F62FE]" />
+      </div>
+    ),
   },
   {
     key: "langflow",
     label: "Langflow",
-    iconType: "langflow",
+    tool: "Deployments",
+    serviceUrlPlaceholder: "https://langflow.example.com",
+    iconNode: <LangflowLogoColor className="h-8 w-8" />,
+    requiresAccountId: true,
   },
 ];
 
@@ -50,13 +54,13 @@ export const RegisterDeploymentProviderModal = ({
   const { mutate: createProvider, isPending } =
     usePostCreateDeploymentProvider();
 
-  const [providerKey, setProviderKey] = useState("");
+  const [providerKey, setProviderKey] = useState("watsonx-orchestrate");
   const [backendUrl, setBackendUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [accountId, setAccountId] = useState("");
 
   const resetState = () => {
-    setProviderKey("");
+    setProviderKey("watsonx-orchestrate");
     setBackendUrl("");
     setApiKey("");
     setAccountId("");
@@ -123,124 +127,64 @@ export const RegisterDeploymentProviderModal = ({
         }
       }}
     >
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Register Deployment Provider</DialogTitle>
+      <DialogContent
+        className="flex max-h-[85vh] h-[580px] max-w-[752px] flex-col gap-0 overflow-visible border bg-background p-0 shadow-lg"
+        closeButtonClassName="top-4 right-4"
+      >
+        <div className="flex flex-col gap-1 px-4 pt-4 pr-14">
+          <DialogTitle className="text-base font-semibold">
+            Configure Deployment Provider
+          </DialogTitle>
           <DialogDescription>
-            Connect your deployment provider account to enable deployments.
+            Configure your provider credentials below. Sign in or sign up to
+            find your credentials
           </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">
-              Provider <span className="text-destructive">*</span>
-            </span>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {PROVIDER_OPTIONS.map((provider) => (
-                <button
-                  key={provider.key}
-                  type="button"
-                  onClick={() => setProviderKey(provider.key)}
-                  className={`flex items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors ${
-                    providerKey === provider.key
-                      ? "border-primary"
-                      : "border-border hover:border-muted-foreground"
-                  }`}
-                >
-                  <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border ${
-                      provider.key === "watsonx-orchestrate"
-                        ? "bg-white"
-                        : "bg-card"
-                    }`}
-                  >
-                    {provider.key === "watsonx-orchestrate" ? (
-                      <IBMSvg className="h-3.5 w-3.5 text-[#0F62FE]" />
-                    ) : provider.iconType === "langflow" ? (
-                      <LangflowLogoColor className="h-4 w-4" />
-                    ) : (
-                      <ForwardedIconComponent
-                        name="Cloud"
-                        className="h-4 w-4 text-foreground"
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">{provider.label}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {providerKey && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-sm font-medium"
-                  htmlFor="provider-backend-url"
-                >
-                  Backend URL <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  id="provider-backend-url"
-                  value={backendUrl}
-                  onChange={(event) => setBackendUrl(event.target.value)}
-                  placeholder="https://api.<region>.watson-orchestrate.ibm.com/instances/<id>"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-sm font-medium"
-                  htmlFor="provider-api-key"
-                >
-                  API Key <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  id="provider-api-key"
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  placeholder="Paste provider API key"
-                  type="password"
-                />
-              </div>
-
-              {providerKey !== "watsonx-orchestrate" && (
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="provider-account-id"
-                  >
-                    Account ID (optional)
-                  </label>
-                  <Input
-                    id="provider-account-id"
-                    value={accountId}
-                    onChange={(event) => setAccountId(event.target.value)}
-                    placeholder="Provider account/tenant id"
-                  />
-                </div>
-              )}
-            </>
-          )}
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => {
-              onOpenChange(false);
-              resetState();
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-lg px-4 py-4">
+          <StepProvider
+            value={{
+              selectedProvider: providerKey,
+              apiKey,
+              serviceUrl: backendUrl,
+              accountId,
             }}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} loading={isPending}>
-            Register Provider
-          </Button>
-        </DialogFooter>
+            onChange={{
+              setSelectedProvider: setProviderKey,
+              setApiKey,
+              setServiceUrl: setBackendUrl,
+              setAccountId,
+            }}
+            config={{
+              providerOptions: PROVIDER_OPTIONS,
+              providerLabel: "Choose Provider",
+              apiKeyLabel: "API Key",
+              apiKeyPlaceholder: "Enter your API key",
+              serviceUrlLabel: "Service Instance URL",
+              serviceUrlPlaceholder: "https://api.example.com",
+              showProviderStatus: true,
+              providerGridClassName: "grid-cols-2 gap-4",
+              hideFieldsUntilProviderSelected: false,
+            }}
+          />
+        </div>
+
+        <div className="flex items-center px-4 pb-4">
+          <div className="flex w-full items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false);
+                resetState();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} loading={isPending}>
+              Register Provider
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

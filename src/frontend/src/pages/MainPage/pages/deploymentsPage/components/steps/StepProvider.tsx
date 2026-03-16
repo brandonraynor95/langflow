@@ -10,6 +10,7 @@ export type StepProviderOption = {
   icon?: string;
   iconNode?: ReactNode;
   requiresAccountId?: boolean;
+  serviceUrlPlaceholder?: string;
 };
 
 const DEFAULT_PROVIDERS: StepProviderOption[] = [
@@ -198,7 +199,9 @@ export const StepProvider = ({
               {serviceUrlLabel} <span className="text-destructive">*</span>
             </span>
             <Input
-              placeholder={serviceUrlPlaceholder}
+              placeholder={
+                activeProvider?.serviceUrlPlaceholder ?? serviceUrlPlaceholder
+              }
               value={value.serviceUrl}
               className="bg-muted"
               onChange={(e) => onChange.setServiceUrl(e.target.value)}

@@ -1,12 +1,17 @@
 import type { Dispatch, SetStateAction } from "react";
+import LangflowLogoColor from "@/assets/LangflowLogoColor.svg?react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
+import IBMSvg from "@/icons/IBM/ibm/IBM";
 import StepperModal, {
   StepperModalFooter,
 } from "@/modals/stepperModal/StepperModal";
 import { StepAgent } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepAgent";
 import { StepBasics } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepBasics";
 import { StepConfiguration } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepConfiguration";
-import { StepProvider } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
+import {
+  StepProvider,
+  type StepProviderOption,
+} from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
 import { StepReview } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepReview";
 import type { DeploymentType, EnvVar } from "../constants";
 import { TOTAL_STEPS } from "../constants";
@@ -14,6 +19,29 @@ import type { FlowCheckpointGroup } from "../types";
 import { DeployFlowStepper } from "./DeployFlowStepper";
 
 const STEP_LABELS = ["Provider", "Basics", "Agent", "Configure Flow", "Review"];
+
+const PROVIDER_OPTIONS: StepProviderOption[] = [
+  {
+    key: "watsonx-orchestrate",
+    label: "Watsonx",
+    tool: "Orchestrate",
+    serviceUrlPlaceholder:
+      "https://api.<region>.watson-orchestrate.ibm.com/instances/<id>",
+    iconNode: (
+      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white">
+        <IBMSvg className="h-5 w-5 text-[#0F62FE]" />
+      </div>
+    ),
+  },
+  {
+    key: "langflow",
+    label: "Langflow",
+    tool: "Deployments",
+    serviceUrlPlaceholder: "https://langflow.example.com",
+    iconNode: <LangflowLogoColor className="h-8 w-8" />,
+    requiresAccountId: true,
+  },
+];
 
 type DeploymentStepperModalProps = {
   open: boolean;
@@ -25,6 +53,8 @@ type DeploymentStepperModalProps = {
   setDeploymentName: (name: string) => void;
   deploymentDescription: string;
   setDeploymentDescription: (desc: string) => void;
+  deploymentAccountId: string;
+  setDeploymentAccountId: (value: string) => void;
   selectedItems: Set<string>;
   toggleItem: (id: string) => void;
   checkpointGroups: FlowCheckpointGroup[];
@@ -48,6 +78,8 @@ export const DeploymentStepperModal = ({
   setDeploymentName,
   deploymentDescription,
   setDeploymentDescription,
+  deploymentAccountId,
+  setDeploymentAccountId,
   selectedItems,
   toggleItem,
   checkpointGroups,
@@ -96,7 +128,7 @@ export const DeploymentStepperModal = ({
       }
       bgClassName="bg-secondary"
       width="w-[752px]"
-      height="h-[569px]"
+      height="h-[580px]"
       contentClassName="bg-background"
       stepLabels={STEP_LABELS}
       onBack={() => onOpenChange(false)}
@@ -126,10 +158,16 @@ export const DeploymentStepperModal = ({
           value={{
             apiKey: deploymentName,
             serviceUrl: deploymentDescription,
+            accountId: deploymentAccountId,
           }}
           onChange={{
             setApiKey: setDeploymentName,
             setServiceUrl: setDeploymentDescription,
+            setAccountId: setDeploymentAccountId,
+          }}
+          config={{
+            providerOptions: PROVIDER_OPTIONS,
+            providerGridClassName: "grid-cols-2 gap-4",
           }}
         />
       )}

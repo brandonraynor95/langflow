@@ -62,6 +62,8 @@ const DeploymentsTab = () => {
     setDeploymentName,
     deploymentDescription,
     setDeploymentDescription,
+    deploymentAccountId,
+    setDeploymentAccountId,
     selectedItems,
     envVars,
     setEnvVars,
@@ -217,7 +219,7 @@ const DeploymentsTab = () => {
               showCreateButtons={hasProviders && !providersQuery.isLoading}
             />
 
-            {providersQuery.isLoading ? (
+            {providersQuery.isLoading && false ? (
               <DeploymentsLoadingView activeSubTab={activeSubTab} />
             ) : !hasProviders ? (
               <DeploymentsEmptyState
@@ -266,6 +268,8 @@ const DeploymentsTab = () => {
               setDeploymentName={setDeploymentName}
               deploymentDescription={deploymentDescription}
               setDeploymentDescription={setDeploymentDescription}
+              deploymentAccountId={deploymentAccountId}
+              setDeploymentAccountId={setDeploymentAccountId}
               selectedItems={selectedItems}
               toggleItem={toggleItem}
               checkpointGroups={checkpointGroups}

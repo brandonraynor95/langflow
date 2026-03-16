@@ -1,5 +1,6 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import buildQueryStringUrl from "@/controllers/utils/create-query-param-string";
+import { MOCK_PROVIDERS } from "@/pages/MainPage/pages/deploymentsPage/mockData";
 import type {
   useMutationFunctionType,
   useQueryFunctionType,
@@ -137,6 +138,65 @@ type PaginationParams = {
   matchLimit?: number;
 };
 
+const resolveMockProviderKey = (
+  provider: (typeof MOCK_PROVIDERS)[number],
+): string => {
+  if (provider.id === "watsonx") {
+    return "watsonx-orchestrate";
+  }
+  if (provider.id === "langflow-cloud") {
+    return "langflow";
+  }
+  return provider.id;
+};
+
+const fallbackProvidersSeed: DeploymentProvider[] = MOCK_PROVIDERS.map(
+  (provider) => ({
+    id: provider.id,
+    account_id: null,
+    provider_key: resolveMockProviderKey(provider),
+    backend_url: provider.endpoint,
+    registered_at: null,
+  }),
+);
+
+let fallbackProvidersStore: DeploymentProvider[] = [...fallbackProvidersSeed];
+
+const fallbackStatusCode = (error: unknown): number | undefined => {
+  if (typeof error !== "object" || error === null || !("response" in error)) {
+    return undefined;
+  }
+  const response = (error as { response?: { status?: number } }).response;
+  return response?.status;
+};
+
+const shouldUseFallbackProviders = (error: unknown): boolean =>
+  fallbackStatusCode(error) === 501;
+
+const createFallbackProviderId = (): string => {
+  if (
+    "crypto" in globalThis &&
+    typeof globalThis.crypto.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+  return `mock-provider-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const getFallbackProvidersPage = (
+  page: number,
+  size: number,
+): DeploymentProvidersResponse => {
+  const start = (page - 1) * size;
+  const end = start + size;
+  return {
+    providers: fallbackProvidersStore.slice(start, end),
+    page,
+    size,
+    total: fallbackProvidersStore.length,
+  };
+};
+
 export const useGetDeploymentProviders: useQueryFunctionType<
   undefined,
   DeploymentProvidersResponse,
@@ -147,13 +207,20 @@ export const useGetDeploymentProviders: useQueryFunctionType<
   const getProvidersFn = async (): Promise<DeploymentProvidersResponse> => {
     const page = options?.page ?? 1;
     const pageSize = options?.pageSize ?? 20;
-    const { data } = await api.get<DeploymentProvidersResponse>(
-      buildQueryStringUrl(`${getURL("DEPLOYMENTS")}/providers/`, {
-        page,
-        size: pageSize,
-      }),
-    );
-    return data;
+    try {
+      const { data } = await api.get<DeploymentProvidersResponse>(
+        buildQueryStringUrl(`${getURL("DEPLOYMENTS")}/providers/`, {
+          page,
+          size: pageSize,
+        }),
+      );
+      return data;
+    } catch (error) {
+      if (shouldUseFallbackProviders(error)) {
+        return getFallbackProvidersPage(page, pageSize);
+      }
+      throw error;
+    }
   };
 
   return query(
@@ -382,11 +449,26 @@ export const usePostCreateDeploymentProvider: useMutationFunctionType<
       ...payload,
       account_id: payload.account_id?.trim() || undefined,
     };
-    const { data } = await api.post<DeploymentProvider>(
-      `${getURL("DEPLOYMENTS")}/providers/`,
-      cleanedPayload,
-    );
-    return data;
+    try {
+      const { data } = await api.post<DeploymentProvider>(
+        `${getURL("DEPLOYMENTS")}/providers/`,
+        cleanedPayload,
+      );
+      return data;
+    } catch (error) {
+      if (!shouldUseFallbackProviders(error)) {
+        throw error;
+      }
+      const fallbackProvider: DeploymentProvider = {
+        id: createFallbackProviderId(),
+        account_id: cleanedPayload.account_id ?? null,
+        provider_key: cleanedPayload.provider_key,
+        backend_url: cleanedPayload.backend_url,
+        registered_at: new Date().toISOString(),
+      };
+      fallbackProvidersStore = [fallbackProvider, ...fallbackProvidersStore];
+      return fallbackProvider;
+    }
   };
 
   const mutation: UseMutationResult<
@@ -426,11 +508,40 @@ export const usePatchUpdateDeploymentProvider: useMutationFunctionType<
         payload.account_id === null ? null : payload.account_id.trim();
     }
 
-    const { data } = await api.patch<DeploymentProvider>(
-      `${getURL("DEPLOYMENTS")}/providers/${params.providerId}`,
-      cleanedPayload,
-    );
-    return data;
+    try {
+      const { data } = await api.patch<DeploymentProvider>(
+        `${getURL("DEPLOYMENTS")}/providers/${params.providerId}`,
+        cleanedPayload,
+      );
+      return data;
+    } catch (error) {
+      if (!shouldUseFallbackProviders(error)) {
+        throw error;
+      }
+
+      const providerIndex = fallbackProvidersStore.findIndex(
+        (provider) => provider.id === params.providerId,
+      );
+      if (providerIndex === -1) {
+        throw error;
+      }
+
+      const current = fallbackProvidersStore[providerIndex];
+      const updatedProvider: DeploymentProvider = {
+        ...current,
+        provider_key: cleanedPayload.provider_key ?? current.provider_key,
+        backend_url: cleanedPayload.backend_url ?? current.backend_url,
+        account_id:
+          cleanedPayload.account_id !== undefined
+            ? cleanedPayload.account_id
+            : current.account_id,
+      };
+
+      fallbackProvidersStore = fallbackProvidersStore.map((provider, index) =>
+        index === providerIndex ? updatedProvider : provider,
+      );
+      return updatedProvider;
+    }
   };
 
   const mutation: UseMutationResult<
@@ -456,7 +567,18 @@ export const useDeleteDeploymentProvider: useMutationFunctionType<
   const { mutate } = UseRequestProcessor();
 
   const deleteProviderFn = async (): Promise<void> => {
-    await api.delete(`${getURL("DEPLOYMENTS")}/providers/${params.providerId}`);
+    try {
+      await api.delete(
+        `${getURL("DEPLOYMENTS")}/providers/${params.providerId}`,
+      );
+    } catch (error) {
+      if (!shouldUseFallbackProviders(error)) {
+        throw error;
+      }
+      fallbackProvidersStore = fallbackProvidersStore.filter(
+        (provider) => provider.id !== params.providerId,
+      );
+    }
   };
 
   const mutation: UseMutationResult<void, Error, undefined> = mutate(
