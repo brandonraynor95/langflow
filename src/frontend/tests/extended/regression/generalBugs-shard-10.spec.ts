@@ -41,10 +41,14 @@ test(
       .first()
       .click();
 
+    await adjustScreenView(page);
+
     await page
       .getByTestId("handle-chatoutput-shownode-inputs-left")
       .first()
       .click();
+
+    await page.getByText("Prompt Template", { exact: true }).last().click();
 
     await page.getByTestId("button_open_prompt_modal").click();
 
@@ -78,7 +82,7 @@ test(
     expect(firstResponseText.length).toBeGreaterThan(0);
 
     // await page.getByText("Close").last().click();
-    await page.getByTestId("playground-btn-flow-io").click();
+    await page.getByTestId("playground-close-button").click();
 
     // Freeze the Chat Output node (not Prompt) so the entire response is cached
     await page.getByText("Chat Output", { exact: true }).last().click();
@@ -94,12 +98,16 @@ test(
 
     expect(page.locator(".border-ring-frozen")).toHaveCount(1);
 
+    await page.getByText("Prompt Template", { exact: true }).last().click();
+
     // Now change the prompt (this should have no effect since Chat Output is frozen)
     await page.getByTestId("button_open_prompt_modal").click();
 
     await page.waitForTimeout(500);
 
-    await page.getByTestId("edit-prompt-sanitized").last().click();
+    if ((await page.getByTestId("edit-prompt-sanitized").count()) > 0) {
+      await page.getByTestId("edit-prompt-sanitized").last().click();
+    }
 
     await page
       .getByTestId("modal-promptarea_prompt_template")

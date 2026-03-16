@@ -61,7 +61,7 @@ WORKDIR /tmp/src/frontend
 # Increase memory and disable concurrent builds to avoid esbuild crashes on emulated architectures
 # Force esbuild to use JS implementation on emulated architectures to avoid native binary crashes
 RUN npm install \
-    && ESBUILD_BINARY_PATH="" NODE_OPTIONS="--max-old-space-size=12288" JOBS=1 npm run build \
+    && ESBUILD_BINARY_PATH="" NODE_OPTIONS="--max-old-space-size=4096" JOBS=1 npm run build \
     && cp -r build /app/src/backend/base/langflow/frontend \
     && rm -rf /tmp/src/frontend
 
@@ -82,6 +82,8 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y curl git libpq5 gnupg xz-utils \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
+COPY --from=builder /usr/local/bin/uvx /usr/local/bin/uvx
 RUN ARCH=$(dpkg --print-architecture) \
     && if [ "$ARCH" = "amd64" ]; then NODE_ARCH="x64"; \
        elif [ "$ARCH" = "arm64" ]; then NODE_ARCH="arm64"; \

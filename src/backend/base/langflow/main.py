@@ -2,9 +2,10 @@ import asyncio
 import json
 import os
 import re
+import sys
 import tempfile
 import warnings
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -39,6 +40,8 @@ from langflow.initial_setup.setup import (
     sync_flows_from_fs,
 )
 from langflow.middleware import ContentSizeLimitMiddleware
+from langflow.plugin_routes import load_plugin_routes
+from langflow.services.database.service import UnsupportedPostgreSQLVersionError
 from langflow.services.deps import (
     get_queue_service,
     get_service,
@@ -316,6 +319,18 @@ def get_lifespan(*, fix_migration=False, version=None):
             yield
         except asyncio.CancelledError:
             await logger.adebug("Lifespan received cancellation signal")
+        except UnsupportedPostgreSQLVersionError:
+            # Normally caught by the pre-flight check in __main__.py
+            # before the server starts.  If we get here anyway (e.g.
+            # direct uvicorn invocation via ``make backend``), exit
+            # immediately and tell the parent (reloader) to stop.
+            import signal
+
+            sys.stdout.flush()
+            sys.stderr.flush()
+            with suppress(ProcessLookupError, PermissionError):
+                os.kill(os.getppid(), signal.SIGTERM)
+            os._exit(3)
         except Exception as exc:
             if "langflow migration --fix" not in str(exc):
                 logger.exception(exc)
@@ -526,6 +541,9 @@ def create_app():
             content={"detail": str(exc)},
         )
 
+    # Discover and register additional routers from plugins (langflow.plugins entry-point)
+    load_plugin_routes(app)
+
     @app.exception_handler(Exception)
     async def exception_handler(_request: Request, exc: Exception):
         if isinstance(exc, HTTPException):
@@ -579,8 +597,8 @@ def setup_static_files(app: FastAPI, static_files_dir: Path) -> None:
 
     @app.exception_handler(404)
     async def custom_404_handler(_request, _exc):
-        # Return JSON for workflow API endpoints to prevent HTML responses
-        if _request.url.path.startswith("/api/v2/workflows"):
+        # Return JSON for all API endpoints to prevent HTML responses
+        if _request.url.path.startswith("/api"):
             # Extract detail from HTTPException if available
             detail = _exc.detail if isinstance(_exc, HTTPException) else "Not Found"
             return JSONResponse(

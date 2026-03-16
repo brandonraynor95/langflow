@@ -53,7 +53,8 @@ export default function CodeAreaComponent({
   handleNodeClass,
   id = "",
   placeholder,
-}: InputProps<string>) {
+  showParameter = true,
+}: InputProps<string>): JSX.Element | null {
   const { data: config } = useGetConfig();
   const allowCustomComponents = config?.allow_custom_components ?? true;
   const isBlocked = !allowCustomComponents;
@@ -116,6 +117,10 @@ export default function CodeAreaComponent({
       />
     </>
   );
+
+  if (!showParameter) {
+    return null;
+  }
 
   if (isBlocked) {
     return (

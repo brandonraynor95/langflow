@@ -85,6 +85,7 @@ const NodeToolbarComponent = memo(
     const paste = useFlowStore((state) => state.paste);
     const setNodes = useFlowStore((state) => state.setNodes);
     const setEdges = useFlowStore((state) => state.setEdges);
+    const edges = useFlowStore((state) => state.edges);
     const getNodePosition = useFlowStore((state) => state.getNodePosition);
     const flows = useFlowsManagerStore((state) => state.flows);
     const takeSnapshot = useFlowsManagerStore((state) => state.takeSnapshot);
@@ -139,8 +140,11 @@ const NodeToolbarComponent = memo(
 
     const hasSelectOutput = hasOutputs && !hasGroupOutputs;
     const hasOnlyOneOutput = data.node?.outputs?.length === 1;
+    const hasMaximumOneConnectedInput =
+      edges.filter((edge) => edge.target === data.id).length <= 1;
 
-    const isMinimal = hasSelectOutput || hasOnlyOneOutput;
+    const isMinimal =
+      (hasSelectOutput || hasOnlyOneOutput) && hasMaximumOneConnectedInput;
 
     const [toolMode, setToolMode] = useState(
       () =>
@@ -195,7 +199,7 @@ const NodeToolbarComponent = memo(
       }
       setNoticeData({
         title:
-          "Minimization only available for components with one handle or fewer.",
+          "Minimization is only available for components with one active connection or fewer.",
       });
     }, [isMinimal, showNode, data.id]);
 
@@ -466,6 +470,10 @@ const NodeToolbarComponent = memo(
       handleOnNewValueHook({ value });
     };
 
+    const inspectionPanelVisible = useFlowStore(
+      (state) => state.inspectionPanelVisible,
+    );
+
     const selectTriggerRef = useRef(null);
 
     const handleButtonClick = () => {
@@ -486,7 +494,7 @@ const NodeToolbarComponent = memo(
 
     const isCustomComponent = useMemo(() => {
       const isCustom = data.type === "CustomComponent" && !data.node?.edited;
-      if (isCustom) {
+      if (isCustom && !inspectionPanelVisible) {
         data.node.edited = true;
       }
       return isCustom;
@@ -507,7 +515,7 @@ const NodeToolbarComponent = memo(
               dataTestId="code-button-modal"
             />
           )}
-          {nodeLength > 0 && (
+          {nodeLength > 0 && !inspectionPanelVisible && (
             <ToolbarButton
               icon="SlidersHorizontal"
               label="Controls"
@@ -518,7 +526,7 @@ const NodeToolbarComponent = memo(
               dataTestId="edit-button-modal"
             />
           )}
-          {!hasToolMode && (
+          {(!hasToolMode || inspectionPanelVisible) && (
             <ToolbarButton
               icon="FreezeAll"
               label="Freeze"
@@ -533,7 +541,10 @@ const NodeToolbarComponent = memo(
               shortcut={shortcuts.find((s) =>
                 s.name.toLowerCase().startsWith("freeze"),
               )}
-              className={cn("node-toolbar-buttons", frozen && "text-blue-500")}
+              className={cn(
+                "node-toolbar-buttons",
+                frozen && "text-accent-indigo-foreground",
+              )}
             />
           )}
           {hasToolMode && (
@@ -718,6 +729,7 @@ const NodeToolbarComponent = memo(
                     dataTestId="docs-button-modal"
                   />
                 </SelectItem>
+
                 {(isMinimal || !showNode) && (
                   <SelectItem
                     value={"show"}
@@ -747,7 +759,7 @@ const NodeToolbarComponent = memo(
                     />
                   </SelectItem>
                 )}
-                {hasToolMode && (
+                {hasToolMode && !inspectionPanelVisible && (
                   <SelectItem
                     value="freezeAll"
                     data-testid="freeze-all-button-modal"
@@ -776,7 +788,10 @@ const NodeToolbarComponent = memo(
                     dataTestId="download-button-modal"
                   />
                 </SelectItem>
-                <SelectItem value={"delete"} className="focus:bg-red-400/[.20]">
+                <SelectItem
+                  value={"delete"}
+                  className="focus:bg-destructive/[.20]"
+                >
                   <div className="font-red flex text-status-red">
                     <IconComponent
                       name="Trash2"
@@ -788,7 +803,7 @@ const NodeToolbarComponent = memo(
                     >
                       <IconComponent
                         name="Delete"
-                        className="h-4 w-4 stroke-2 text-red-400"
+                        className="h-4 w-4 stroke-2 text-destructive"
                       ></IconComponent>
                     </span>
                   </div>

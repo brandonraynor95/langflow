@@ -248,7 +248,7 @@ export default function CodeAreaModal({
                   setCode(value);
                 }
               }}
-              className="h-full min-w-full rounded-lg border-[1px] border-gray-300 custom-scroll dark:border-gray-600"
+              className="h-full min-w-full rounded-lg border-[1px] border-border custom-scroll"
             />
           </div>
           <div

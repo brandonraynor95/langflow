@@ -3,6 +3,12 @@ import path from "path";
 import { expect, test } from "../../fixtures";
 import { awaitBootstrapTest } from "../../utils/await-bootstrap-test";
 import { initialGPTsetup } from "../../utils/initialGPTsetup";
+import {
+  closeAdvancedOptions,
+  disableInspectPanel,
+  enableInspectPanel,
+  openAdvancedOptions,
+} from "../../utils/open-advanced-options";
 
 test(
   "user must interact with chat with Input/Output",
@@ -57,18 +63,19 @@ test(
       page.locator('[data-testid^="chat-message-AI"]').first(),
     ).not.toBeEmpty();
 
-    // close the playground
-    await page.getByRole("button", { name: "Playground", exact: true }).click();
+    // close the playground (fullscreen covers the toolbar, use the close button)
+    await page.getByTestId("playground-close-button").click();
 
+    await disableInspectPanel(page);
     await page.getByText("Chat Input", { exact: true }).click();
-    await page.getByTestId("edit-button-modal").click();
+    await openAdvancedOptions(page);
     await page.getByTestId("showsender_name").click();
-    await page.getByText("Close").last().click();
+    await closeAdvancedOptions(page);
 
     await page.getByText("Chat Output", { exact: true }).click();
-    await page.getByTestId("edit-button-modal").click();
+    await openAdvancedOptions(page);
     await page.getByTestId("showsender_name").click();
-    await page.getByText("Close").last().click();
+    await closeAdvancedOptions(page);
 
     await page
       .getByTestId("popover-anchor-input-sender_name")
@@ -106,5 +113,8 @@ test(
     await expect(
       page.locator('[data-testid^="chat-message-TestSenderNameAI"]').first(),
     ).not.toBeEmpty();
+
+    await page.getByTestId("playground-close-button").click();
+    await enableInspectPanel(page);
   },
 );

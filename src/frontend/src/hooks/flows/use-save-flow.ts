@@ -70,60 +70,56 @@ const useSaveFlow = () => {
             endpoint_name,
             locked,
           } = flow;
-          if (!currentSavedFlow?.data?.nodes.length || data!.nodes.length > 0) {
-            mutate(
-              {
-                id,
-                name,
-                data: data!,
-                description,
-                folder_id,
-                endpoint_name,
-                locked,
-              },
-              {
-                onSuccess: (updatedFlow) => {
-                  const flows = useFlowsManagerStore.getState().flows;
-                  setSaveLoading(false);
-                  if (flows) {
-                    // updates flow in state
-                    setFlows(
-                      flows.map((flow) => {
-                        if (flow.id === updatedFlow.id) {
-                          return updatedFlow;
-                        }
-                        return flow;
-                      }),
-                    );
-                    setCurrentFlow(updatedFlow);
-                    resolve();
-                  } else {
-                    setErrorData({
-                      title: "Failed to save flow",
-                      list: ["Flows variable undefined"],
-                    });
-                    reject(new Error("Flows variable undefined"));
-                  }
-                },
-                onError: (e: any) => {
-                  const rawDetail =
-                    e.response?.data?.detail || e.message || "Unknown error";
-                  const errorDetail =
-                    typeof rawDetail === "string"
-                      ? rawDetail
-                      : JSON.stringify(rawDetail);
+          mutate(
+            {
+              id,
+              name,
+              data: data!,
+              description,
+              folder_id,
+              endpoint_name,
+              locked,
+            },
+            {
+              onSuccess: (updatedFlow) => {
+                const flows = useFlowsManagerStore.getState().flows;
+                setSaveLoading(false);
+                if (flows) {
+                  // updates flow in state
+                  setFlows(
+                    flows.map((flow) => {
+                      if (flow.id === updatedFlow.id) {
+                        return updatedFlow;
+                      }
+                      return flow;
+                    }),
+                  );
+                  setCurrentFlow(updatedFlow);
+                  resolve();
+                } else {
                   setErrorData({
                     title: "Failed to save flow",
-                    list: [errorDetail],
+                    list: ["Flows variable undefined"],
                   });
-                  setSaveLoading(false);
-                  reject(e);
-                },
+                  reject(new Error("Flows variable undefined"));
+                }
               },
-            );
-          } else {
-            setSaveLoading(false);
-          }
+              onError: (e: any) => {
+                const rawDetail =
+                  e.response?.data?.detail || e.message || "Unknown error";
+                const errorDetail =
+                  typeof rawDetail === "string"
+                    ? rawDetail
+                    : JSON.stringify(rawDetail);
+                setErrorData({
+                  title: "Failed to save flow",
+                  list: [errorDetail],
+                });
+                setSaveLoading(false);
+                reject(e);
+              },
+            },
+          );
         } else {
           setErrorData({
             title: "Failed to save flow",

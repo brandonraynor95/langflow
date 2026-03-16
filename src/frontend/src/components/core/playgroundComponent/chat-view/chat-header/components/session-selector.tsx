@@ -3,6 +3,7 @@ import ShadTooltip from "@/components/common/shadTooltipComponent";
 import { useUpdateSessionName } from "@/controllers/API/queries/messages/use-rename-session";
 import { useVoiceStore } from "@/stores/voiceStore";
 import { cn } from "@/utils/utils";
+import { useSessionHasMessages } from "../hooks/use-session-has-messages";
 import { SessionMoreMenu } from "./session-more-menu";
 import { SessionRename } from "./session-rename";
 
@@ -16,9 +17,9 @@ export interface SessionSelectorProps {
   updateVisibleSession: (session: string) => void;
   selectedView?: { type: string; id: string };
   setSelectedView?: (view: { type: string; id: string } | undefined) => void;
-  playgroundPage?: boolean;
-  setActiveSession?: (session: string) => void;
   handleRename?: (oldSessionId: string, newSessionId: string) => Promise<void>;
+  menuOpen?: boolean;
+  onMenuOpenChange?: (open: boolean) => void;
 }
 
 export function SessionSelector({
@@ -31,9 +32,9 @@ export function SessionSelector({
   updateVisibleSession,
   selectedView,
   setSelectedView,
-  playgroundPage = false,
-  setActiveSession,
   handleRename,
+  menuOpen,
+  onMenuOpenChange,
 }: SessionSelectorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { mutate: updateSessionName } = useUpdateSessionName();
@@ -82,9 +83,17 @@ export function SessionSelector({
     }
   };
 
-  // Default session (flowId) cannot be renamed or deleted
+  // Default session (flowId) cannot be renamed, but can be deleted if it has messages
   const isDefaultSession = session === currentFlowId;
+
+  const hasMessages = useSessionHasMessages({
+    sessionId: session,
+    flowId: currentFlowId,
+  });
+
   const canModifySession = !isDefaultSession;
+  const canDeleteSession = hasMessages || !isDefaultSession;
+  const canRenameSession = canModifySession && hasMessages;
 
   return (
     <div
@@ -99,7 +108,7 @@ export function SessionSelector({
         isVisible ? "bg-accent font-semibold" : "font-normal",
       )}
     >
-      <div className="flex h-8 items-center justify-between overflow-hidden w-52">
+      <div className="flex h-8 items-center justify-between overflow-hidden w-full">
         <div className="flex w/full min-w-0 items-center px-2">
           {isEditing ? (
             <div
@@ -131,15 +140,19 @@ export function SessionSelector({
           onRename={handleEditClick}
           onMessageLogs={() => inspectSession?.(session)}
           onDelete={() => deleteSession(session)}
-          showRename={canModifySession}
-          showDelete={canModifySession}
+          showRename={canRenameSession}
+          showDelete={canDeleteSession}
           side="bottom"
           align="end"
+          dataTestid={`session-${session}-more-menu`}
           sideOffset={4}
           contentClassName="z-[100] [&>div.p-1]:!h-auto [&>div.p-1]:!min-h-0"
           isVisible={true}
           tooltipContent="More options"
           tooltipSide="left"
+          open={menuOpen}
+          onOpenChange={onMenuOpenChange}
+          isDefaultSession={isDefaultSession}
         />
       </div>
     </div>
