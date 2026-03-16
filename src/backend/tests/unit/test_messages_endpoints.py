@@ -65,7 +65,9 @@ async def other_logged_in_headers(client: AsyncClient, other_active_user):
 @pytest.fixture
 async def cross_user_messages(active_user, other_active_user):
     async with session_scope() as session:
-        active_flow = Flow(name=f"active-flow-{uuid4().hex[:8]}", user_id=active_user.id, data={"nodes": [], "edges": []})
+        active_flow = Flow(
+            name=f"active-flow-{uuid4().hex[:8]}", user_id=active_user.id, data={"nodes": [], "edges": []}
+        )
         other_flow = Flow(
             name=f"other-flow-{uuid4().hex[:8]}",
             user_id=other_active_user.id,

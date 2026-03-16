@@ -19,16 +19,12 @@ async def get_message_for_user(session: AsyncSession, user_id: UUID, message_id:
     return (await session.exec(stmt)).first()
 
 
-async def get_messages_for_user_by_session(
-    session: AsyncSession, user_id: UUID, session_id: str
-) -> list[MessageTable]:
+async def get_messages_for_user_by_session(session: AsyncSession, user_id: UUID, session_id: str) -> list[MessageTable]:
     stmt = _messages_for_user_stmt(user_id).where(MessageTable.session_id == session_id)
     return (await session.exec(stmt)).all()
 
 
-async def get_message_ids_for_user(
-    session: AsyncSession, user_id: UUID, message_ids: list[UUID]
-) -> list[UUID]:
+async def get_message_ids_for_user(session: AsyncSession, user_id: UUID, message_ids: list[UUID]) -> list[UUID]:
     if not message_ids:
         return []
 
@@ -41,9 +37,7 @@ async def get_message_ids_for_user(
     return (await session.exec(stmt)).all()
 
 
-async def get_message_ids_for_user_by_session(
-    session: AsyncSession, user_id: UUID, session_id: str
-) -> list[UUID]:
+async def get_message_ids_for_user_by_session(session: AsyncSession, user_id: UUID, session_id: str) -> list[UUID]:
     stmt = (
         select(MessageTable.id)
         .join(Flow, MessageTable.flow_id == Flow.id)
@@ -59,7 +53,9 @@ async def delete_messages_for_user(session: AsyncSession, user_id: UUID, message
         return
 
     await session.exec(
-        delete(MessageTable).where(MessageTable.id.in_(owned_message_ids)).execution_options(synchronize_session="fetch")
+        delete(MessageTable)
+        .where(MessageTable.id.in_(owned_message_ids))
+        .execution_options(synchronize_session="fetch")
     )
 
 
@@ -69,7 +65,9 @@ async def delete_messages_for_user_by_session(session: AsyncSession, user_id: UU
         return
 
     await session.exec(
-        delete(MessageTable).where(MessageTable.id.in_(owned_message_ids)).execution_options(synchronize_session="fetch")
+        delete(MessageTable)
+        .where(MessageTable.id.in_(owned_message_ids))
+        .execution_options(synchronize_session="fetch")
     )
 
 
