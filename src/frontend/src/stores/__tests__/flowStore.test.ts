@@ -599,7 +599,13 @@ describe("useFlowStore", () => {
       act(() => {
         result.current.setNode("node-1", (old) => ({
           ...old,
-          data: { ...old.data, node: { ...old.data.node, template: { code: { value: "new_code" } } } },
+          data: {
+            ...old.data,
+            node: {
+              ...old.data.node,
+              template: { code: { value: "new_code" } },
+            },
+          },
         }));
       });
 

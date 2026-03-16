@@ -64,8 +64,7 @@ export const usePostTemplateValue: useMutationFunctionType<
 
       // Also check code directly against templates (covers race where
       // componentsToUpdate hasn't been populated yet due to templates loading)
-      const nodeType =
-        useFlowStore.getState().getNode(nodeId)?.data?.type;
+      const nodeType = useFlowStore.getState().getNode(nodeId)?.data?.type;
       if (nodeType) {
         const templates = useTypesStore.getState().templates;
         const serverCode = templates[nodeType]?.template?.code?.value;

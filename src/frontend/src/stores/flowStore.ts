@@ -92,7 +92,9 @@ export async function waitForNodeUpdates(
 ): Promise<void> {
   if (pendingNodeUpdates.size === 0) return;
   const pendingIds = [...pendingNodeUpdates.keys()];
-  const promises = Array.from(pendingNodeUpdates.values()).map((e) => e.promise);
+  const promises = Array.from(pendingNodeUpdates.values()).map(
+    (e) => e.promise,
+  );
   let timedOut = false;
   await Promise.race([
     Promise.all(promises),

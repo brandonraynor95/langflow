@@ -658,7 +658,10 @@ describe("refreshAllModelInputs — outdated component guard", () => {
 
     const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
     (api.post as jest.Mock).mockRejectedValue({
-      response: { status: 403, data: { detail: "Custom components not allowed" } },
+      response: {
+        status: 403,
+        data: { detail: "Custom components not allowed" },
+      },
     });
 
     // Should not throw — 403 is silently suppressed
