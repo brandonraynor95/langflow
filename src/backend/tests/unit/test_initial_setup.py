@@ -517,7 +517,6 @@ async def test_copy_profile_pictures_handles_missing_config_dir():
             await copy_profile_pictures()
 
 
-
 # ==================== Hash History Tests ====================
 
 
