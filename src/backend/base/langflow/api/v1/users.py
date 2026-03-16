@@ -67,7 +67,7 @@ async def read_all_users(
     count_query = select(func.count()).select_from(User)
 
     if search:
-        search_filter = User.username.ilike(f"%{search}%")  # type: ignore[union-attr]
+        search_filter = User.username.ilike(f"%{search}%")  # type: ignore[attr-defined]
         query = query.where(search_filter)
         count_query = count_query.where(search_filter)
 
