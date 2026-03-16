@@ -113,8 +113,7 @@ test(
 
     const searchResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/users") &&
-        response.status() === 200,
+        response.url().includes("/api/v1/users") && response.status() === 200,
     );
     await page.getByPlaceholder("Username").last().fill(randomName);
     await searchResponse;
