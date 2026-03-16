@@ -196,6 +196,44 @@ async def test_refresh_starter_projects():
     assert "should_store_message" in new_change["nodes"][1]["data"]["node"]["template"]
 
 
+async def test_update_projects_components_uses_last_category_component_for_duplicate_keys():
+    """Regression test for flattening all_types_dict with duplicate component keys."""
+    project_data = {
+        "nodes": [
+            {
+                "id": "node-1",
+                "data": {
+                    "type": "SharedComponent",
+                    "node": {
+                        "template": {"_type": "shared", "code": {"value": "old"}},
+                        "outputs": [],
+                    },
+                },
+            }
+        ],
+        "edges": [],
+    }
+    all_types_dict = {
+        "category_a": {
+            "SharedComponent": {
+                "template": {"_type": "shared", "code": {"value": "from-category-a"}},
+            }
+        },
+        "category_b": {
+            "SharedComponent": {
+                "template": {"_type": "shared", "code": {"value": "from-category-b"}},
+            }
+        },
+    }
+
+    updated_project = update_projects_components_with_latest_component_versions(project_data, all_types_dict)
+
+    # Current behavior: later categories overwrite earlier ones while flattening.
+    assert updated_project["nodes"][0]["data"]["node"]["template"]["code"]["value"] == "from-category-b"
+    # Ensure input data stays untouched.
+    assert project_data["nodes"][0]["data"]["node"]["template"]["code"]["value"] == "old"
+
+
 @pytest.mark.parametrize(
     ("url", "expected"),
     [
