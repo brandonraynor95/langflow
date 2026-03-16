@@ -1,48 +1,16 @@
+import { Button } from "@/components/ui/button";
+import { usePostCreateDeploymentProvider } from "@/controllers/API/queries/deployments/use-deployments";
+import StepperModal from "@/modals/stepperModal/StepperModal";
+import { StepProvider } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
+import useAlertStore from "@/stores/alertStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import LangflowLogoColor from "@/assets/LangflowLogoColor.svg?react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { usePostCreateDeploymentProvider } from "@/controllers/API/queries/deployments/use-deployments";
-import IBMSvg from "@/icons/IBM/ibm/IBM";
-import {
-  StepProvider,
-  type StepProviderOption,
-} from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
-import useAlertStore from "@/stores/alertStore";
+import { PROVIDER_OPTIONS } from "../constants";
 
 type RegisterDeploymentProviderModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
-
-const PROVIDER_OPTIONS: StepProviderOption[] = [
-  {
-    key: "watsonx-orchestrate",
-    label: "Watsonx",
-    tool: "Orchestrate",
-    serviceUrlPlaceholder:
-      "https://api.<region>.watson-orchestrate.ibm.com/instances/<id>",
-    iconNode: (
-      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white">
-        <IBMSvg className="h-5 w-5 text-[#0F62FE]" />
-      </div>
-    ),
-  },
-  {
-    key: "langflow",
-    label: "Langflow",
-    tool: "Deployments",
-    serviceUrlPlaceholder: "https://langflow.example.com",
-    iconNode: <LangflowLogoColor className="h-8 w-8" />,
-    requiresAccountId: true,
-  },
-];
 
 export const RegisterDeploymentProviderModal = ({
   open,
@@ -118,7 +86,8 @@ export const RegisterDeploymentProviderModal = ({
   };
 
   return (
-    <Dialog
+    <StepperModal
+      className="p-2"
       open={open}
       onOpenChange={(nextOpen) => {
         onOpenChange(nextOpen);
@@ -126,66 +95,57 @@ export const RegisterDeploymentProviderModal = ({
           resetState();
         }
       }}
+      currentStep={1}
+      totalSteps={1}
+      showProgress={false}
+      title="Provider"
+      description=""
+      width="w-[752px]"
+      height="h-[671px]"
+      contentClassName="bg-background"
+      closeButtonClassName="top-[20px] right-4"
+      footer={
+        <div className="flex w-full items-center justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              onOpenChange(false);
+              resetState();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} loading={isPending}>
+            Register Provider
+          </Button>
+        </div>
+      }
     >
-      <DialogContent
-        className="flex max-h-[85vh] h-[580px] max-w-[752px] flex-col gap-0 overflow-visible border bg-background p-0 shadow-lg"
-        closeButtonClassName="top-4 right-4"
-      >
-        <div className="flex flex-col gap-1 px-4 pt-4 pr-14">
-          <DialogTitle className="text-base font-semibold">
-            Configure Deployment Provider
-          </DialogTitle>
-          <DialogDescription>
-            Configure your provider credentials below. Sign in or sign up to
-            find your credentials
-          </DialogDescription>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto rounded-lg px-4 py-4">
-          <StepProvider
-            value={{
-              selectedProvider: providerKey,
-              apiKey,
-              serviceUrl: backendUrl,
-              accountId,
-            }}
-            onChange={{
-              setSelectedProvider: setProviderKey,
-              setApiKey,
-              setServiceUrl: setBackendUrl,
-              setAccountId,
-            }}
-            config={{
-              providerOptions: PROVIDER_OPTIONS,
-              providerLabel: "Choose Provider",
-              apiKeyLabel: "API Key",
-              apiKeyPlaceholder: "Enter your API key",
-              serviceUrlLabel: "Service Instance URL",
-              serviceUrlPlaceholder: "https://api.example.com",
-              showProviderStatus: true,
-              providerGridClassName: "grid-cols-2 gap-4",
-              hideFieldsUntilProviderSelected: false,
-            }}
-          />
-        </div>
-
-        <div className="flex items-center px-4 pb-4">
-          <div className="flex w-full items-center justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                onOpenChange(false);
-                resetState();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} loading={isPending}>
-              Register Provider
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      <StepProvider
+        value={{
+          selectedProvider: providerKey,
+          apiKey,
+          serviceUrl: backendUrl,
+          accountId,
+        }}
+        onChange={{
+          setSelectedProvider: setProviderKey,
+          setApiKey,
+          setServiceUrl: setBackendUrl,
+          setAccountId,
+        }}
+        config={{
+          providerOptions: PROVIDER_OPTIONS,
+          providerLabel: "Choose Provider",
+          apiKeyLabel: "API Key",
+          apiKeyPlaceholder: "Enter your API key",
+          serviceUrlLabel: "Service Instance URL",
+          serviceUrlPlaceholder: "https://api.example.com",
+          showProviderStatus: true,
+          providerGridClassName: "grid-cols-2 gap-4",
+          hideFieldsUntilProviderSelected: false,
+        }}
+      />
+    </StepperModal>
   );
 };

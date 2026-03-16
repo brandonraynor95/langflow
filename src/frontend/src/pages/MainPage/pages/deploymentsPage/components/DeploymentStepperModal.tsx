@@ -1,47 +1,19 @@
-import type { Dispatch, SetStateAction } from "react";
-import LangflowLogoColor from "@/assets/LangflowLogoColor.svg?react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
-import IBMSvg from "@/icons/IBM/ibm/IBM";
 import StepperModal, {
   StepperModalFooter,
 } from "@/modals/stepperModal/StepperModal";
 import { StepAgent } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepAgent";
 import { StepBasics } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepBasics";
 import { StepConfiguration } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepConfiguration";
-import {
-  StepProvider,
-  type StepProviderOption,
-} from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
+import { StepProvider } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
 import { StepReview } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepReview";
+import type { Dispatch, SetStateAction } from "react";
 import type { DeploymentType, EnvVar } from "../constants";
-import { TOTAL_STEPS } from "../constants";
+import { PROVIDER_OPTIONS, TOTAL_STEPS } from "../constants";
 import type { FlowCheckpointGroup } from "../types";
 import { DeployFlowStepper } from "./DeployFlowStepper";
 
 const STEP_LABELS = ["Provider", "Basics", "Agent", "Configure Flow", "Review"];
-
-const PROVIDER_OPTIONS: StepProviderOption[] = [
-  {
-    key: "watsonx-orchestrate",
-    label: "Watsonx",
-    tool: "Orchestrate",
-    serviceUrlPlaceholder:
-      "https://api.<region>.watson-orchestrate.ibm.com/instances/<id>",
-    iconNode: (
-      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white">
-        <IBMSvg className="h-5 w-5 text-[#0F62FE]" />
-      </div>
-    ),
-  },
-  {
-    key: "langflow",
-    label: "Langflow",
-    tool: "Deployments",
-    serviceUrlPlaceholder: "https://langflow.example.com",
-    iconNode: <LangflowLogoColor className="h-8 w-8" />,
-    requiresAccountId: true,
-  },
-];
 
 type DeploymentStepperModalProps = {
   open: boolean;
@@ -98,7 +70,7 @@ export const DeploymentStepperModal = ({
 
   return (
     <StepperModal
-      className=""
+      className="p-2"
       open={open}
       onOpenChange={onOpenChange}
       currentStep={currentStep}
@@ -106,7 +78,7 @@ export const DeploymentStepperModal = ({
       showProgress={false}
       description={
         currentStep === 1
-          ? "Configure your provider credentials below. Sign in or sign up to find your credentials"
+          ? ""
           : currentStep === 2
             ? "Set your deployment details"
             : currentStep === 3
@@ -117,7 +89,7 @@ export const DeploymentStepperModal = ({
       }
       title={
         currentStep === 1
-          ? "Configure Deployment Provider"
+          ? "Provider"
           : currentStep === 2
             ? "Deployment Basics"
             : currentStep === 3
@@ -128,10 +100,11 @@ export const DeploymentStepperModal = ({
       }
       bgClassName="bg-secondary"
       width="w-[752px]"
-      height="h-[580px]"
-      contentClassName="bg-background"
+      height="h-[671px]"
+      contentClassName="bg-background "
       stepLabels={STEP_LABELS}
       onBack={() => onOpenChange(false)}
+      closeButtonClassName="top-[20px] right-4"
       backLabel="Back to Deployments"
       footer={
         <StepperModalFooter

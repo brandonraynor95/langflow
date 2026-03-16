@@ -60,6 +60,10 @@ export const lazyIconsMapping = {
     import("@/icons/klaviyo").then((mod) => ({ default: mod.KlaviyoIcon })),
   Klipfolio: () =>
     import("@/icons/Klipfolio").then((mod) => ({ default: mod.KlipfolioIcon })),
+  Kubernetes: () =>
+    import("@/icons/Kubernetes").then((mod) => ({
+      default: mod.KubernetesIcon,
+    })),
   One_Drive: () =>
     import("@/icons/one_drive").then((mod) => ({ default: mod.One_DriveIcon })),
   Wrike: () =>

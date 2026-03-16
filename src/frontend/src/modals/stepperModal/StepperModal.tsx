@@ -35,6 +35,7 @@ export function StepperModal({
   width: customWidth,
   sidePanel,
   sidePanelOpen = DEFAULT_SIDE_PANEL_OPEN,
+  closeButtonClassName = "top-4 right-4",
 }: StepperModalProps) {
   const { minWidth, height: sizeHeight } = switchCaseModalSize(size);
   const isNumericHeight = customHeight && /^\d+$/.test(customHeight);
@@ -59,12 +60,12 @@ export function StepperModal({
               : "rounded-xl",
             className,
           )}
-          closeButtonClassName="top-4 right-4"
+          closeButtonClassName={closeButtonClassName}
         >
           {/* Header */}
           <div className="flex flex-col gap-1 px-4 pt-4 pr-14">
             <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+              <DialogTitle className="flex items-center gap-2 text-xl font-semibold ">
                 {icon && (
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
                     <ForwardedIconComponent name={icon} className="h-4 w-4" />
@@ -96,7 +97,7 @@ export function StepperModal({
           {/* Content */}
           <div
             className={cn(
-              "flex-1 min-h-0 overflow-y-auto px-4 py-4 rounded-lg",
+              "flex-1 min-h-0 overflow-y-auto px-4 py-3 rounded-lg",
               contentClassName,
             )}
           >
@@ -123,7 +124,7 @@ export type {
   StepperContextValue,
   StepperModalFooterProps,
   StepperModalProps,
-  StepperModalSize,
+  StepperModalSize
 } from "./types";
 
 export default StepperModal;

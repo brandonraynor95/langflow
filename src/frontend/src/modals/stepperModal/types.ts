@@ -43,6 +43,7 @@ export interface StepperModalProps {
   onBack?: () => void;
   backLabel?: string;
   bgClassName?: string;
+  closeButtonClassName?: string;
 }
 
 export interface StepperModalFooterProps {
