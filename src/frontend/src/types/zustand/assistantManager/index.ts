@@ -27,7 +27,6 @@ export type AssistantManagerStoreType = {
   assistantSidebarOpen: boolean;
   setAssistantSidebarOpen: (AssistantSideBarOpen: boolean) => void;
 
-
   // Chat state
   examples: Array<FlowType>;
   setExamples: (examples: FlowType[]) => void;

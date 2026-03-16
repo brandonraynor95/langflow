@@ -16,7 +16,12 @@ export function formatType(rawType: string): string {
 }
 
 export function parseComponentInfo(code: string | undefined) {
-  if (!code) return { description: null, inputs: [] as FieldInfo[], outputs: [] as FieldInfo[] };
+  if (!code)
+    return {
+      description: null,
+      inputs: [] as FieldInfo[],
+      outputs: [] as FieldInfo[],
+    };
 
   // Extract description
   const descMatch = code.match(/description\s*=\s*"([^"]+)"/);
@@ -32,19 +37,23 @@ export function parseComponentInfo(code: string | undefined) {
 
   // Fallback: simpler pattern
   if (inputs.length === 0) {
-    const simpleInputRegex = /(MessageTextInput|StrInput|IntInput|FloatInput|BoolInput|FileInput|DropdownInput|MultilineInput|SecretStrInput|HandleInput|DataInput)\s*\([^)]*display_name\s*=\s*"([^"]+)"/g;
+    const simpleInputRegex =
+      /(MessageTextInput|StrInput|IntInput|FloatInput|BoolInput|FileInput|DropdownInput|MultilineInput|SecretStrInput|HandleInput|DataInput)\s*\([^)]*display_name\s*=\s*"([^"]+)"/g;
     while ((match = simpleInputRegex.exec(code)) !== null) {
       inputs.push({ name: match[2], type: formatType(match[1]) });
     }
   }
 
   // Extract outputs: get display_name and method name, then resolve return type from method signature
-  const outputRegex = /Output\(\s*(?:[^)]*?)display_name\s*=\s*"([^"]+)"(?:[^)]*?)method\s*=\s*"(\w+)"/gs;
+  const outputRegex =
+    /Output\(\s*(?:[^)]*?)display_name\s*=\s*"([^"]+)"(?:[^)]*?)method\s*=\s*"(\w+)"/gs;
   const outputs: FieldInfo[] = [];
   while ((match = outputRegex.exec(code)) !== null) {
     const methodName = match[2];
     // Look for the method's return type annotation: def method_name(self) -> ReturnType:
-    const returnTypeRegex = new RegExp(`def\\s+${methodName}\\s*\\([^)]*\\)\\s*->\\s*(\\w+)`);
+    const returnTypeRegex = new RegExp(
+      `def\\s+${methodName}\\s*\\([^)]*\\)\\s*->\\s*(\\w+)`,
+    );
     const returnMatch = code.match(returnTypeRegex);
     const returnType = returnMatch?.[1] || "Message";
     outputs.push({ name: match[1], type: returnType });
@@ -52,7 +61,8 @@ export function parseComponentInfo(code: string | undefined) {
 
   // Fallback: outputs without method
   if (outputs.length === 0) {
-    const simpleOutputRegex = /Output\(\s*(?:[^)]*?)display_name\s*=\s*"([^"]+)"/g;
+    const simpleOutputRegex =
+      /Output\(\s*(?:[^)]*?)display_name\s*=\s*"([^"]+)"/g;
     while ((match = simpleOutputRegex.exec(code)) !== null) {
       outputs.push({ name: match[1], type: "Message" });
     }
@@ -111,11 +121,19 @@ export function AssistantComponentResult({
         )}
         {inputs.length > 0 && (
           <div>
-            <h4 className="mb-1.5 text-xs font-semibold text-foreground">Inputs</h4>
+            <h4 className="mb-1.5 text-xs font-semibold text-foreground">
+              Inputs
+            </h4>
             <div className="flex flex-wrap gap-1.5 pl-1">
               {inputs.map((input) => (
-                <span key={input.name} className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                  {input.name} <span className="text-muted-foreground/60">({input.type})</span>
+                <span
+                  key={input.name}
+                  className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                >
+                  {input.name}{" "}
+                  <span className="text-muted-foreground/60">
+                    ({input.type})
+                  </span>
                 </span>
               ))}
             </div>
@@ -123,11 +141,19 @@ export function AssistantComponentResult({
         )}
         {outputs.length > 0 && (
           <div>
-            <h4 className="mb-1.5 text-xs font-semibold text-foreground">Outputs</h4>
+            <h4 className="mb-1.5 text-xs font-semibold text-foreground">
+              Outputs
+            </h4>
             <div className="flex flex-wrap gap-1.5 pl-1">
               {outputs.map((output) => (
-                <span key={output.name} className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                  {output.name} <span className="text-muted-foreground/60">({output.type})</span>
+                <span
+                  key={output.name}
+                  className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                >
+                  {output.name}{" "}
+                  <span className="text-muted-foreground/60">
+                    ({output.type})
+                  </span>
                 </span>
               ))}
             </div>

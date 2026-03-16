@@ -82,7 +82,9 @@ describe("UI state", () => {
     expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(true);
 
     useAssistantManagerStore.getState().setAssistantSidebarOpen(false);
-    expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(false);
+    expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(
+      false,
+    );
   });
 
   it("should set isFullscreen", () => {
@@ -112,7 +114,9 @@ describe("setCurrentFlow", () => {
     useAssistantManagerStore.getState().setAssistantSidebarOpen(true);
     useAssistantManagerStore.getState().setCurrentFlow(createFlow("new"));
 
-    expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(false);
+    expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(
+      false,
+    );
   });
 
   it("should call resetFlow on flow change", () => {
@@ -358,19 +362,26 @@ describe("bugs and edge cases", () => {
       // L101-103: future[currentFlowId].push({ nodes: newState.nodes, edges: newState.edges })
       // This pushes a REFERENCE to the live flowStore state. If nodes/edges are later mutated,
       // the future entry is silently corrupted.
-      mockFlowStoreState.nodes = [{ id: "n1", data: { value: "original" } }] as any;
+      mockFlowStoreState.nodes = [
+        { id: "n1", data: { value: "original" } },
+      ] as any;
       mockFlowStoreState.edges = [] as any;
       useAssistantManagerStore.getState().takeSnapshot();
 
       // Modify state and take another snapshot
-      mockFlowStoreState.nodes = [{ id: "n2", data: { value: "second" } }] as any;
+      mockFlowStoreState.nodes = [
+        { id: "n2", data: { value: "second" } },
+      ] as any;
       useAssistantManagerStore.getState().takeSnapshot();
 
       // Undo — this pushes current state to future WITHOUT cloneDeep
       useAssistantManagerStore.getState().undo();
 
       // Now mutate the nodes array that was pushed to future
-      mockFlowStoreState.nodes[0] = { id: "mutated", data: { value: "corrupted" } } as any;
+      mockFlowStoreState.nodes[0] = {
+        id: "mutated",
+        data: { value: "corrupted" },
+      } as any;
 
       // Redo should restore the state from BEFORE mutation
       mockSetNodes.mockClear();

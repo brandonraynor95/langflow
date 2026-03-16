@@ -51,7 +51,9 @@ describe("assistant-panel.constants", () => {
     });
 
     it("should be callable multiple times without error", () => {
-      const results = Array.from({ length: 10 }, () => getAssistantPlaceholder());
+      const results = Array.from({ length: 10 }, () =>
+        getAssistantPlaceholder(),
+      );
 
       for (const result of results) {
         expect(ASSISTANT_PLACEHOLDERS).toContain(result);

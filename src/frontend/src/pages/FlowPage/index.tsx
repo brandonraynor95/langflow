@@ -222,15 +222,27 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
   );
 
   // Toggle assistant with "A" key (only when not typing in an input)
-  useHotkeys("a", () => setAssistantOpen(!assistantOpen), {
-    preventDefault: true,
-    enableOnFormTags: false,
-  }, [assistantOpen]);
+  useHotkeys(
+    "a",
+    () => setAssistantOpen(!assistantOpen),
+    {
+      preventDefault: true,
+      enableOnFormTags: false,
+    },
+    [assistantOpen],
+  );
 
   // Close assistant with Escape
-  useHotkeys("escape", () => { if (assistantOpen) setAssistantOpen(false); }, {
-    enableOnFormTags: true,
-  }, [assistantOpen]);
+  useHotkeys(
+    "escape",
+    () => {
+      if (assistantOpen) setAssistantOpen(false);
+    },
+    {
+      enableOnFormTags: true,
+    },
+    [assistantOpen],
+  );
 
   // Auto-close playground when all chat components are removed
   useEffect(() => {
@@ -293,7 +305,8 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
                   <main
                     className={cn(
                       "flex flex-1 min-w-0 overflow-hidden transition-all duration-300",
-                      isSlidingContainerOpen && !isFullscreen &&
+                      isSlidingContainerOpen &&
+                        !isFullscreen &&
                         "rounded-xl m-2 mr-0",
                     )}
                   >

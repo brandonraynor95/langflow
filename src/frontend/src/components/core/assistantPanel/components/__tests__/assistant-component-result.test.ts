@@ -1,7 +1,4 @@
-import {
-  formatType,
-  parseComponentInfo,
-} from "../assistant-component-result";
+import { formatType, parseComponentInfo } from "../assistant-component-result";
 
 describe("formatType", () => {
   it("should remove Input suffix", () => {
@@ -170,7 +167,10 @@ class TextUppercaseComponent(Component):
     expect(result.inputs[0].name).toBe("Input Text");
     expect(result.inputs[1].name).toBe("Separator");
     expect(result.outputs).toHaveLength(1);
-    expect(result.outputs[0]).toEqual({ name: "Uppercase Text", type: "Message" });
+    expect(result.outputs[0]).toEqual({
+      name: "Uppercase Text",
+      type: "Message",
+    });
   });
 });
 

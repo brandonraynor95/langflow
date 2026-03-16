@@ -6,7 +6,10 @@
  */
 
 // Polyfill TextEncoder/TextDecoder for jsdom environment
-import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from "util";
+import {
+  TextDecoder as NodeTextDecoder,
+  TextEncoder as NodeTextEncoder,
+} from "util";
 global.TextEncoder = NodeTextEncoder as unknown as typeof TextEncoder;
 global.TextDecoder = NodeTextDecoder as unknown as typeof TextDecoder;
 
@@ -80,7 +83,10 @@ function createSSEResponse(...events: AgenticSSEEvent[]): Response {
 }
 
 // Mock fetch — jsdom doesn't provide globalThis.fetch
-const mockFetch = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit?]>();
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
 global.fetch = mockFetch as typeof global.fetch;
 
 beforeEach(() => {
@@ -90,13 +96,13 @@ beforeEach(() => {
 describe("fetch setup", () => {
   it("should POST with correct headers and credentials", async () => {
     mockFetch.mockResolvedValue(
-      createSSEResponse({ event: "complete", data: { result: "", validated: true } }),
+      createSSEResponse({
+        event: "complete",
+        data: { result: "", validated: true },
+      }),
     );
 
-    await postAssistStream(
-      { flow_id: "f1", input_value: "test" },
-      {},
-    );
+    await postAssistStream({ flow_id: "f1", input_value: "test" }, {});
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.any(String),
@@ -115,7 +121,10 @@ describe("fetch setup", () => {
   it("should forward AbortSignal to fetch", async () => {
     const controller = new AbortController();
     mockFetch.mockResolvedValue(
-      createSSEResponse({ event: "complete", data: { result: "", validated: true } }),
+      createSSEResponse({
+        event: "complete",
+        data: { result: "", validated: true },
+      }),
     );
 
     await postAssistStream(
@@ -140,10 +149,10 @@ describe("event dispatch", () => {
       max_attempts: 4,
     };
     mockFetch.mockResolvedValue(
-      createSSEResponse(
-        progressEvent,
-        { event: "complete", data: { result: "", validated: true } },
-      ),
+      createSSEResponse(progressEvent, {
+        event: "complete",
+        data: { result: "", validated: true },
+      }),
     );
 
     const onProgress = jest.fn();
@@ -155,10 +164,10 @@ describe("event dispatch", () => {
   it("should dispatch onToken for token events", async () => {
     const tokenEvent: AgenticTokenEvent = { event: "token", chunk: "Hello" };
     mockFetch.mockResolvedValue(
-      createSSEResponse(
-        tokenEvent,
-        { event: "complete", data: { result: "", validated: true } },
-      ),
+      createSSEResponse(tokenEvent, {
+        event: "complete",
+        data: { result: "", validated: true },
+      }),
     );
 
     const onToken = jest.fn();
@@ -172,9 +181,7 @@ describe("event dispatch", () => {
       event: "complete",
       data: { result: "done", validated: true, class_name: "Test" },
     };
-    mockFetch.mockResolvedValue(
-      createSSEResponse(completeEvent),
-    );
+    mockFetch.mockResolvedValue(createSSEResponse(completeEvent));
 
     const onComplete = jest.fn();
     await postAssistStream({ flow_id: "f1", input_value: "" }, { onComplete });
@@ -187,9 +194,7 @@ describe("event dispatch", () => {
       event: "error",
       message: "Rate limit",
     };
-    mockFetch.mockResolvedValue(
-      createSSEResponse(errorEvent),
-    );
+    mockFetch.mockResolvedValue(createSSEResponse(errorEvent));
 
     const onError = jest.fn();
     await postAssistStream({ flow_id: "f1", input_value: "" }, { onError });
@@ -202,9 +207,7 @@ describe("event dispatch", () => {
       event: "cancelled",
       message: "User cancelled",
     };
-    mockFetch.mockResolvedValue(
-      createSSEResponse(cancelledEvent),
-    );
+    mockFetch.mockResolvedValue(createSSEResponse(cancelledEvent));
 
     const onCancelled = jest.fn();
     await postAssistStream({ flow_id: "f1", input_value: "" }, { onCancelled });
@@ -221,9 +224,7 @@ describe("event dispatch", () => {
 
     // Both events in same chunk — complete should stop processing
     const text = sseData(completeEvent) + sseData(tokenAfter);
-    mockFetch.mockResolvedValue(
-      createMockResponse(200, [encode(text)]),
-    );
+    mockFetch.mockResolvedValue(createMockResponse(200, [encode(text)]));
 
     const onToken = jest.fn();
     const onComplete = jest.fn();
@@ -241,9 +242,7 @@ describe("buffer handling", () => {
   it("should skip empty lines", async () => {
     // Stream with extra blank lines between events
     const text = `\n\ndata: ${JSON.stringify({ event: "complete", data: { result: "", validated: true } })}\n\n`;
-    mockFetch.mockResolvedValue(
-      createMockResponse(200, [encode(text)]),
-    );
+    mockFetch.mockResolvedValue(createMockResponse(200, [encode(text)]));
 
     const onComplete = jest.fn();
     await postAssistStream({ flow_id: "f1", input_value: "" }, { onComplete });
@@ -255,9 +254,7 @@ describe("buffer handling", () => {
     const text =
       `data: {not valid json}\n\n` +
       sseData({ event: "complete", data: { result: "", validated: true } });
-    mockFetch.mockResolvedValue(
-      createMockResponse(200, [encode(text)]),
-    );
+    mockFetch.mockResolvedValue(createMockResponse(200, [encode(text)]));
 
     const onComplete = jest.fn();
     await postAssistStream({ flow_id: "f1", input_value: "" }, { onComplete });
@@ -275,9 +272,7 @@ describe("buffer handling", () => {
         sseData({ event: "complete", data: { result: "", validated: true } }),
     );
 
-    mockFetch.mockResolvedValue(
-      createMockResponse(200, [chunk1, chunk2]),
-    );
+    mockFetch.mockResolvedValue(createMockResponse(200, [chunk1, chunk2]));
 
     const onToken = jest.fn();
     await postAssistStream({ flow_id: "f1", input_value: "" }, { onToken });
@@ -288,9 +283,7 @@ describe("buffer handling", () => {
   it("should process remaining buffer after stream ends", async () => {
     // Last line with no trailing newline
     const text = `data: ${JSON.stringify({ event: "complete", data: { result: "end", validated: true } })}`;
-    mockFetch.mockResolvedValue(
-      createMockResponse(200, [encode(text)]),
-    );
+    mockFetch.mockResolvedValue(createMockResponse(200, [encode(text)]));
 
     const onComplete = jest.fn();
     await postAssistStream({ flow_id: "f1", input_value: "" }, { onComplete });
@@ -345,7 +338,10 @@ describe("error responses", () => {
 
   it("should not throw when callbacks are empty", async () => {
     mockFetch.mockResolvedValue(
-      createSSEResponse({ event: "complete", data: { result: "", validated: true } }),
+      createSSEResponse({
+        event: "complete",
+        data: { result: "", validated: true },
+      }),
     );
 
     // No callbacks at all — should not throw
@@ -361,14 +357,18 @@ describe("bugs and edge cases", () => {
     async () => {
       // SSE spec: "data:" is valid without trailing space.
       // L33: line.startsWith("data: ") requires space — "data:{json}" is silently dropped.
-      const json = JSON.stringify({ event: "complete", data: { result: "", validated: true } });
+      const json = JSON.stringify({
+        event: "complete",
+        data: { result: "", validated: true },
+      });
       const text = `data:${json}\n\n`;
-      mockFetch.mockResolvedValue(
-        createMockResponse(200, [encode(text)]),
-      );
+      mockFetch.mockResolvedValue(createMockResponse(200, [encode(text)]));
 
       const onComplete = jest.fn();
-      await postAssistStream({ flow_id: "f1", input_value: "" }, { onComplete });
+      await postAssistStream(
+        { flow_id: "f1", input_value: "" },
+        { onComplete },
+      );
 
       expect(onComplete).toHaveBeenCalledTimes(1);
     },
@@ -381,19 +381,16 @@ describe("bugs and edge cases", () => {
       // A well-typed object that doesn't match any event type is accepted silently.
       const fakeEvent = { event: "unknown_type", foo: "bar" };
       const text = `data: ${JSON.stringify(fakeEvent)}\n\ndata: ${JSON.stringify({ event: "complete", data: { result: "", validated: true } })}\n\n`;
-      mockFetch.mockResolvedValue(
-        createMockResponse(200, [encode(text)]),
-      );
+      mockFetch.mockResolvedValue(createMockResponse(200, [encode(text)]));
 
       const onError = jest.fn();
-      await postAssistStream(
-        { flow_id: "f1", input_value: "" },
-        { onError },
-      );
+      await postAssistStream({ flow_id: "f1", input_value: "" }, { onError });
 
       // Should have reported an error for the unknown event type
       expect(onError).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining("unknown") }),
+        expect.objectContaining({
+          message: expect.stringContaining("unknown"),
+        }),
       );
     },
   );
@@ -412,7 +409,10 @@ describe("bugs and edge cases", () => {
           .mockResolvedValueOnce({
             done: false,
             value: encode(
-              sseData({ event: "complete", data: { result: "", validated: true } }),
+              sseData({
+                event: "complete",
+                data: { result: "", validated: true },
+              }),
             ),
           })
           .mockResolvedValue({ done: true, value: undefined }),
