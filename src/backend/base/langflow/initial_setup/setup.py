@@ -62,10 +62,9 @@ from langflow.services.deps import (
 
 def update_projects_components_with_latest_component_versions(project_data, all_types_dict):
     # Flatten the all_types_dict for easy access
-    all_types_dict_flat = {}
-    for category in all_types_dict.values():
-        for key, component in category.items():
-            all_types_dict_flat[key] = component
+    all_types_dict_flat = {
+        key: component for category in all_types_dict.values() for key, component in category.items()
+    }
 
     # Legacy type aliases: maps old flow node type names to current all_types_dict keys.
     # PromptComponent was renamed from "Prompt" to "Prompt Template" but starter projects
