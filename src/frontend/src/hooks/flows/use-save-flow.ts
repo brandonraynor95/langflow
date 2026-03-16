@@ -123,6 +123,7 @@ const useSaveFlow = () => {
                 },
               },
             );
+          }
         } else {
           setErrorData({
             title: "Failed to save flow",
