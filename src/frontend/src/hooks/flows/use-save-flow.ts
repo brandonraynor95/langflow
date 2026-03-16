@@ -123,9 +123,6 @@ const useSaveFlow = () => {
                 },
               },
             );
-          } else {
-            setSaveLoading(false);
-          }
         } else {
           setErrorData({
             title: "Failed to save flow",

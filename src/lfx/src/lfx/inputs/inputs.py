@@ -38,6 +38,7 @@ from .input_mixin import (
 class TableInput(BaseInputMixin, MetadataTraceMixin, TableMixin, ListableInputMixin, ToolModeMixin):
     field_type: SerializableFieldTypes = FieldTypes.TABLE
     is_list: bool = True
+    input_types: list[str] = ["DataFrame", "Table"]
 
     @field_validator("value")
     @classmethod
@@ -102,18 +103,34 @@ class ToolsInput(BaseInputMixin, ListableInputMixin, MetadataTraceMixin, ToolMod
     real_time_refresh: bool = True
 
 
-class DataInput(HandleInput, InputTraceMixin, ListableInputMixin, ToolModeMixin):
-    """Represents an Input that has a Handle that receives a Data object.
+class JSONInput(HandleInput, InputTraceMixin, ListableInputMixin, ToolModeMixin):
+    """Represents an Input that has a Handle that receives a JSON object.
+
+    This is the new standard input for Langflow data structures.
+    DataInput is maintained as an alias for backwards compatibility.
 
     Attributes:
-        input_types (list[str]): A list of input types supported by this data input.
+        input_types (list[str]): A list of input types supported by this JSON input.
     """
 
-    input_types: list[str] = ["Data"]
+    input_types: list[str] = ["Data", "JSON"]
+
+
+# DataInput is maintained for backwards compatibility - it is now an alias to JSONInput
+DataInput = JSONInput
 
 
 class DataFrameInput(HandleInput, InputTraceMixin, ListableInputMixin, ToolModeMixin):
-    input_types: list[str] = ["DataFrame"]
+    """Represents an Input that has a Handle that receives a Table (DataFrame) object.
+
+    Note: This accepts DataFrame and Table types. For visual table inputs in the UI,
+    use TableInput instead (which has field_type: FieldTypes.TABLE).
+
+    Attributes:
+        input_types (list[str]): A list of input types supported by this input.
+    """
+
+    input_types: list[str] = ["DataFrame", "Table"]
 
 
 class PromptInput(BaseInputMixin, ListableInputMixin, InputTraceMixin, ToolModeMixin):
@@ -479,12 +496,32 @@ class IntInput(BaseInputMixin, ListableInputMixin, RangeMixin, MetadataTraceMixi
         Raises:
             ValueError: If the value is not of a valid type or if the input is missing a required key.
         """
-        if v and not isinstance(v, int | float):
-            msg = f"Invalid value type {type(v)} for input {info.data.get('name')}."
-            raise ValueError(msg)
+        if isinstance(v, int):
+            return v
         if isinstance(v, float):
-            v = int(v)
-        return v
+            return int(v)
+        if isinstance(v, Message):
+            v = v.text
+        elif isinstance(v, Data):
+            v = v.data.get(v.text_key, "")
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return 0
+            try:
+                return int(v)
+            except ValueError:
+                pass
+            try:
+                return int(float(v))
+            except ValueError:
+                input_name = info.data.get("name", "unknown")
+                msg = f"Could not convert '{v}' to integer for input {input_name}."
+                raise ValueError(msg) from None
+        if not v:
+            return 0
+        msg = f"Invalid value type {type(v)} for input {info.data.get('name')}."
+        raise ValueError(msg)
 
 
 class FloatInput(BaseInputMixin, ListableInputMixin, RangeMixin, MetadataTraceMixin, ToolModeMixin):
@@ -515,12 +552,28 @@ class FloatInput(BaseInputMixin, ListableInputMixin, RangeMixin, MetadataTraceMi
         Raises:
             ValueError: If the value is not of a valid type or if the input is missing a required key.
         """
-        if v and not isinstance(v, int | float):
-            msg = f"Invalid value type {type(v)} for input {info.data.get('name')}."
-            raise ValueError(msg)
+        if isinstance(v, float):
+            return v
         if isinstance(v, int):
-            v = float(v)
-        return v
+            return float(v)
+        if isinstance(v, Message):
+            v = v.text
+        elif isinstance(v, Data):
+            v = v.data.get(v.text_key, "")
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return 0.0
+            try:
+                return float(v)
+            except ValueError:
+                input_name = info.data.get("name", "unknown")
+                msg = f"Could not convert '{v}' to float for input {input_name}."
+                raise ValueError(msg) from None
+        if not v:
+            return 0.0
+        msg = f"Invalid value type {type(v)} for input {info.data.get('name')}."
+        raise ValueError(msg)
 
 
 class BoolInput(BaseInputMixin, ListableInputMixin, MetadataTraceMixin, ToolModeMixin):
@@ -558,6 +611,35 @@ class NestedDictInput(
 
     field_type: SerializableFieldTypes = FieldTypes.NESTED_DICT
     value: dict | None = {}
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def validate_value(cls, v: Any, info):
+        if v is None or isinstance(v, dict):
+            return v
+        if isinstance(v, Message):
+            v = v.text
+        elif isinstance(v, Data):
+            v = v.data.get(v.text_key, "")
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return {}
+            import json
+
+            try:
+                parsed = json.loads(v)
+            except json.JSONDecodeError as e:
+                input_name = info.data.get("name", "unknown")
+                msg = f"Could not parse JSON string for input {input_name}: {e}"
+                raise ValueError(msg) from None
+            if not isinstance(parsed, dict):
+                input_name = info.data.get("name", "unknown")
+                msg = f"Expected a JSON object for input {input_name}, got {type(parsed).__name__}."
+                raise TypeError(msg)
+            return parsed
+        msg = f"Invalid value type {type(v)} for input {info.data.get('name')}."
+        raise TypeError(msg)
 
 
 class DictInput(BaseInputMixin, ListableInputMixin, InputTraceMixin, ToolModeMixin):
@@ -783,6 +865,7 @@ InputTypes: TypeAlias = (
     | QueryInput
     | DefaultPromptField
     | BoolInput
+    | JSONInput
     | DataInput
     | DictInput
     | DropdownInput
@@ -814,6 +897,9 @@ InputTypes: TypeAlias = (
 )
 
 InputTypesMap: dict[str, type[InputTypes]] = {t.__name__: t for t in get_args(InputTypes)}
+# DataInput is an alias for JSONInput, so its __name__ is "JSONInput".
+# Add explicit entry so serialized configs using "DataInput" still deserialize correctly.
+InputTypesMap["DataInput"] = JSONInput
 
 
 def instantiate_input(input_type: str, data: dict) -> InputTypes:

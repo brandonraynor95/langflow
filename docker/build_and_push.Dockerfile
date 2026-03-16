@@ -51,7 +51,7 @@ COPY ./src/lfx/pyproject.toml /app/src/lfx/pyproject.toml
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     RUSTFLAGS='--cfg reqwest_unstable' \
-    uv sync --frozen --no-install-project --no-editable --extra postgresql
+    uv sync --frozen --no-install-project --no-editable --extra postgresql --no-group dev
 
 COPY ./src /app/src
 
@@ -67,7 +67,7 @@ WORKDIR /app
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     RUSTFLAGS='--cfg reqwest_unstable' \
-    uv sync --frozen --no-editable --extra postgresql
+    uv sync --frozen --no-editable --extra postgresql --no-group dev
 
 ################################
 # RUNTIME
@@ -81,6 +81,8 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y curl git libpq5 gnupg xz-utils \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
+COPY --from=builder /usr/local/bin/uvx /usr/local/bin/uvx
 RUN ARCH=$(dpkg --print-architecture) \
     && if [ "$ARCH" = "amd64" ]; then NODE_ARCH="x64"; \
        elif [ "$ARCH" = "arm64" ]; then NODE_ARCH="arm64"; \
