@@ -28,7 +28,7 @@ from langflow.api.utils import (
     parse_exception,
     verify_public_flow_and_get_user,
 )
-from langflow.api.utils.flow_validation import check_flow_and_raise
+from langflow.api.utils.flow_validation import validate_flow_custom_components
 from langflow.api.v1.schemas import (
     CancelFlowResponse,
     FlowDataRequest,
@@ -38,14 +38,12 @@ from langflow.api.v1.schemas import (
     VerticesOrderResponse,
 )
 from langflow.exceptions.component import ComponentBuildError
-from langflow.interface.components import component_cache
 from langflow.services.auth.utils import get_current_active_user
 from langflow.services.chat.service import ChatService
 from langflow.services.database.models.flow.model import Flow
 from langflow.services.deps import (
     get_chat_service,
     get_queue_service,
-    get_settings_service,
     get_telemetry_service,
     session_scope,
 )
@@ -91,20 +89,13 @@ async def retrieve_vertices_order(
     """
     chat_service = get_chat_service()
     telemetry_service = get_telemetry_service()
-    settings_service = get_settings_service()
     start_time = time.perf_counter()
     components_count = None
     run_id = str(uuid.uuid4())
     try:
-        allow_custom = settings_service.settings.allow_custom_components
-        hash_dict = component_cache.type_to_current_hash
         try:
             if data:
-                check_flow_and_raise(
-                    data.model_dump(),
-                    allow_custom_components=allow_custom,
-                    type_to_current_hash=hash_dict,
-                )
+                validate_flow_custom_components(data.model_dump())
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -114,9 +105,7 @@ async def retrieve_vertices_order(
             flow = await session.get(Flow, flow_id)
             if flow and flow.data:
                 try:
-                    check_flow_and_raise(
-                        flow.data, allow_custom_components=allow_custom, type_to_current_hash=hash_dict
-                    )
+                    validate_flow_custom_components(flow.data)
                 except ValueError as exc:
                     raise HTTPException(status_code=400, detail=str(exc)) from exc
             graph = await build_graph_from_db(flow_id=flow_id, session=session, chat_service=chat_service)
@@ -204,16 +193,11 @@ async def build_flow(
         if not flow:
             raise HTTPException(status_code=404, detail=f"Flow with id {flow_id} not found")
 
-    settings_service = get_settings_service()
-    allow_custom = settings_service.settings.allow_custom_components
-    hash_dict = component_cache.type_to_current_hash
     try:
         if data:
-            check_flow_and_raise(
-                data.model_dump(), allow_custom_components=allow_custom, type_to_current_hash=hash_dict
-            )
+            validate_flow_custom_components(data.model_dump())
         if flow and flow.data:
-            check_flow_and_raise(flow.data, allow_custom_components=allow_custom, type_to_current_hash=hash_dict)
+            validate_flow_custom_components(flow.data)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -345,16 +329,11 @@ async def build_vertex(
             await logger.awarning(f"No cache found for {flow_id_str}. Building graph starting at {vertex_id}")
 
             # Validate the DB flow before building (don't execute unvalidated code)
-            settings_service = get_settings_service()
             async with session_scope() as session:
                 flow = await session.get(Flow, flow_id)
                 if flow and flow.data:
                     try:
-                        check_flow_and_raise(
-                            flow.data,
-                            allow_custom_components=settings_service.settings.allow_custom_components,
-                            type_to_current_hash=component_cache.type_to_current_hash,
-                        )
+                        validate_flow_custom_components(flow.data)
                     except ValueError as exc:
                         raise HTTPException(status_code=400, detail=str(exc)) from exc
                 graph = await build_graph_from_db(
@@ -682,21 +661,12 @@ async def build_public_tmp(
         Dict with job_id that can be used to poll for build status
     """
     try:
-        settings_service = get_settings_service()
-        allow_custom = settings_service.settings.allow_custom_components
-        hash_dict = component_cache.type_to_current_hash
-        if data:
-            check_flow_and_raise(
-                data.model_dump(),
-                allow_custom_components=allow_custom,
-                type_to_current_hash=hash_dict,
-            )
-
-        # Also validate the stored flow data (don't execute unvalidated code from DB)
+        # Validate the stored flow data (don't execute unvalidated code from DB)
+        # Note: public flows don't accept client-side data — always load from DB.
         async with session_scope() as session:
             flow = await session.get(Flow, flow_id)
             if flow and flow.data:
-                check_flow_and_raise(flow.data, allow_custom_components=allow_custom, type_to_current_hash=hash_dict)
+                validate_flow_custom_components(flow.data)
 
         # Verify this is a public flow and get the associated user
         client_id = request.cookies.get("client_id")

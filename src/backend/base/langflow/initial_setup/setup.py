@@ -37,6 +37,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from langflow.initial_setup.constants import (
     ASSISTANT_FOLDER_DESCRIPTION,
     ASSISTANT_FOLDER_NAME,
+    LEGACY_TYPE_ALIASES,
     STARTER_FOLDER_DESCRIPTION,
     STARTER_FOLDER_NAME,
 )
@@ -69,11 +70,7 @@ def update_projects_components_with_latest_component_versions(project_data, all_
     # Legacy type aliases: maps old flow node type names to current all_types_dict keys.
     # PromptComponent was renamed from "Prompt" to "Prompt Template" but starter projects
     # still reference the old "Prompt" type. Add aliases so those nodes get their code updated.
-    # SYNC: Keep in sync with api/utils/flow_validation.py and frontend reactflowUtils.ts
-    _LEGACY_TYPE_ALIASES = {
-        "Prompt": "Prompt Template",
-    }
-    for old_name, new_name in _LEGACY_TYPE_ALIASES.items():
+    for old_name, new_name in LEGACY_TYPE_ALIASES.items():
         if old_name not in all_types_dict_flat and new_name in all_types_dict_flat:
             all_types_dict_flat[old_name] = all_types_dict_flat[new_name]
 

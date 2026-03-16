@@ -602,13 +602,6 @@ async def _determine_loading_strategy(settings_service: "SettingsService") -> di
     return component_cache.all_types_dict or {}
 
 
-# Legacy type aliases: maps old flow node type names to current component keys.
-# SYNC: Keep in sync with backend flow_validation.py and frontend reactflowUtils.ts
-_LEGACY_TYPE_ALIASES: dict[str, str] = {
-    "Prompt": "Prompt Template",
-}
-
-
 def _build_code_hash_lookups(cache: ComponentCache) -> None:
     """Populate type_to_current_hash and all_known_hashes from all_types_dict.
 
@@ -634,7 +627,9 @@ def _build_code_hash_lookups(cache: ComponentCache) -> None:
                 all_hashes.add(code_hash)
 
     # Add legacy aliases so old flow node types resolve correctly
-    for old_name, new_name in _LEGACY_TYPE_ALIASES.items():
+    from langflow.initial_setup.constants import LEGACY_TYPE_ALIASES
+
+    for old_name, new_name in LEGACY_TYPE_ALIASES.items():
         if old_name not in type_to_hash and new_name in type_to_hash:
             type_to_hash[old_name] = type_to_hash[new_name]
 

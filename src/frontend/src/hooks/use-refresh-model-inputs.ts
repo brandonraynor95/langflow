@@ -6,13 +6,16 @@ import useAlertStore from "@/stores/alertStore";
 import useFlowStore from "@/stores/flowStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import { useUtilityStore } from "@/stores/utilityStore";
-import { useTypesStore } from "@/stores/typesStore";
 import type {
   APIClassType,
   APITemplateType,
   ModelOptionType,
 } from "@/types/api";
 import type { AllNodeType } from "@/types/flow";
+import {
+  isCustomComponentBlockError,
+  isNodeOutdated,
+} from "@/utils/customComponentGuards";
 
 export interface RefreshOptions {
   silent?: boolean;
@@ -224,24 +227,11 @@ async function refreshSingleNode(
   // (the old code would be rejected by the backend with 403)
   const allowCustomComponents =
     useUtilityStore.getState().allowCustomComponents;
-  if (!allowCustomComponents) {
-    // Check componentsToUpdate (fast path)
-    const componentsToUpdate = useFlowStore.getState().componentsToUpdate;
-    const isOutdated = componentsToUpdate.some(
-      (c) => c.id === node.id && c.outdated && !c.userEdited,
-    );
-    if (isOutdated) return;
-
-    // Also check code directly against templates (covers race where
-    // componentsToUpdate hasn't been populated yet due to templates loading)
-    const nodeType = node.data?.type;
-    if (nodeType) {
-      const templates = useTypesStore.getState().templates;
-      const serverCode = templates[nodeType]?.template?.code?.value;
-      if (serverCode && serverCode !== nodeData.template.code?.value) {
-        return;
-      }
-    }
+  if (
+    !allowCustomComponents &&
+    isNodeOutdated(node.id, nodeData.template.code?.value)
+  ) {
+    return;
   }
 
   const currentModelValue = nodeData.template[modelFieldKey]?.value;
@@ -268,14 +258,8 @@ async function refreshSingleNode(
     } catch (e: any) {
       // Suppress 403 specifically from custom component blocking — fallback
       // for race conditions where guards above couldn't detect the outdated
-      // state. Only suppress if the detail confirms it's a custom component
-      // block, not an unrelated auth/permission 403.
-      if (
-        !allowCustomComponents &&
-        e?.response?.status === 403 &&
-        typeof e?.response?.data?.detail === "string" &&
-        e.response.data.detail.includes("Custom component")
-      ) {
+      // state.
+      if (!allowCustomComponents && isCustomComponentBlockError(e)) {
         console.warn(
           `Suppressed 403 for outdated component (node ${node.id}):`,
           e.response.data.detail,

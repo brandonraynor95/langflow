@@ -1,16 +1,19 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import useFlowStore from "@/stores/flowStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
+import { useUtilityStore } from "@/stores/utilityStore";
 import type {
   APIClassType,
   ResponseErrorDetailAPI,
   useMutationFunctionType,
 } from "@/types/api";
+import {
+  isCustomComponentBlockError,
+  isNodeOutdated,
+} from "@/utils/customComponentGuards";
 import { api } from "../../api";
 import { getURL } from "../../helpers/constants";
 import { UseRequestProcessor } from "../../services/request-processor";
-import { useUtilityStore } from "@/stores/utilityStore";
-import { useTypesStore } from "@/stores/typesStore";
 
 interface IPostTemplateValue {
   value: any;
@@ -54,24 +57,11 @@ export const usePostTemplateValue: useMutationFunctionType<
     const allowCustomComponents =
       useUtilityStore.getState().allowCustomComponents;
 
-    if (!allowCustomComponents) {
-      // Check componentsToUpdate first (fast path)
-      const componentsToUpdate = useFlowStore.getState().componentsToUpdate;
-      const isOutdated = componentsToUpdate.some(
-        (c) => c.id === nodeId && c.outdated && !c.userEdited,
-      );
-      if (isOutdated) return undefined;
-
-      // Also check code directly against templates (covers race where
-      // componentsToUpdate hasn't been populated yet due to templates loading)
-      const nodeType = useFlowStore.getState().getNode(nodeId)?.data?.type;
-      if (nodeType) {
-        const templates = useTypesStore.getState().templates;
-        const serverCode = templates[nodeType]?.template?.code?.value;
-        if (serverCode && serverCode !== template.code?.value) {
-          return undefined;
-        }
-      }
+    if (
+      !allowCustomComponents &&
+      isNodeOutdated(nodeId, template.code?.value)
+    ) {
+      return undefined;
     }
 
     const preparedTemplate = {
@@ -97,14 +87,8 @@ export const usePostTemplateValue: useMutationFunctionType<
     } catch (e: any) {
       // Suppress 403 specifically from custom component blocking — fallback
       // for race conditions where the guards above couldn't detect the
-      // outdated state in time. Only suppress if the detail confirms it's
-      // a custom component block, not an unrelated auth/permission 403.
-      if (
-        !allowCustomComponents &&
-        e?.response?.status === 403 &&
-        typeof e?.response?.data?.detail === "string" &&
-        e.response.data.detail.includes("Custom component")
-      ) {
+      // outdated state in time.
+      if (!allowCustomComponents && isCustomComponentBlockError(e)) {
         console.warn(
           `Suppressed 403 for outdated component (node ${nodeId}):`,
           e.response.data.detail,

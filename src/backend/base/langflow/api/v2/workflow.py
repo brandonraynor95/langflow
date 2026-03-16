@@ -45,7 +45,7 @@ from pydantic_core import ValidationError as PydanticValidationError
 from sqlalchemy.exc import OperationalError
 
 from langflow.api.utils import extract_global_variables_from_headers
-from langflow.api.utils.flow_validation import check_flow_and_raise
+from langflow.api.utils.flow_validation import validate_flow_custom_components
 from langflow.api.v1.schemas import RunResponse
 from langflow.api.v2.converters import (
     create_error_response,
@@ -61,7 +61,6 @@ from langflow.exceptions.api import (
     WorkflowValidationError,
 )
 from langflow.helpers.flow import get_flow_by_id_or_endpoint_name
-from langflow.interface.components import component_cache
 from langflow.processing.process import process_tweaks, run_graph_internal
 from langflow.services.auth.utils import api_key_security
 from langflow.services.database.models.flow.model import FlowRead
@@ -349,13 +348,8 @@ async def execute_sync_workflow(
         msg = f"Flow {flow.id} has no data. The flow may be corrupted."
         raise WorkflowValidationError(msg)
 
-    settings = get_settings_service().settings
     try:
-        check_flow_and_raise(
-            flow.data,
-            allow_custom_components=settings.allow_custom_components,
-            type_to_current_hash=component_cache.type_to_current_hash,
-        )
+        validate_flow_custom_components(flow.data)
     except ValueError as exc:
         raise WorkflowValidationError(str(exc)) from exc
 
@@ -450,13 +444,8 @@ async def execute_workflow_background(
             msg = f"Flow {flow.id} has no data"
             raise ValueError(msg)
 
-        settings = get_settings_service().settings
         try:
-            check_flow_and_raise(
-                flow.data,
-                allow_custom_components=settings.allow_custom_components,
-                type_to_current_hash=component_cache.type_to_current_hash,
-            )
+            validate_flow_custom_components(flow.data)
         except ValueError as exc:
             raise WorkflowValidationError(str(exc)) from exc
 

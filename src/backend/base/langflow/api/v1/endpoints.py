@@ -28,7 +28,10 @@ from lfx.services.settings.service import SettingsService
 from sqlmodel import select
 
 from langflow.api.utils import CurrentActiveUser, DbSession, extract_global_variables_from_headers, parse_value
-from langflow.api.utils.flow_validation import check_flow_and_raise, code_hash_matches_any_template
+from langflow.api.utils.flow_validation import (
+    code_hash_matches_any_template,
+    validate_flow_custom_components,
+)
 from langflow.api.v1.schemas import (
     ConfigResponse,
     CustomComponentRequest,
@@ -450,13 +453,8 @@ async def _run_flow_internal(
     if flow is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flow not found")
 
-    settings_service = get_settings_service()
     try:
-        check_flow_and_raise(
-            flow.data,
-            allow_custom_components=settings_service.settings.allow_custom_components,
-            type_to_current_hash=component_cache.type_to_current_hash,
-        )
+        validate_flow_custom_components(flow.data)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -766,13 +764,8 @@ async def webhook_run_flow(
     await logger.adebug("Received webhook request")
     error_msg = ""
 
-    settings_service = get_settings_service()
     try:
-        check_flow_and_raise(
-            flow.data,
-            allow_custom_components=settings_service.settings.allow_custom_components,
-            type_to_current_hash=component_cache.type_to_current_hash,
-        )
+        validate_flow_custom_components(flow.data)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -898,13 +891,8 @@ async def experimental_run_flow(
     # Get the flow from the id or name
     await check_flow_user_permission(flow=flow, api_key_user=api_key_user)
 
-    settings_service = get_settings_service()
     try:
-        check_flow_and_raise(
-            flow.data,
-            allow_custom_components=settings_service.settings.allow_custom_components,
-            type_to_current_hash=component_cache.type_to_current_hash,
-        )
+        validate_flow_custom_components(flow.data)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
