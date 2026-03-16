@@ -53,6 +53,10 @@ def _get_invalid_components(
         node_code = node_code_field.get("value") if isinstance(node_code_field, dict) else None
 
         if not node_code:
+            # Nodes without code are skipped (e.g., note nodes, group wrappers).
+            # All executable Langflow components have a code field; if a node's
+            # code field is missing or empty, it cannot execute custom Python.
+            # Non-dict code fields (malformed JSON) are also treated as missing.
             continue
 
         display_name = node_info.get("display_name") or component_type

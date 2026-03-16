@@ -342,3 +342,146 @@ class TestEndpointValidationCoverage:
         assert "code_hash_matches_any_template" in source, (
             "custom_component_update must verify code hash against known templates"
         )
+
+
+class TestBuildCodeHashLookups:
+    """Tests for _build_code_hash_lookups in lfx.interface.components."""
+
+    def test_populates_hash_lookups_from_all_types_dict(self):
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        cache.all_types_dict = {
+            "models": {
+                "ChatInput": {
+                    "metadata": {"code_hash": "abc123def456"},
+                    "template": {"code": {"value": "code"}},
+                },
+                "ChatOutput": {
+                    "metadata": {"code_hash": "789012ghijkl"},
+                    "template": {"code": {"value": "code2"}},
+                },
+            }
+        }
+        _build_code_hash_lookups(cache)
+
+        assert cache.type_to_current_hash is not None
+        assert cache.type_to_current_hash["ChatInput"] == "abc123def456"
+        assert cache.type_to_current_hash["ChatOutput"] == "789012ghijkl"
+        assert cache.all_known_hashes == {"abc123def456", "789012ghijkl"}
+
+    def test_skips_components_without_metadata(self):
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        cache.all_types_dict = {
+            "models": {
+                "NoMeta": {"template": {"code": {"value": "code"}}},
+                "WithMeta": {"metadata": {"code_hash": "hash123hash1"}, "template": {}},
+            }
+        }
+        _build_code_hash_lookups(cache)
+
+        assert cache.type_to_current_hash is not None
+        assert "NoMeta" not in cache.type_to_current_hash
+        assert cache.type_to_current_hash["WithMeta"] == "hash123hash1"
+
+    def test_skips_components_without_code_hash(self):
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        cache.all_types_dict = {
+            "models": {
+                "NoHash": {"metadata": {}, "template": {}},
+            }
+        }
+        _build_code_hash_lookups(cache)
+
+        assert cache.type_to_current_hash is not None
+        assert "NoHash" not in cache.type_to_current_hash
+
+    def test_empty_all_types_dict_is_noop(self):
+        """Empty dict is falsy, so _build_code_hash_lookups treats it the same as None."""
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        cache.all_types_dict = {}
+        _build_code_hash_lookups(cache)
+
+        # Empty dict is falsy — early return, no change
+        assert cache.type_to_current_hash is None
+        assert cache.all_known_hashes is None
+
+    def test_dict_with_empty_category_produces_empty_lookups(self):
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        cache.all_types_dict = {"models": {}}
+        _build_code_hash_lookups(cache)
+
+        assert cache.type_to_current_hash == {}
+        assert cache.all_known_hashes == set()
+
+    def test_none_all_types_dict_is_noop(self):
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        assert cache.type_to_current_hash is None
+        _build_code_hash_lookups(cache)
+        # Should remain None — no-op when all_types_dict is None
+        assert cache.type_to_current_hash is None
+
+    def test_legacy_alias_added(self):
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        cache.all_types_dict = {
+            "models_and_agents": {
+                "Prompt Template": {
+                    "metadata": {"code_hash": "prompthash12"},
+                    "template": {},
+                },
+            }
+        }
+        _build_code_hash_lookups(cache)
+
+        assert cache.type_to_current_hash is not None
+        assert cache.type_to_current_hash["Prompt Template"] == "prompthash12"
+        assert cache.type_to_current_hash["Prompt"] == "prompthash12"
+
+    def test_legacy_alias_does_not_overwrite_direct_key(self):
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        cache.all_types_dict = {
+            "category": {
+                "Prompt": {
+                    "metadata": {"code_hash": "directhash12"},
+                    "template": {},
+                },
+                "Prompt Template": {
+                    "metadata": {"code_hash": "renamedhash1"},
+                    "template": {},
+                },
+            }
+        }
+        _build_code_hash_lookups(cache)
+
+        assert cache.type_to_current_hash is not None
+        assert cache.type_to_current_hash["Prompt"] == "directhash12"
+        assert cache.type_to_current_hash["Prompt Template"] == "renamedhash1"
+
+    def test_non_dict_values_in_all_types_dict_skipped(self):
+        from lfx.interface.components import ComponentCache, _build_code_hash_lookups
+
+        cache = ComponentCache()
+        cache.all_types_dict = {
+            "models": {
+                "Good": {"metadata": {"code_hash": "goodhash1234"}, "template": {}},
+            },
+            "not_a_dict": "some string",
+        }
+        _build_code_hash_lookups(cache)
+
+        assert cache.type_to_current_hash is not None
+        assert cache.type_to_current_hash["Good"] == "goodhash1234"

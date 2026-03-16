@@ -250,9 +250,20 @@ async function refreshSingleNode(
         },
       );
     } catch (e: any) {
-      // Suppress 403 from outdated component code — fallback for race
-      // conditions where guards above couldn't detect the outdated state.
-      if (!allowCustomComponents && e?.response?.status === 403) {
+      // Suppress 403 specifically from custom component blocking — fallback
+      // for race conditions where guards above couldn't detect the outdated
+      // state. Only suppress if the detail confirms it's a custom component
+      // block, not an unrelated auth/permission 403.
+      if (
+        !allowCustomComponents &&
+        e?.response?.status === 403 &&
+        typeof e?.response?.data?.detail === "string" &&
+        e.response.data.detail.includes("Custom component")
+      ) {
+        console.warn(
+          `Suppressed 403 for outdated component (node ${node.id}):`,
+          e.response.data.detail,
+        );
         return;
       }
       throw e;

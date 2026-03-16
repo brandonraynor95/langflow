@@ -97,7 +97,7 @@ async def retrieve_vertices_order(
     run_id = str(uuid.uuid4())
     try:
         allow_custom = settings_service.settings.allow_custom_components
-        hash_dict = component_cache.type_to_current_hash or None
+        hash_dict = component_cache.type_to_current_hash
         try:
             if data:
                 check_flow_and_raise(
@@ -206,7 +206,7 @@ async def build_flow(
 
     settings_service = get_settings_service()
     allow_custom = settings_service.settings.allow_custom_components
-    hash_dict = component_cache.type_to_current_hash or None
+    hash_dict = component_cache.type_to_current_hash
     try:
         if data:
             check_flow_and_raise(
@@ -353,7 +353,7 @@ async def build_vertex(
                         check_flow_and_raise(
                             flow.data,
                             allow_custom_components=settings_service.settings.allow_custom_components,
-                            type_to_current_hash=component_cache.type_to_current_hash or None,
+                            type_to_current_hash=component_cache.type_to_current_hash,
                         )
                     except ValueError as exc:
                         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -365,6 +365,9 @@ async def build_vertex(
             run_id = str(uuid.uuid4())
             graph.set_run_id(run_id)
         else:
+            # SECURITY: cache hit — retrieve_vertices_order already validated this
+            # flow before caching. If that invariant changes, validation must be
+            # added here too.
             graph = cache.get("result")
             await graph.initialize_run()
             run_id = graph.run_id
@@ -677,7 +680,7 @@ async def build_public_tmp(
     try:
         settings_service = get_settings_service()
         allow_custom = settings_service.settings.allow_custom_components
-        hash_dict = component_cache.type_to_current_hash or None
+        hash_dict = component_cache.type_to_current_hash
         if data:
             check_flow_and_raise(
                 data.model_dump(),

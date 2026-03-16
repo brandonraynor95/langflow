@@ -272,9 +272,10 @@ async def handle_call_tool(
                     check_flow_and_raise(
                         flow.data,
                         allow_custom_components=settings_service.settings.allow_custom_components,
-                        type_to_current_hash=component_cache.type_to_current_hash or None,
+                        type_to_current_hash=component_cache.type_to_current_hash,
                     )
                 except ValueError as exc:
+                    logger.warning(f"MCP tool call blocked for flow {flow.id}: {exc!s}")
                     collected_results.append(types.TextContent(type="text", text=f"Flow build blocked: {exc!s}"))
                     return collected_results
 

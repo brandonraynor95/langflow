@@ -353,7 +353,7 @@ async def execute_sync_workflow(
         check_flow_and_raise(
             flow.data,
             allow_custom_components=settings.allow_custom_components,
-            type_to_current_hash=component_cache.type_to_current_hash or None,
+            type_to_current_hash=component_cache.type_to_current_hash,
         )
     except ValueError as exc:
         raise WorkflowValidationError(str(exc)) from exc
@@ -454,7 +454,7 @@ async def execute_workflow_background(
             check_flow_and_raise(
                 flow.data,
                 allow_custom_components=settings.allow_custom_components,
-                type_to_current_hash=component_cache.type_to_current_hash or None,
+                type_to_current_hash=component_cache.type_to_current_hash,
             )
         except ValueError as exc:
             raise WorkflowValidationError(str(exc)) from exc

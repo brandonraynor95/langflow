@@ -455,7 +455,7 @@ async def _run_flow_internal(
         check_flow_and_raise(
             flow.data,
             allow_custom_components=settings_service.settings.allow_custom_components,
-            type_to_current_hash=component_cache.type_to_current_hash or None,
+            type_to_current_hash=component_cache.type_to_current_hash,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -771,7 +771,7 @@ async def webhook_run_flow(
         check_flow_and_raise(
             flow.data,
             allow_custom_components=settings_service.settings.allow_custom_components,
-            type_to_current_hash=component_cache.type_to_current_hash or None,
+            type_to_current_hash=component_cache.type_to_current_hash,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -903,7 +903,7 @@ async def experimental_run_flow(
         check_flow_and_raise(
             flow.data,
             allow_custom_components=settings_service.settings.allow_custom_components,
-            type_to_current_hash=component_cache.type_to_current_hash or None,
+            type_to_current_hash=component_cache.type_to_current_hash,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

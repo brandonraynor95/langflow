@@ -91,11 +91,24 @@ export async function waitForNodeUpdates(
   timeoutMs: number = 10_000,
 ): Promise<void> {
   if (pendingNodeUpdates.size === 0) return;
+  const pendingIds = [...pendingNodeUpdates.keys()];
   const promises = Array.from(pendingNodeUpdates.values()).map((e) => e.promise);
+  let timedOut = false;
   await Promise.race([
     Promise.all(promises),
-    new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+    new Promise<void>((resolve) =>
+      setTimeout(() => {
+        timedOut = true;
+        resolve();
+      }, timeoutMs),
+    ),
   ]);
+  if (timedOut) {
+    console.warn(
+      `waitForNodeUpdates timed out after ${timeoutMs}ms. ` +
+        `${pendingNodeUpdates.size} updates still pending: ${pendingIds.join(", ")}`,
+    );
+  }
 }
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -807,9 +820,13 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
     if (get().saveFlow) {
       try {
         await get().saveFlow!();
-      } catch {
+      } catch (e) {
         // Save failure shouldn't block the build — the backend will
         // validate the DB data and report its own error if needed.
+        console.warn(
+          "Flow save failed before build, proceeding with potentially stale data:",
+          e,
+        );
       }
     }
 

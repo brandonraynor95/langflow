@@ -96,10 +96,20 @@ export const usePostTemplateValue: useMutationFunctionType<
         },
       );
     } catch (e: any) {
-      // Suppress 403 from outdated component code when custom components
-      // are disabled — this is a fallback for race conditions where the
-      // guards above couldn't detect the outdated state in time.
-      if (!allowCustomComponents && e?.response?.status === 403) {
+      // Suppress 403 specifically from custom component blocking — fallback
+      // for race conditions where the guards above couldn't detect the
+      // outdated state in time. Only suppress if the detail confirms it's
+      // a custom component block, not an unrelated auth/permission 403.
+      if (
+        !allowCustomComponents &&
+        e?.response?.status === 403 &&
+        typeof e?.response?.data?.detail === "string" &&
+        e.response.data.detail.includes("Custom component")
+      ) {
+        console.warn(
+          `Suppressed 403 for outdated component (node ${nodeId}):`,
+          e.response.data.detail,
+        );
         return undefined;
       }
       throw e;

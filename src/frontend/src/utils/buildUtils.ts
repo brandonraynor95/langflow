@@ -338,8 +338,8 @@ export async function buildFlowVertices({
         if (errorData.detail) {
           errorDetail = errorData.detail;
         }
-      } catch {
-        // If we can't parse the response body, use the default message
+      } catch (parseError) {
+        console.debug("Could not parse error response body:", parseError);
       }
       throw new Error(errorDetail);
     }
