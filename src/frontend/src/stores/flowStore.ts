@@ -902,11 +902,10 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
         // Current workaround: Don't show "outdated components" message when the actual
         // error is about blocked custom components (security restrictions), as this would
         // be misleading - the issue is permissions, not component versions.
-        const isCustomComponentError = list.some(
-          (error) =>
-            error.includes("is not allowed") ||
-            error.includes("Custom Component"),
-        );
+        const errorText = [title, ...list].join(" ").toLowerCase();
+        const isCustomComponentError =
+          errorText.includes("not allowed") ||
+          errorText.includes("custom component");
 
         // Only show "outdated components" message if:
         // 1. There are components to update

@@ -106,8 +106,12 @@ const useSaveFlow = () => {
                   }
                 },
                 onError: (e: any) => {
-                  const errorDetail =
+                  const rawDetail =
                     e.response?.data?.detail || e.message || "Unknown error";
+                  const errorDetail =
+                    typeof rawDetail === "string"
+                      ? rawDetail
+                      : JSON.stringify(rawDetail);
                   setErrorData({
                     title: "Failed to save flow",
                     list: [errorDetail],

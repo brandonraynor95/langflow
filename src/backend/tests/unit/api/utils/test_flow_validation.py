@@ -510,6 +510,54 @@ class TestCustomComponentNotAllowedErrorPropagation:
         with pytest.raises(CustomComponentNotAllowedError):
             _simulate_agentic_handler(nodes)
 
+    def test_error_not_swallowed_by_mcp_call_tool_pattern(self):
+        """CustomComponentNotAllowedError should NOT be caught by the MCP tool execution handler.
+
+        The MCP handle_call_tool has a broad `except Exception` that converts errors to text
+        results. CustomComponentNotAllowedError must be re-raised before that handler.
+        """
+        from lfx.custom.hash_validator import validate_flow_nodes
+
+        nodes = [_make_node("n1", "CustomComponent", CUSTOM_CODE)]
+
+        def _simulate_mcp_handler(nodes):
+            collected_results = []
+            try:
+                validate_flow_nodes(nodes)
+            except CustomComponentNotAllowedError:
+                raise
+            except Exception as e:
+                collected_results.append(f"Error: {e!s}")
+            return collected_results
+
+        with pytest.raises(CustomComponentNotAllowedError):
+            _simulate_mcp_handler(nodes)
+
+    def test_error_handled_by_openai_responses_pattern(self):
+        """CustomComponentNotAllowedError should be caught separately in OpenAI responses.
+
+        The OpenAI responses create_response endpoint catches CustomComponentNotAllowedError
+        before the generic Exception handler, returning a proper invalid_request_error.
+        """
+        from lfx.custom.hash_validator import validate_flow_nodes
+
+        nodes = [_make_node("n1", "CustomComponent", CUSTOM_CODE)]
+
+        def _simulate_openai_handler(nodes):
+            try:
+                validate_flow_nodes(nodes)
+            except CustomComponentNotAllowedError as exc:
+                return {"error": {"type": "invalid_request_error", "message": str(exc)}}
+            except Exception as exc:
+                return {"error": {"type": "processing_error", "message": str(exc)}}
+            else:
+                return {"result": "ok"}
+
+        result = _simulate_openai_handler(nodes)
+        assert "error" in result
+        assert result["error"]["type"] == "invalid_request_error"
+        assert "not allowed" in result["error"]["message"].lower()
+
     def test_error_message_contains_component_names(self):
         """CustomComponentNotAllowedError message should include blocked component names."""
         blocked = [

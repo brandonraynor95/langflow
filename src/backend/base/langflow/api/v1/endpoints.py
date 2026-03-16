@@ -284,6 +284,24 @@ async def simple_run_flow_task(
             )
         return result  # noqa: TRY300
 
+    except CustomComponentNotAllowedError as exc:
+        await logger.awarning(f"Custom component blocked in webhook flow {flow.id}: {exc}")
+
+        if should_emit and flow_id is not None:
+            await webhook_event_manager.emit(flow_id, "end", {"run_id": run_id, "success": False, "error": str(exc)})
+
+        if telemetry_service and start_time is not None:
+            await telemetry_service.log_package_run(
+                RunPayload(
+                    run_is_webhook=True,
+                    run_seconds=int(time.perf_counter() - start_time),
+                    run_success=False,
+                    run_error_message=str(exc),
+                    run_id=run_id,
+                )
+            )
+        return None
+
     except Exception as exc:  # noqa: BLE001
         await logger.aexception(f"Error running flow {flow.id} task")
 
@@ -382,6 +400,9 @@ async def run_flow_generator(
         )
         event_manager.on_end(data={"result": result.model_dump()})
         await client_consumed_queue.get()
+    except CustomComponentNotAllowedError as e:
+        await logger.aerror(f"Custom component blocked during streaming flow: {e}")
+        event_manager.on_error(data={"error": str(e)})
     except (ValueError, InvalidChatInputError, SerializationError) as e:
         await logger.aerror(f"Error running flow: {e}")
         event_manager.on_error(data={"error": str(e)})

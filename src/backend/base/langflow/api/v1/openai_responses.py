@@ -7,6 +7,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from lfx.exceptions.component import CustomComponentNotAllowedError
 from lfx.log.logger import logger
 from lfx.schema.openai_responses_schemas import create_openai_error
 
@@ -386,6 +387,14 @@ async def run_flow_for_openai_responses(
                     len(previous_content),
                 )
 
+            except CustomComponentNotAllowedError as e:
+                logger.warning(f"Custom component blocked in OpenAI stream: {e}")
+                error_response = create_openai_error(
+                    message=str(e),
+                    type_="invalid_request_error",
+                    code="custom_components_blocked",
+                )
+                yield f"data: {json.dumps(error_response)}\n\n"
             except Exception as e:  # noqa: BLE001
                 logger.error(f"Error in stream generator: {e}")
                 error_response = create_openai_error(
@@ -601,6 +610,25 @@ async def create_response(
                     run_id=None,  # OpenAI endpoint doesn't use simple_run_flow
                 ),
             )
+
+    except CustomComponentNotAllowedError as exc:
+        logger.warning(f"Custom component blocked in OpenAI Responses request: {exc}")
+        background_tasks.add_task(
+            telemetry_service.log_package_run,
+            RunPayload(
+                run_is_webhook=False,
+                run_seconds=int(time.perf_counter() - start_time),
+                run_success=False,
+                run_error_message=str(exc),
+                run_id=None,
+            ),
+        )
+        error_response = create_openai_error(
+            message=str(exc),
+            type_="invalid_request_error",
+            code="custom_components_blocked",
+        )
+        return OpenAIErrorResponse(error=error_response["error"])
 
     except Exception as exc:  # noqa: BLE001
         logger.error(f"Error processing OpenAI Responses request: {exc}")

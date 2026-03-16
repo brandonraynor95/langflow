@@ -635,10 +635,10 @@ async def build_public_tmp(
             queue_service=queue_service,
             flow_name=flow_name or f"{client_id}_{flow_id}",
         )
+    except (HTTPException, CustomComponentNotAllowedError):
+        raise
     except Exception as exc:
         await logger.aexception("Error building public flow")
-        if isinstance(exc, HTTPException):
-            raise
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     if event_delivery != EventDeliveryType.DIRECT:
         return {"job_id": job_id}

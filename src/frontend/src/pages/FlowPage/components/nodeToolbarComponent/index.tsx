@@ -252,7 +252,7 @@ const NodeToolbarComponent = memo(
         return;
       }
       setOpenModal((state) => !state);
-    }, [hasCode, allowCustomComponents, data.id]);
+    }, [hasCode, allowCustomComponents, data.id, data.node?.display_name]);
 
     const saveComponent = useCallback(() => {
       if (isSaved) {

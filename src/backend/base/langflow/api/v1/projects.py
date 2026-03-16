@@ -27,6 +27,7 @@ from langflow.api.v1.mcp_projects import (
     get_project_streamable_http_url,
     register_project_with_composer,
 )
+from langflow.api.utils.flow_validation import require_flows_custom_components_valid
 from langflow.api.v1.schemas import FlowListCreate
 from langflow.api.v2.mcp import update_server
 from langflow.helpers.flow import generate_unique_flow_name
@@ -650,6 +651,12 @@ async def upload_file(
     if not data:
         raise HTTPException(status_code=400, detail="No flows found in the file")
 
+    if "flows" not in data:
+        raise HTTPException(status_code=400, detail="No flows found in the data")
+
+    # Validate custom components in all flows BEFORE creating DB records (raises 403 if blocked)
+    require_flows_custom_components_valid(data["flows"])
+
     project_name = await generate_unique_folder_name(data["folder_name"], current_user.id, session)
 
     data["folder_name"] = project_name
@@ -677,15 +684,7 @@ async def upload_file(
     del data["folder_name"]
     del data["folder_description"]
 
-    if "flows" in data:
-        flow_list = FlowListCreate(flows=[FlowCreate(**flow) for flow in data["flows"]])
-    else:
-        raise HTTPException(status_code=400, detail="No flows found in the data")
-
-    # Validate custom components in all flows (raises 403 if blocked)
-    from langflow.api.utils.flow_validation import require_flows_custom_components_valid
-
-    require_flows_custom_components_valid(data["flows"])
+    flow_list = FlowListCreate(flows=[FlowCreate(**flow) for flow in data["flows"]])
 
     # Now we set the user_id for all flows
     for flow in flow_list.flows:

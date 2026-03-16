@@ -15,6 +15,7 @@ from uuid import uuid4
 
 from lfx.base.mcp.constants import MAX_MCP_TOOL_NAME_LENGTH
 from lfx.base.mcp.util import get_flow_snake_case, get_unique_name, sanitize_mcp_name
+from lfx.exceptions.component import CustomComponentNotAllowedError
 from lfx.log.logger import logger
 from lfx.utils.helpers import build_content_type_from_extension
 from mcp import types
@@ -292,6 +293,8 @@ async def handle_call_tool(
                                     add_result(value.get_text())
                                 else:
                                     add_result(str(value))
+                except CustomComponentNotAllowedError:
+                    raise
                 except Exception as e:  # noqa: BLE001
                     error_msg = f"Error Executing the {flow.name} tool. Error: {e!s}"
                     collected_results.append(types.TextContent(type="text", text=error_msg))

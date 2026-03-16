@@ -318,7 +318,12 @@ export async function buildFlowVertices({
       });
     }
   } catch (e) {
-    console.error(e);
+    // Re-throw all errors so buildFlowVerticesWithFallback can decide
+    // whether to retry with polling or propagate to the caller.
+    // Without this, 403 (blocked custom components) and other server
+    // errors are silently swallowed and the two-step build is attempted
+    // unnecessarily, producing confusing double-failure behavior.
+    throw e;
   }
 
   try {
