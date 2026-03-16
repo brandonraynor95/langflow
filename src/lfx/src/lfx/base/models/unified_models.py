@@ -19,10 +19,19 @@ from lfx.base.models.google_generative_ai_constants import (
     GOOGLE_GENERATIVE_AI_EMBEDDING_MODELS_DETAILED,
     GOOGLE_GENERATIVE_AI_MODELS_DETAILED,
 )
-from lfx.base.models.model_metadata import MODEL_PROVIDER_METADATA, get_provider_param_mapping
+from lfx.base.models.model_metadata import (
+    MODEL_PROVIDER_METADATA,
+    get_provider_param_mapping,
+)
 from lfx.base.models.model_utils import _to_str, replace_with_live_models
-from lfx.base.models.ollama_constants import OLLAMA_EMBEDDING_MODELS_DETAILED, OLLAMA_MODELS_DETAILED
-from lfx.base.models.openai_constants import OPENAI_EMBEDDING_MODELS_DETAILED, OPENAI_MODELS_DETAILED
+from lfx.base.models.ollama_constants import (
+    OLLAMA_EMBEDDING_MODELS_DETAILED,
+    OLLAMA_MODELS_DETAILED,
+)
+from lfx.base.models.openai_constants import (
+    OPENAI_EMBEDDING_MODELS_DETAILED,
+    OPENAI_MODELS_DETAILED,
+)
 from lfx.base.models.watsonx_constants import WATSONX_MODELS_DETAILED
 from lfx.log.logger import logger
 from lfx.services.deps import get_variable_service, session_scope
@@ -45,7 +54,11 @@ _MODEL_CLASS_IMPORTS: dict[str, tuple[str, str, str | None]] = {
 
 _EMBEDDING_CLASS_IMPORTS: dict[str, tuple[str, str, str | None]] = {
     "OpenAIEmbeddings": ("langchain_openai", "OpenAIEmbeddings", None),
-    "GoogleGenerativeAIEmbeddings": ("langchain_google_genai", "GoogleGenerativeAIEmbeddings", None),
+    "GoogleGenerativeAIEmbeddings": (
+        "langchain_google_genai",
+        "GoogleGenerativeAIEmbeddings",
+        None,
+    ),
     "OllamaEmbeddings": ("langchain_ollama", "OllamaEmbeddings", None),
     "WatsonxEmbeddings": ("langchain_ibm", "WatsonxEmbeddings", None),
 }
@@ -499,7 +512,7 @@ def get_api_key_for_provider(user_id: UUID | str | None, provider: str, api_key:
                         return None
                     try:
                         return await variable_service.get_variable(
-                            user_id=UUID(user_id) if isinstance(user_id, str) else user_id,
+                            user_id=(UUID(user_id) if isinstance(user_id, str) else user_id),
                             name=var_name,
                             field="",
                             session=session,
@@ -860,7 +873,12 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
         logger.error(f"Error getting unified models for provider {provider}: {e}")
 
     # For providers that need a model to test credentials
-    if not first_model and provider in ["OpenAI", "Anthropic", "Google Generative AI", "IBM WatsonX"]:
+    if not first_model and provider in [
+        "OpenAI",
+        "Anthropic",
+        "Google Generative AI",
+        "IBM WatsonX",
+    ]:
         return
 
     try:
@@ -900,7 +918,11 @@ def validate_model_provider_key(provider: str, variables: dict[str, str], model_
             if not api_key or not project_id:
                 return
             llm = ChatWatsonx(
-                apikey=api_key, url=url, model_id=first_model, project_id=project_id, params={"max_new_tokens": 1}
+                apikey=api_key,
+                url=url,
+                model_id=first_model,
+                project_id=project_id,
+                params={"max_new_tokens": 1},
             )
             llm.invoke("test")
 
@@ -1101,7 +1123,9 @@ def get_language_model_options(
     return options
 
 
-def get_embedding_model_options(user_id: UUID | str | None = None) -> list[dict[str, Any]]:
+def get_embedding_model_options(
+    user_id: UUID | str | None = None,
+) -> list[dict[str, Any]]:
     """Return a list of available embedding model providers with their configuration.
 
     This function uses get_unified_models_detailed() which respects the enabled/disabled
@@ -1132,7 +1156,13 @@ def get_embedding_model_options(user_id: UUID | str | None = None) -> list[dict[
 
     # Replace static defaults with actual available models from configured instances
     if enabled_providers:
-        replace_with_live_models(all_models, user_id, enabled_providers, "embeddings", model_provider_metadata)
+        replace_with_live_models(
+            all_models,
+            user_id,
+            enabled_providers,
+            "embeddings",
+            model_provider_metadata,
+        )
 
     options = []
 
@@ -1241,7 +1271,9 @@ def get_embedding_model_options(user_id: UUID | str | None = None) -> list[dict[
     return options
 
 
-def normalize_model_names_to_dicts(model_names: list[str] | str) -> list[dict[str, Any]]:
+def normalize_model_names_to_dicts(
+    model_names: list[str] | str,
+) -> list[dict[str, Any]]:
     """Convert simple model name(s) to list of dicts format.
 
     Args:
@@ -1251,9 +1283,6 @@ def normalize_model_names_to_dicts(model_names: list[str] | str) -> list[dict[st
         A list of dicts with full model metadata including runtime info
 
     Examples:
-        >>> normalize_model_names_to_dicts('gpt-4o')
-        [{'name': 'gpt-4o', 'provider': 'OpenAI', 'metadata': {'model_class': 'ChatOpenAI', ...}}]
-
         >>> normalize_model_names_to_dicts(['gpt-4o', 'claude-3'])
         [{'name': 'gpt-4o', ...}, {'name': 'claude-3', ...}]
     """
@@ -1835,7 +1864,9 @@ def update_model_options_in_build_config(
                         variable_service = get_variable_service()
                         if variable_service is None:
                             return None, None
-                        from langflow.services.variable.service import DatabaseVariableService
+                        from langflow.services.variable.service import (
+                            DatabaseVariableService,
+                        )
 
                         if not isinstance(variable_service, DatabaseVariableService):
                             return None, None
@@ -1849,9 +1880,9 @@ def update_model_options_in_build_config(
 
                         try:
                             var = await variable_service.get_variable_object(
-                                user_id=UUID(component.user_id)
-                                if isinstance(component.user_id, str)
-                                else component.user_id,
+                                user_id=(
+                                    UUID(component.user_id) if isinstance(component.user_id, str) else component.user_id
+                                ),
                                 name=var_name,
                                 session=session,
                             )
