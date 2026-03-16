@@ -4,7 +4,7 @@ Tests that DEFAULT_MAX_TOKENS is applied correctly when max_tokens
 is None, 0, empty string, or invalid in the get_llm function.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -56,7 +56,7 @@ class TestDefaultMaxTokensConstant:
 class TestGetLlmMaxTokens:
     """Tests that get_llm applies DEFAULT_MAX_TOKENS correctly."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def _mock_dependencies(self):
         """Mock external dependencies for get_llm."""
         with (
