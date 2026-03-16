@@ -2,6 +2,7 @@ import { memo } from "react";
 
 import { ForwardedIconComponent } from "@/components/common/genericIconComponent";
 import ShadTooltip from "@/components/common/shadTooltipComponent";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Disclosure,
@@ -22,6 +23,8 @@ export const SidebarHeaderComponent = memo(function SidebarHeaderComponent({
   setShowBeta,
   showLegacy,
   setShowLegacy,
+  cloudOnly,
+  setCloudOnly,
   searchInputRef,
   isInputFocused,
   search,
@@ -66,6 +69,8 @@ export const SidebarHeaderComponent = memo(function SidebarHeaderComponent({
               setShowBeta={setShowBeta}
               showLegacy={showLegacy}
               setShowLegacy={setShowLegacy}
+              cloudOnly={cloudOnly}
+              setCloudOnly={setCloudOnly}
             />
           </DisclosureContent>
         </Disclosure>
@@ -85,6 +90,20 @@ export const SidebarHeaderComponent = memo(function SidebarHeaderComponent({
           resetFilters={resetFilters}
         />
       )}
+      {cloudOnly && (
+        <div className="flex items-center gap-1.5 px-3 pb-1">
+          <Badge
+            variant="emerald"
+            size="xq"
+            className="cursor-pointer gap-1"
+            onClick={() => setShowConfig(!showConfig)}
+            data-testid="cloud-mode-indicator"
+          >
+            <ForwardedIconComponent name="Cloud" className="h-3 w-3" />
+            Cloud Mode
+          </Badge>
+        </div>
+      )}
       {ENABLE_NEW_SIDEBAR && (
         <Disclosure open={showConfig} onOpenChange={setShowConfig}>
           <DisclosureContent>
@@ -93,6 +112,8 @@ export const SidebarHeaderComponent = memo(function SidebarHeaderComponent({
               setShowBeta={setShowBeta}
               showLegacy={showLegacy}
               setShowLegacy={setShowLegacy}
+              cloudOnly={cloudOnly}
+              setCloudOnly={setCloudOnly}
             />
           </DisclosureContent>
         </Disclosure>

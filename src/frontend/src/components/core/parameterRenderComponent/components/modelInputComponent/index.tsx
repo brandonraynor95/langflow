@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import LoadingTextComponent from "@/components/common/loadingTextComponent";
+import { CLOUD_INCOMPATIBLE_PROVIDERS } from "@/constants/cloud-incompatible-providers";
 import { useGetEnabledModels } from "@/controllers/API/queries/models/use-get-enabled-models";
 import { useGetModelProviders } from "@/controllers/API/queries/models/use-get-model-providers";
 import { usePostTemplateValue } from "@/controllers/API/queries/nodes/use-post-template-value";
 import { useRefreshModelInputs } from "@/hooks/use-refresh-model-inputs";
 import ModelProviderModal from "@/modals/modelProviderModal";
 import useAlertStore from "@/stores/alertStore";
+import { useCloudModeStore } from "@/stores/cloudModeStore";
 import type { APIClassType } from "@/types/api";
 import ForwardedIconComponent from "../../../../common/genericIconComponent";
 import { Button } from "../../../../ui/button";
@@ -81,13 +83,21 @@ export default function ModelInputComponent({
     );
   }, [providersData]);
 
+  const cloudOnly = useCloudModeStore((state) => state.cloudOnly);
+
   // Groups models by their provider name for sectioned display in dropdown.
-  // Filters out models from disabled providers AND disabled models.
+  // Filters out models from disabled providers, disabled models,
+  // and cloud-incompatible providers when cloud mode is active.
   const groupedOptions = useMemo(() => {
     const grouped: Record<string, ModelOption[]> = {};
     for (const option of options) {
       if (option.metadata?.is_disabled_provider) continue;
       const provider = option.provider || "Unknown";
+
+      // Filter out cloud-incompatible providers when cloud mode is active
+      if (cloudOnly && CLOUD_INCOMPATIBLE_PROVIDERS.has(provider)) {
+        continue;
+      }
 
       // Filter out disabled models using client-side enabled models data
       // This provides a reliable fallback when backend filtering fails
@@ -101,7 +111,7 @@ export default function ModelInputComponent({
       (grouped[provider] ??= []).push(option);
     }
     return grouped;
-  }, [options, enabledModelsData]);
+  }, [options, enabledModelsData, cloudOnly]);
 
   // Flattened array of all enabled options for efficient lookups by name
   const flatOptions = useMemo(

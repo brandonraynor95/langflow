@@ -5,6 +5,7 @@ import SliderComponent from "@/components/core/parameterRenderComponent/componen
 import TableNodeComponent from "@/components/core/parameterRenderComponent/components/TableNodeComponent";
 import TabComponent from "@/components/core/parameterRenderComponent/components/tabComponent";
 import { TEXT_FIELD_TYPES } from "@/constants/constants";
+import { useCloudModeStore } from "@/stores/cloudModeStore";
 import CustomConnectionComponent from "@/customization/components/custom-connectionComponent";
 import CustomInputFileComponent from "@/customization/components/custom-input-file";
 import CustomLinkComponent from "@/customization/components/custom-linkComponent";
@@ -61,7 +62,8 @@ export function ParameterRenderComponent({
   isToolMode?: boolean;
   nodeInformationMetadata?: NodeInfoType;
 }) {
-  // no-op
+  const cloudOnly = useCloudModeStore((state) => state.cloudOnly);
+
   const id = (
     templateData.type +
     "_" +
@@ -267,18 +269,30 @@ export function ParameterRenderComponent({
             id={`slider_${id}`}
           />
         );
-      case "sortableList":
+      case "sortableList": {
+        // Filter out cloud-incompatible options when cloud mode is active
+        let sortableOptions = templateData?.options;
+        if (cloudOnly && nodeClass?.metadata?.cloud_incompatible_options) {
+          const incompatible =
+            nodeClass.metadata.cloud_incompatible_options[name];
+          if (incompatible && Array.isArray(incompatible)) {
+            sortableOptions = sortableOptions?.filter(
+              (opt: any) => !incompatible.includes(opt.name ?? opt),
+            );
+          }
+        }
         return (
           <SortableListComponent
             {...baseInputProps}
             helperText={templateData?.helper_text}
             helperMetadata={templateData?.helper_text_metadata}
-            options={templateData?.options}
+            options={sortableOptions}
             searchCategory={templateData?.search_category}
             limit={templateData?.limit}
             id={`sortablelist_${id}`}
           />
         );
+      }
       case "connect": {
         const link =
           templateData?.options?.find(

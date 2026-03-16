@@ -31,12 +31,15 @@ jest.mock("@/components/ui/switch", () => ({
 describe("FeatureToggles", () => {
   const mockSetShowBeta = jest.fn();
   const mockSetShowLegacy = jest.fn();
+  const mockSetCloudOnly = jest.fn();
 
   const defaultProps = {
     showBeta: false,
     setShowBeta: mockSetShowBeta,
     showLegacy: false,
     setShowLegacy: mockSetShowLegacy,
+    cloudOnly: false,
+    setCloudOnly: mockSetCloudOnly,
   };
 
   beforeEach(() => {
@@ -78,8 +81,17 @@ describe("FeatureToggles", () => {
     it("should render correct number of toggle sections", () => {
       render(<FeatureToggles {...defaultProps} />);
 
-      const toggleSections = screen.getAllByText("Show");
-      expect(toggleSections).toHaveLength(2);
+      const badges = screen.getAllByTestId(/^badge-/);
+      expect(badges).toHaveLength(3);
+    });
+
+    it("should render Cloud toggle with correct elements", () => {
+      render(<FeatureToggles {...defaultProps} />);
+
+      expect(screen.getByTestId("badge-emerald-xq")).toHaveTextContent("Cloud");
+      expect(
+        screen.getByTestId("sidebar-cloud-only-switch"),
+      ).toBeInTheDocument();
     });
   });
 
@@ -252,6 +264,8 @@ describe("FeatureToggles", () => {
             }}
             showLegacy={legacy}
             setShowLegacy={mockSetShowLegacy}
+            cloudOnly={false}
+            setCloudOnly={mockSetCloudOnly}
           />
         );
       };
@@ -271,6 +285,57 @@ describe("FeatureToggles", () => {
     });
   });
 
+  describe("Cloud Toggle Functionality", () => {
+    it("should show Cloud switch as OFF when cloudOnly is false", () => {
+      render(<FeatureToggles {...defaultProps} />);
+
+      const cloudSwitch = screen.getByTestId("sidebar-cloud-only-switch");
+      expect(cloudSwitch).toHaveAttribute("aria-checked", "false");
+      expect(cloudSwitch).toHaveTextContent("OFF");
+    });
+
+    it("should show Cloud switch as ON when cloudOnly is true", () => {
+      const propsWithCloudOn = { ...defaultProps, cloudOnly: true };
+      render(<FeatureToggles {...propsWithCloudOn} />);
+
+      const cloudSwitch = screen.getByTestId("sidebar-cloud-only-switch");
+      expect(cloudSwitch).toHaveAttribute("aria-checked", "true");
+      expect(cloudSwitch).toHaveTextContent("ON");
+    });
+
+    it("should call setCloudOnly with true when Cloud switch is clicked while OFF", async () => {
+      const user = userEvent.setup();
+      render(<FeatureToggles {...defaultProps} />);
+
+      const cloudSwitch = screen.getByTestId("sidebar-cloud-only-switch");
+      await user.click(cloudSwitch);
+
+      expect(mockSetCloudOnly).toHaveBeenCalledWith(true);
+    });
+
+    it("should call setCloudOnly with false when Cloud switch is clicked while ON", async () => {
+      const user = userEvent.setup();
+      const propsWithCloudOn = { ...defaultProps, cloudOnly: true };
+      render(<FeatureToggles {...propsWithCloudOn} />);
+
+      const cloudSwitch = screen.getByTestId("sidebar-cloud-only-switch");
+      await user.click(cloudSwitch);
+
+      expect(mockSetCloudOnly).toHaveBeenCalledWith(false);
+    });
+
+    it("should not affect other switches when Cloud is clicked", async () => {
+      const user = userEvent.setup();
+      render(<FeatureToggles {...defaultProps} />);
+
+      const cloudSwitch = screen.getByTestId("sidebar-cloud-only-switch");
+      await user.click(cloudSwitch);
+
+      expect(mockSetShowBeta).not.toHaveBeenCalled();
+      expect(mockSetShowLegacy).not.toHaveBeenCalled();
+    });
+  });
+
   describe("Badge Configuration", () => {
     it("should render Beta badge with correct variant and size", () => {
       render(<FeatureToggles {...defaultProps} />);
@@ -287,6 +352,14 @@ describe("FeatureToggles", () => {
       expect(legacyBadge).toHaveTextContent("Legacy");
       expect(legacyBadge).toHaveClass("badge-secondaryStatic", "badge-xq");
     });
+
+    it("should render Cloud badge with correct variant and size", () => {
+      render(<FeatureToggles {...defaultProps} />);
+
+      const cloudBadge = screen.getByTestId("badge-emerald-xq");
+      expect(cloudBadge).toHaveTextContent("Cloud");
+      expect(cloudBadge).toHaveClass("badge-emerald", "badge-xq");
+    });
   });
 
   describe("Component Structure", () => {
@@ -296,6 +369,7 @@ describe("FeatureToggles", () => {
       const badges = screen.getAllByTestId(/^badge-/);
       expect(badges[0]).toHaveTextContent("Beta");
       expect(badges[1]).toHaveTextContent("Legacy");
+      expect(badges[2]).toHaveTextContent("Cloud");
     });
 
     it("should have switches with correct test IDs", () => {
@@ -303,6 +377,9 @@ describe("FeatureToggles", () => {
 
       expect(screen.getByTestId("sidebar-beta-switch")).toBeInTheDocument();
       expect(screen.getByTestId("sidebar-legacy-switch")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("sidebar-cloud-only-switch"),
+      ).toBeInTheDocument();
     });
   });
 

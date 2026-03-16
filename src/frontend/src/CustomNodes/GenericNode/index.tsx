@@ -25,6 +25,8 @@ import { classNames, cn } from "../../utils/utils";
 import { processNodeAdvancedFields } from "../helpers/process-node-advanced-fields";
 import useUpdateNodeCode from "../hooks/use-update-node-code";
 import NodeDescription from "./components/NodeDescription";
+import { useCloudModeStore } from "../../stores/cloudModeStore";
+import NodeCloudIncompatibleComponent from "./components/NodeCloudIncompatibleComponent";
 import NodeLegacyComponent from "./components/NodeLegacyComponent";
 import NodeName from "./components/NodeName";
 import NodeOutputs from "./components/NodeOutputParameter/NodeOutputs";
@@ -371,6 +373,12 @@ function GenericNode({
     [data.node?.legacy, data.node?.replacement, dismissAllLegacy],
   );
 
+  const cloudOnly = useCloudModeStore((state) => state.cloudOnly);
+  const shouldShowCloudIncompatible = useMemo(
+    () => cloudOnly && data.node?.cloud_compatible === false,
+    [cloudOnly, data.node?.cloud_compatible],
+  );
+
   const memoizedNodeToolbarComponent = useMemo(() => {
     const isRightClicked = rightClickedNodeId === data.id;
     const isSelectedSingle = selected && selectedNodesCount === 1;
@@ -516,6 +524,8 @@ function GenericNode({
             replacement={data.node?.replacement}
             setDismissAll={memoizedSetDismissAllLegacy}
           />
+        ) : shouldShowCloudIncompatible ? (
+          <NodeCloudIncompatibleComponent />
         ) : (
           <></>
         )}

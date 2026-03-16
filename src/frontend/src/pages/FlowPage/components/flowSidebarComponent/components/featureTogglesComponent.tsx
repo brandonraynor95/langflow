@@ -6,6 +6,8 @@ const FeatureToggles = ({
   setShowBeta,
   showLegacy,
   setShowLegacy,
+  cloudOnly,
+  setCloudOnly,
 }) => {
   const toggles = [
     {
@@ -14,6 +16,7 @@ const FeatureToggles = ({
       onChange: setShowBeta,
       badgeVariant: "purpleStatic" as const,
       testId: "sidebar-beta-switch",
+      prefix: "Show",
     },
     {
       label: "Legacy",
@@ -21,6 +24,15 @@ const FeatureToggles = ({
       onChange: setShowLegacy,
       badgeVariant: "secondaryStatic" as const,
       testId: "sidebar-legacy-switch",
+      prefix: "Show",
+    },
+    {
+      label: "Cloud",
+      checked: cloudOnly,
+      onChange: setCloudOnly,
+      badgeVariant: "emerald" as const,
+      testId: "sidebar-cloud-only-switch",
+      prefix: "Only",
     },
   ];
 
@@ -30,7 +42,7 @@ const FeatureToggles = ({
         <div key={toggle.label} className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="flex cursor-default gap-2 text-sm font-medium">
-              Show
+              {toggle.prefix}
               <Badge variant={toggle.badgeVariant} size="xq">
                 {toggle.label}
               </Badge>

@@ -7,6 +7,13 @@ import type { ModelOption } from "../types";
 // Mock scrollIntoView for cmdk library
 Element.prototype.scrollIntoView = jest.fn();
 
+// Mock cloud mode store
+let mockCloudOnly = false;
+jest.mock("@/stores/cloudModeStore", () => ({
+  useCloudModeStore: (selector: any) =>
+    selector({ cloudOnly: mockCloudOnly, setCloudOnly: jest.fn() }),
+}));
+
 // Mock stores
 const mockSetErrorData = jest.fn();
 jest.mock("@/stores/alertStore", () => ({
@@ -438,6 +445,63 @@ describe("ModelInputComponent", () => {
 
       // Component should render without crashing
       expect(screen.getByRole("combobox")).toBeInTheDocument();
+    });
+
+    it("should filter out cloud-incompatible providers when cloud mode is active", () => {
+      mockCloudOnly = true;
+
+      const optionsWithOllama: ModelOption[] = [
+        ...mockOptions,
+        {
+          id: "llama3",
+          name: "llama3",
+          icon: "Ollama",
+          provider: "Ollama",
+          metadata: {},
+        },
+      ];
+
+      renderWithQueryClient(
+        <ModelInputComponent {...defaultProps} options={optionsWithOllama} />,
+      );
+
+      // Ollama model should not appear in the UI when cloud mode is active
+      expect(screen.queryByText("llama3")).not.toBeInTheDocument();
+
+      mockCloudOnly = false;
+    });
+
+    it("should show all providers when cloud mode is inactive", () => {
+      mockCloudOnly = false;
+
+      const optionsWithOllama: ModelOption[] = [
+        {
+          id: "llama3",
+          name: "llama3",
+          icon: "Ollama",
+          provider: "Ollama",
+          metadata: {},
+        },
+      ];
+
+      renderWithQueryClient(
+        <ModelInputComponent
+          {...defaultProps}
+          options={optionsWithOllama}
+          value={[
+            {
+              id: "llama3",
+              name: "llama3",
+              icon: "Ollama",
+              provider: "Ollama",
+              metadata: {},
+            },
+          ]}
+        />,
+      );
+
+      // Ollama model should appear when cloud mode is off
+      expect(screen.getByText("llama3")).toBeInTheDocument();
     });
 
     it("should auto-select first model when value is empty and options exist", () => {
