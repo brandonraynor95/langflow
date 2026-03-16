@@ -4,13 +4,18 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlmodel import apaginate
-from sqlalchemy import delete
 from sqlmodel import col, select
 
 from langflow.api.utils import DbSession, custom_params
 from langflow.schema.message import MessageResponse
 from langflow.services.auth.utils import get_current_active_user
 from langflow.services.database.models.flow.model import Flow
+from langflow.services.database.models.message.crud import (
+    delete_messages_for_user,
+    delete_messages_for_user_by_session,
+    get_message_for_user,
+    get_messages_for_user_by_session,
+)
 from langflow.services.database.models.message.model import MessageRead, MessageTable, MessageUpdate
 from langflow.services.database.models.transactions.crud import transform_transaction_table_for_logs
 from langflow.services.database.models.transactions.model import TransactionLogsResponse, TransactionTable
@@ -100,9 +105,13 @@ async def get_messages(
 
 
 @router.delete("/messages", status_code=204, dependencies=[Depends(get_current_active_user)])
-async def delete_messages(message_ids: list[UUID], session: DbSession) -> None:
+async def delete_messages(
+    message_ids: list[UUID],
+    session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) -> None:
     try:
-        await session.exec(delete(MessageTable).where(MessageTable.id.in_(message_ids)))  # type: ignore[attr-defined]
+        await delete_messages_for_user(session, current_user.id, message_ids)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -112,9 +121,10 @@ async def update_message(
     message_id: UUID,
     message: MessageUpdate,
     session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     try:
-        db_message = await session.get(MessageTable, message_id)
+        db_message = await get_message_for_user(session, current_user.id, message_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -142,11 +152,10 @@ async def update_session_id(
     old_session_id: str,
     new_session_id: Annotated[str, Query(..., description="The new session ID to update to")],
     session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
 ) -> list[MessageResponse]:
     try:
-        # Get all messages with the old session ID
-        stmt = select(MessageTable).where(MessageTable.session_id == old_session_id)
-        messages = (await session.exec(stmt)).all()
+        messages = await get_messages_for_user_by_session(session, current_user.id, old_session_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -175,13 +184,10 @@ async def update_session_id(
 async def delete_messages_session(
     session_id: str,
     session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     try:
-        await session.exec(
-            delete(MessageTable)
-            .where(col(MessageTable.session_id) == session_id)
-            .execution_options(synchronize_session="fetch")
-        )
+        await delete_messages_for_user_by_session(session, current_user.id, session_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
