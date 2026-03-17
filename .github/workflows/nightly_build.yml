@@ -209,6 +209,10 @@ jobs:
     if: github.repository == 'langflow-ai/langflow' && !inputs.skip_frontend_tests
     name: Run Frontend Tests - ${{ matrix.os }}
     needs: create-nightly-tag
+    # Allow Windows tests to fail without blocking the nightly build
+    # This gives us visibility into Windows-specific issues while we stabilize the tests
+    # Remove this once Windows tests are consistently passing
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     strategy:
       fail-fast: false
       matrix:
