@@ -278,6 +278,7 @@ def handle_model_input_update(
 ) -> dict:
     """Full update_build_config lifecycle for any component with a ModelInput."""
     from lfx.base.models import unified_models as unified_models_module
+
     if get_options_func is None:
         get_options_func = unified_models_module.get_language_model_options
 

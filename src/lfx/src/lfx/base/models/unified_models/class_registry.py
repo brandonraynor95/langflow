@@ -60,6 +60,7 @@ _embedding_class_cache: dict[str, type] = {}
 # Shared helper
 # ---------------------------------------------------------------------------
 
+
 def _import_class(
     class_name: str,
     registry: dict[str, tuple[str, str, str | None]],
@@ -112,6 +113,7 @@ def _import_class(
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def get_model_class(class_name: str) -> type:
     """Import and return a single model class by name.
