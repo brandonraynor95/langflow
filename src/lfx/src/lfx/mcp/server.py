@@ -72,9 +72,11 @@ mcp = FastMCP(
         "  6. connect_components to wire outputs to inputs\n"
         "  7. run_flow to execute\n"
         "\n"
-        "Use describe_component_type to see a component's inputs, outputs, fields,\n"
-        "and advanced_fields. Outputs named 'component_as_tool' turn any component\n"
-        "into a Tool for an Agent -- just connect it to the Agent's 'tools' input."
+        "Key concepts:\n"
+        "- describe_component_type shows a type's inputs, outputs, fields, and advanced_fields\n"
+        "- Connections are type-safe: an output's types must overlap with the input's input_types\n"
+        "- Outputs named 'component_as_tool' turn any component into a Tool for an Agent\n"
+        "- search_component_types with no args returns all available types"
     ),
 )
 
@@ -135,7 +137,7 @@ async def login(username: str, password: str, server_url: str | None = None) -> 
 
 @mcp.tool()
 async def create_flow(name: str = "Untitled Flow", description: str = "") -> dict[str, Any]:
-    """Create a new empty flow. Add components and connections after creating.
+    """Create a new empty flow. Returns the flow's id, name, and description.
 
     Args:
         name: Flow name.
@@ -267,7 +269,9 @@ async def use_starter_project(starter_name: str, new_name: str | None = None) ->
 
 @mcp.tool()
 async def add_component(flow_id: str, component_type: str) -> dict[str, Any]:
-    """Add a component to a flow. Use describe_component_type first to see available types.
+    """Add a component to a flow. Returns the component's id and display_name.
+
+    Use search_component_types or describe_component_type to discover types.
 
     Args:
         flow_id: The flow UUID.
@@ -302,10 +306,12 @@ async def configure_component(
     component_id: str,
     params: dict[str, Any],
 ) -> dict[str, Any]:
-    """Set parameter values on a component. Use get_component_info to check current values first.
+    """Set parameter values on a component.
 
-    Some fields (like model_name) trigger server-side updates that may refresh
-    available options for other fields. This is handled automatically.
+    Use get_component_info to check current values, or describe_component_type
+    to see available fields. Some fields trigger server-side template updates
+    (e.g. changing model_name may update available options) -- the response
+    reflects the final state, no need to re-fetch.
 
     Args:
         flow_id: The flow UUID.
@@ -403,15 +409,16 @@ async def get_component_info(
     component_id: str,
     field_name: str | None = None,
 ) -> dict[str, Any]:
-    """Get a component's current parameter values and outputs.
+    """Get a specific component instance's current parameter values and outputs.
 
-    Sensitive fields (API keys, passwords) are redacted. Use field_name
-    to check a single field's value before changing it.
+    Unlike describe_component_type (which shows the type definition),
+    this returns the actual values set on a component in a flow.
+    Sensitive fields (API keys, passwords) are redacted.
 
     Args:
         flow_id: The flow UUID.
         component_id: The component ID.
-        field_name: Optional -- return only this field's value and metadata.
+        field_name: Optional -- return only this field's value before changing it.
     """
     flow = await _get_flow(flow_id)
     info = fb_get_component(flow, component_id)
@@ -466,7 +473,7 @@ async def search_component_types(
     category: str | None = None,
     output_type: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Find component types by name, category, or output type.
+    """Find component types by name, category, or output type. Call with no args to list all.
 
     Args:
         query: Search term to filter by name or category (case-insensitive).
@@ -479,10 +486,11 @@ async def search_component_types(
 
 @mcp.tool()
 async def describe_component_type(component_type: str) -> dict[str, Any]:
-    """Get a component type's inputs, outputs, configurable fields, and advanced fields.
+    """Get a component type's definition: inputs (connectable), outputs, fields, and advanced_fields.
 
-    Outputs named 'component_as_tool' can be connected to an Agent's 'tools'
-    input to use any component as a tool.
+    Use this to learn what a component accepts before adding it to a flow.
+    Inputs show input_types -- connect outputs whose types overlap.
+    Outputs named 'component_as_tool' turn any component into a Tool for Agents.
 
     Args:
         component_type: The component type name (e.g. "ChatInput", "OpenAIModel").
@@ -545,12 +553,14 @@ async def disconnect_components(
 ) -> dict[str, Any]:
     """Remove connections between two components.
 
+    Omit source_output and target_input to remove all connections between them.
+
     Args:
         flow_id: The flow UUID.
         source_id: Source component ID.
         target_id: Target component ID.
-        source_output: Only remove connections from this output.
-        target_input: Only remove connections to this input.
+        source_output: Only remove connections from this specific output.
+        target_input: Only remove connections to this specific input.
     """
     flow = await _get_flow(flow_id)
     removed = fb_remove_connection(flow, source_id, target_id, source_output, target_input)
