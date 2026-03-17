@@ -3,8 +3,7 @@
 import json
 from pathlib import Path
 
-from lfx.base.models.model_metadata import get_provider_param_mapping
-from lfx.base.models.unified_models import get_provider_config
+from lfx.base.models.model_metadata import MODEL_PROVIDER_METADATA, get_provider_param_mapping
 
 
 def inject_model_into_flow(
@@ -27,7 +26,10 @@ def inject_model_into_flow(
     Raises:
         ValueError: If provider is unknown
     """
-    provider_config = get_provider_config(provider)
+    provider_config = MODEL_PROVIDER_METADATA.get(provider)
+    if provider_config is None:
+        msg = f"Unknown provider: {provider}"
+        raise ValueError(msg)
     param_mapping = get_provider_param_mapping(provider)
 
     # Use provided api_key_var or default from config
