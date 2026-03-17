@@ -300,6 +300,12 @@ class TestSearchComponentTypes:
         results = await mcp_server_module.search_component_types(category="inputs")
         assert all(r["category"] == "inputs" for r in results)
 
+    async def test_search_by_output_type(self):
+        results = await mcp_server_module.search_component_types(output_type="LanguageModel")
+        assert len(results) > 0
+        types = {r["type"] for r in results}
+        assert "OpenAIModel" in types
+
 
 @pytest.mark.usefixtures("mcp_client")
 class TestDescribeComponentType:
@@ -309,9 +315,80 @@ class TestDescribeComponentType:
         assert "inputs" in info
         assert "outputs" in info
 
+    async def test_describe_advanced_fields(self):
+        info = await mcp_server_module.describe_component_type("OpenAIModel")
+        assert "advanced_fields" in info
+        assert isinstance(info["advanced_fields"], list)
+        # Advanced fields should not appear in inputs or fields
+        advanced = set(info["advanced_fields"])
+        input_names = {i["name"] for i in info.get("inputs", [])}
+        field_names = {f["name"] for f in info.get("fields", [])}
+        assert not advanced & input_names
+        assert not advanced & field_names
+
     async def test_describe_unknown_raises(self):
         with pytest.raises(ValueError, match="Unknown component"):
             await mcp_server_module.describe_component_type("TotallyFake")
+
+
+# ---------------------------------------------------------------------------
+# Flow duplication / starter projects
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.usefixtures("mcp_client")
+class TestDuplicateFlow:
+    async def test_duplicate_flow(self):
+        created = await mcp_server_module.create_flow("OriginalFlow", "desc")
+        await mcp_server_module.add_component(created["id"], "ChatInput")
+        dup = await mcp_server_module.duplicate_flow(created["id"], "TheCopy")
+        assert dup["name"] == "TheCopy"
+        assert dup["id"] != created["id"]
+        info = await mcp_server_module.get_flow_info(dup["id"])
+        assert info["node_count"] == 1
+
+
+@pytest.mark.usefixtures("mcp_client")
+class TestStarterProjects:
+    async def test_list_starter_projects(self):
+        starters = await mcp_server_module.list_starter_projects()
+        assert isinstance(starters, list)
+        assert len(starters) > 0
+        assert "name" in starters[0]
+        assert "graph" in starters[0]
+
+    async def test_use_starter_project(self):
+        starters = await mcp_server_module.list_starter_projects()
+        starter_name = starters[0]["name"]
+        result = await mcp_server_module.use_starter_project(starter_name, "MyStarter")
+        assert result["name"] == "MyStarter"
+        info = await mcp_server_module.get_flow_info(result["id"])
+        assert info["node_count"] > 0
+
+    async def test_use_starter_project_unknown_raises(self):
+        with pytest.raises(ValueError, match="not found"):
+            await mcp_server_module.use_starter_project("NonexistentStarter")
+
+
+# ---------------------------------------------------------------------------
+# Graph repr
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.usefixtures("mcp_client")
+class TestGraphRepr:
+    async def test_get_flow_info_includes_graph(self):
+        created = await mcp_server_module.create_flow("GraphTest")
+        await mcp_server_module.add_component(created["id"], "ChatInput")
+        info = await mcp_server_module.get_flow_info(created["id"])
+        assert "graph" in info
+        assert "ChatInput" in info["graph"]
+
+    async def test_list_flows_includes_graph(self):
+        await mcp_server_module.create_flow("GraphListTest")
+        flows = await mcp_server_module.list_flows(query="GraphListTest")
+        assert len(flows) >= 1
+        assert "graph" in flows[0]
 
 
 # ---------------------------------------------------------------------------
