@@ -155,7 +155,8 @@ def validate_flow_custom_components(flow_data: dict | None) -> None:
     Raises:
         ValueError: If the flow contains blocked or outdated custom components.
     """
-    from langflow.interface.components import component_cache
+    from lfx.interface.components import component_cache
+
     from langflow.services.deps import get_settings_service
 
     settings_service = get_settings_service()

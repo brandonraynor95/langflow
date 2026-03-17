@@ -22,6 +22,7 @@ from lfx.custom.utils import (
 )
 from lfx.graph.graph.base import Graph
 from lfx.graph.schema import RunOutputs
+from lfx.interface.components import component_cache
 from lfx.log.logger import logger
 from lfx.schema.schema import InputValueRequest
 from lfx.services.settings.service import SettingsService
@@ -47,7 +48,6 @@ from langflow.events.event_manager import create_stream_tokens_event_manager
 from langflow.exceptions.api import APIException, InvalidChatInputError
 from langflow.exceptions.serialization import SerializationError
 from langflow.helpers.flow import get_flow_by_id_or_endpoint_name
-from langflow.interface.components import component_cache
 from langflow.interface.initialize.loading import update_params_with_load_from_db_fields
 from langflow.processing.process import process_tweaks, run_graph_internal
 from langflow.schema.graph import Tweaks
