@@ -4,7 +4,6 @@ import StepperModal, {
 } from "@/modals/stepperModal/StepperModal";
 import { StepAttachFlows } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepAttachFlows";
 import { StepBasics } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepBasics";
-import { StepConfiguration } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepConfiguration";
 import { StepProvider } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
 import { StepReview } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepReview";
 import type { Dispatch, SetStateAction } from "react";
@@ -150,17 +149,7 @@ export const DeploymentStepperModal = ({
           flows={checkpointGroups}
         />
       )}
-
       {currentStep === 4 && (
-        <StepConfiguration
-          envVars={envVars}
-          setEnvVars={setEnvVars}
-          detectedVarCount={detectedVarCount}
-          selectedAgentName={selectedAgentName}
-        />
-      )}
-
-      {currentStep === 5 && (
         <StepReview
           deploymentType={deploymentType}
           deploymentName={deploymentName}

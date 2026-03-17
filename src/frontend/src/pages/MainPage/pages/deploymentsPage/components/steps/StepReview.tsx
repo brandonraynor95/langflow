@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import type { DeploymentType, EnvVar } from "../../constants";
 
 type SelectedItem = { name: string };
@@ -12,6 +13,24 @@ type StepReviewProps = {
   selectedAgentName?: string;
 };
 
+const MOCK_REVIEW_DATA = {
+  providerName: "watsonx Orchestrate",
+  agentName: "Best Agent",
+  description: "problem solver",
+  flows: [{ name: "Qualify Lead (v2)" }],
+};
+
+const splitFlowNameAndVersion = (value: string) => {
+  const match = value.match(/^(.*)\s+\(([^)]+)\)$/);
+  if (!match) {
+    return { flowName: value, versionLabel: "" };
+  }
+  return {
+    flowName: match[1].trim(),
+    versionLabel: match[2].trim(),
+  };
+};
+
 export const StepReview = ({
   deploymentType,
   deploymentName,
@@ -21,55 +40,75 @@ export const StepReview = ({
   providerName,
   selectedAgentName,
 }: StepReviewProps) => {
+  void deploymentType;
   void envVars;
+  const displayProviderName =
+    providerName?.trim() || MOCK_REVIEW_DATA.providerName;
+  const displayAgentName =
+    deploymentName.trim() ||
+    selectedAgentName?.trim() ||
+    MOCK_REVIEW_DATA.agentName;
+  const displayDescription =
+    deploymentDescription.trim() || MOCK_REVIEW_DATA.description;
+  const reviewItems =
+    selectedItems.length > 0 ? selectedItems : MOCK_REVIEW_DATA.flows;
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-full flex-col gap-4 rounded-lg border border-border bg-muted p-5">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-muted-foreground">Deployment Name</span>
-          <span className="text-sm font-semibold">{deploymentName || "—"}</span>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-muted-foreground">Description</span>
-          <span className="text-sm font-semibold">
-            {deploymentDescription || "—"}
+      <div className="flex flex-col gap-8 rounded-2xl border bg-muted p-5">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-normal leading-none text-muted-foreground">
+            Provider
+          </span>
+          <span className="text-base font-normal leading-none text-foreground">
+            {displayProviderName}
           </span>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-muted-foreground">Deployment Type</span>
-          <span className="text-sm font-semibold">
-            {deploymentType === "MCP" ? "MCP Server" : deploymentType}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-normal leading-none text-muted-foreground">
+            Agent Name
+          </span>
+          <span className="text-base font-normal leading-none text-foreground">
+            {displayAgentName}
           </span>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-muted-foreground">Provider</span>
-          <span className="text-sm font-semibold">{providerName || "—"}</span>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-muted-foreground">Agent</span>
-          <span className="text-sm font-semibold">
-            {selectedAgentName || "—"}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-normal leading-none text-muted-foreground">
+            Description
+          </span>
+          <span className="text-base font-normal leading-none text-foreground">
+            {displayDescription}
           </span>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-muted-foreground">Flows</span>
-          {selectedItems.length > 0 ? (
-            <ul className="flex flex-col gap-0.5">
-              {selectedItems.map(({ name }) => (
-                <li key={name} className="text-sm font-semibold">
-                  {name}
-                </li>
-              ))}
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-normal leading-none text-muted-foreground">
+            Flows ({reviewItems.length})
+          </span>
+          {reviewItems.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {reviewItems.map(({ name }) => {
+                const { flowName, versionLabel } = splitFlowNameAndVersion(name);
+                return (
+                  <li
+                    key={name}
+                    className="flex items-center justify-between rounded-xl border px-4 py-3 bg-background"
+                  >
+                    <span className="text-sm font-normal leading-none text-foreground">
+                      {flowName}
+                    </span>
+                    {versionLabel && (
+                      <Badge variant="secondary" size="sq">
+                        {versionLabel}
+                      </Badge>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
-          ) : (
-            <span className="text-sm font-semibold">—</span>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
