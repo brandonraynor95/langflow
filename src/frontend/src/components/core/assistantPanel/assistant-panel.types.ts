@@ -40,4 +40,3 @@ export interface AssistantPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
-

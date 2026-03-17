@@ -167,7 +167,9 @@ export function ModelSelector({
                         name={provider.icon || "Bot"}
                         className="h-4 w-4 shrink-0 text-primary ml-2"
                       />
-                      <div className="truncate text-[13px]">{model.model_name}</div>
+                      <div className="truncate text-[13px]">
+                        {model.model_name}
+                      </div>
                       <div className="pl-2 ml-auto">
                         <ForwardedIconComponent
                           name="Check"

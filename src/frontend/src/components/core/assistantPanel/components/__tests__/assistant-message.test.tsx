@@ -14,14 +14,16 @@ jest.mock("@/contexts/authContext", () => ({
 
 // Mock React.useContext to provide auth data
 const mockUseContext = jest.fn();
-jest.spyOn(require("react"), "useContext").mockImplementation((ctx: unknown) => {
-  // Return auth context mock for AuthContext
-  const authCtx = require("@/contexts/authContext").AuthContext;
-  if (ctx === authCtx) {
-    return { userData: { profile_image: "Space/046-rocket.svg" } };
-  }
-  return mockUseContext(ctx);
-});
+jest
+  .spyOn(require("react"), "useContext")
+  .mockImplementation((ctx: unknown) => {
+    // Return auth context mock for AuthContext
+    const authCtx = require("@/contexts/authContext").AuthContext;
+    if (ctx === authCtx) {
+      return { userData: { profile_image: "Space/046-rocket.svg" } };
+    }
+    return mockUseContext(ctx);
+  });
 
 jest.mock("@/customization/config-constants", () => ({
   BASE_URL_API: "http://localhost:7860/api/v1/",
@@ -54,9 +56,7 @@ jest.mock("../assistant-validation-failed", () => ({
     result,
   }: {
     result: { validationError?: string };
-  }) => (
-    <div data-testid="validation-failed">{result.validationError}</div>
-  ),
+  }) => <div data-testid="validation-failed">{result.validationError}</div>,
 }));
 
 jest.mock("../../helpers/messages", () => ({
@@ -172,7 +172,7 @@ describe("AssistantMessageItem", () => {
       const message = createMessage({
         role: "assistant",
         content:
-          '```python\nfrom langflow.custom import Component\n\nclass MyComponent(Component):\n    pass\n```',
+          "```python\nfrom langflow.custom import Component\n\nclass MyComponent(Component):\n    pass\n```",
         status: "streaming",
         progress: {
           step: "generating",
@@ -231,12 +231,7 @@ describe("AssistantMessageItem", () => {
         },
       });
 
-      render(
-        <AssistantMessageItem
-          message={message}
-          onApprove={jest.fn()}
-        />,
-      );
+      render(<AssistantMessageItem message={message} onApprove={jest.fn()} />);
 
       expect(screen.getByTestId("component-result")).toBeInTheDocument();
       expect(screen.getByText("MyComponent")).toBeInTheDocument();

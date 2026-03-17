@@ -10,10 +10,7 @@ import { AssistantHeader } from "./components/assistant-header";
 import { AssistantInput } from "./components/assistant-input";
 import { AssistantMessageItem } from "./components/assistant-message";
 import { AssistantNoModelsState } from "./components/assistant-no-models-state";
-import {
-  useAssistantChat,
-  useEnabledModels,
-} from "./hooks";
+import { useAssistantChat, useEnabledModels } from "./hooks";
 
 const PANEL_SIZE_KEY = "langflow-assistant-panel-size";
 const DEFAULT_SIZE = { width: 620, height: 600 };
@@ -83,8 +80,16 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
       if (panelRef.current && panelRef.current.contains(target)) return;
       // Don't close if clicking inside a dropdown portal, popover, or dialog
       const el = e.target as HTMLElement;
-      if (el.closest?.("[role='menu']") || el.closest?.("[data-radix-popper-content-wrapper]")) return;
-      if (el.closest?.("[role='dialog']") || el.closest?.("[data-radix-dialog-overlay]")) return;
+      if (
+        el.closest?.("[role='menu']") ||
+        el.closest?.("[data-radix-popper-content-wrapper]")
+      )
+        return;
+      if (
+        el.closest?.("[role='dialog']") ||
+        el.closest?.("[data-radix-dialog-overlay]")
+      )
+        return;
       // Don't close if any panel dropdown or dialog is currently open (portals render outside panelRef)
       if (document.querySelector("[data-radix-popper-content-wrapper]")) return;
       if (document.querySelector("[role='dialog']")) return;
@@ -96,7 +101,8 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
     };
 
     document.addEventListener("pointerdown", handleClickOutside, true);
-    return () => document.removeEventListener("pointerdown", handleClickOutside, true);
+    return () =>
+      document.removeEventListener("pointerdown", handleClickOutside, true);
   }, [isOpen, onClose]);
   const {
     messages,

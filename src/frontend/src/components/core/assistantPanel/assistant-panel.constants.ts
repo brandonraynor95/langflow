@@ -15,7 +15,9 @@ export const ASSISTANT_PLACEHOLDERS = [
 ];
 
 export function getAssistantPlaceholder(): string {
-  return ASSISTANT_PLACEHOLDERS[Math.floor(Math.random() * ASSISTANT_PLACEHOLDERS.length)];
+  return ASSISTANT_PLACEHOLDERS[
+    Math.floor(Math.random() * ASSISTANT_PLACEHOLDERS.length)
+  ];
 }
 
 export const ASSISTANT_WELCOME_TEXT = "Here's how I can help";

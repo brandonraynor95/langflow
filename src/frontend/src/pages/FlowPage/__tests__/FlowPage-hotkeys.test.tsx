@@ -35,9 +35,9 @@ describe("FlowPage assistant hotkeys", () => {
 
       setAssistantOpen(!assistantOpen);
 
-      expect(
-        useAssistantManagerStore.getState().assistantSidebarOpen,
-      ).toBe(true);
+      expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(
+        true,
+      );
     });
 
     it("should close assistant when currently open", () => {
@@ -50,9 +50,9 @@ describe("FlowPage assistant hotkeys", () => {
 
       setAssistantOpen(!assistantOpen);
 
-      expect(
-        useAssistantManagerStore.getState().assistantSidebarOpen,
-      ).toBe(false);
+      expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(
+        false,
+      );
     });
   });
 
@@ -63,14 +63,12 @@ describe("FlowPage assistant hotkeys", () => {
       const assistantOpen =
         useAssistantManagerStore.getState().assistantSidebarOpen;
       if (assistantOpen) {
-        useAssistantManagerStore
-          .getState()
-          .setAssistantSidebarOpen(false);
+        useAssistantManagerStore.getState().setAssistantSidebarOpen(false);
       }
 
-      expect(
-        useAssistantManagerStore.getState().assistantSidebarOpen,
-      ).toBe(false);
+      expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(
+        false,
+      );
     });
 
     it("should not change state when assistant is already closed", () => {
@@ -79,14 +77,12 @@ describe("FlowPage assistant hotkeys", () => {
       const assistantOpen =
         useAssistantManagerStore.getState().assistantSidebarOpen;
       if (assistantOpen) {
-        useAssistantManagerStore
-          .getState()
-          .setAssistantSidebarOpen(false);
+        useAssistantManagerStore.getState().setAssistantSidebarOpen(false);
       }
 
-      expect(
-        useAssistantManagerStore.getState().assistantSidebarOpen,
-      ).toBe(false);
+      expect(useAssistantManagerStore.getState().assistantSidebarOpen).toBe(
+        false,
+      );
     });
   });
 
