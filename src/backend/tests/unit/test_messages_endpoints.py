@@ -4,8 +4,6 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
-from sqlmodel import select
-
 from langflow.memory import aadd_messagetables
 
 # Assuming you have these imports available
@@ -14,6 +12,7 @@ from langflow.services.database.models.message import MessageCreate, MessageRead
 from langflow.services.database.models.message.model import MessageTable
 from langflow.services.database.models.user.model import User, UserRead
 from langflow.services.deps import get_auth_service, session_scope
+from sqlmodel import select
 
 
 @pytest.fixture
@@ -340,9 +339,7 @@ async def test_delete_messages_cannot_delete_other_users_messages(
     other_ids = [str(msg.id) for msg in messages_owned_by_other_user]
 
     # user A tries to delete user B's messages — must return 403
-    response = await client.request(
-        "DELETE", "api/v1/monitor/messages", json=other_ids, headers=logged_in_headers
-    )
+    response = await client.request("DELETE", "api/v1/monitor/messages", json=other_ids, headers=logged_in_headers)
     assert response.status_code == 403
 
     # user B's messages must still exist
@@ -394,9 +391,7 @@ async def test_delete_messages_session_cannot_delete_other_users_session(
     session_id = "other_session"
 
     # user A tries to wipe user B's session — must return 403
-    response = await client.delete(
-        f"api/v1/monitor/messages/session/{session_id}", headers=logged_in_headers
-    )
+    response = await client.delete(f"api/v1/monitor/messages/session/{session_id}", headers=logged_in_headers)
     assert response.status_code == 403
 
     # user B's messages in that session must remain
