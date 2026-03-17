@@ -6,10 +6,12 @@ for non-blocking operations inside the MCP server.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Any
 
 import httpx
+from starlette.status import HTTP_204_NO_CONTENT
 
 
 class LangflowClient:
@@ -32,11 +34,13 @@ class LangflowClient:
         self.api_key = api_key or os.environ.get("LANGFLOW_API_KEY")
         self.access_token = access_token
         self._http: httpx.AsyncClient | None = None
+        self._lock = asyncio.Lock()
 
     async def _client(self) -> httpx.AsyncClient:
-        if self._http is None or self._http.is_closed:
-            self._http = httpx.AsyncClient(follow_redirects=True)
-        return self._http
+        async with self._lock:
+            if self._http is None or self._http.is_closed:
+                self._http = httpx.AsyncClient(follow_redirects=True)
+            return self._http
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""
@@ -104,6 +108,8 @@ class LangflowClient:
             client = await self._client()
             resp = await client.delete(url, headers=self._headers(), timeout=30.0, **kwargs)
             resp.raise_for_status()
+            if resp.status_code == HTTP_204_NO_CONTENT or not resp.content:
+                return {}
             return resp.json()
         except httpx.HTTPStatusError as exc:
             msg = f"DELETE {path} failed ({exc.response.status_code})"

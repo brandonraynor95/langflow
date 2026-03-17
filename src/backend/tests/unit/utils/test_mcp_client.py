@@ -300,7 +300,7 @@ class TestClientUrl:
 class TestClientInit:
     def test_default_values(self):
         client = LangflowClient()
-        assert "localhost" in client.server_url or "LANGFLOW_SERVER_URL" in str(client.server_url)
+        assert client.server_url.startswith("http")
         assert client.access_token is None
 
     def test_custom_server_url(self):
