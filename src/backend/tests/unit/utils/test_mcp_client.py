@@ -138,7 +138,7 @@ SAMPLE_REGISTRY = {
         "display_name": "Chat Output",
         "description": "Display chat outputs",
         "category": "outputs",
-        "outputs": [{"name": "message", "types": ["Message"]}],
+        "outputs": [{"name": "message", "types": ["Message"], "tool_mode": True}],
         "template": {
             "input_value": {"type": "str", "input_types": ["Message"], "required": True},
         },
@@ -228,6 +228,19 @@ class TestDescribeComponent:
         info = describe_component(SAMPLE_REGISTRY, "OpenAIModel")
         output_names = {o["name"] for o in info["outputs"]}
         assert output_names == {"text_output", "model_output"}
+
+    def test_describe_component_as_tool_output(self):
+        info = describe_component(SAMPLE_REGISTRY, "ChatOutput")
+        output_names = {o["name"] for o in info["outputs"]}
+        assert "component_as_tool" in output_names
+        tool_out = next(o for o in info["outputs"] if o["name"] == "component_as_tool")
+        assert tool_out["types"] == ["Tool"]
+        assert "message" in tool_out["description"]
+
+    def test_describe_no_tool_output_without_tool_mode(self):
+        info = describe_component(SAMPLE_REGISTRY, "OpenAIModel")
+        output_names = {o["name"] for o in info["outputs"]}
+        assert "component_as_tool" not in output_names
 
     def test_describe_required_field(self):
         info = describe_component(SAMPLE_REGISTRY, "ChatOutput")

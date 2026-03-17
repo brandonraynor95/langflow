@@ -65,6 +65,18 @@ def describe_component(registry: dict[str, dict], component_type: str) -> dict[s
 
     tmpl = registry[component_type]
     outputs = [{"name": o["name"], "types": o.get("types", [])} for o in tmpl.get("outputs", [])]
+
+    # If any output supports tool_mode, add component_as_tool as an available output
+    tool_mode_outputs = [o["name"] for o in tmpl.get("outputs", []) if o.get("tool_mode")]
+    if tool_mode_outputs:
+        uses = ", ".join(tool_mode_outputs)
+        outputs.append(
+            {
+                "name": "component_as_tool",
+                "types": ["Tool"],
+                "description": f"Wraps this component as a Tool (uses: {uses}). Connect to an Agent's 'tools' input.",
+            }
+        )
     inputs = []
     for fname, fdata in tmpl.get("template", {}).items():
         if isinstance(fdata, dict) and fdata.get("input_types"):

@@ -236,6 +236,26 @@ class TestConnectComponents:
         info = await mcp_server_module.get_flow_info(created["id"])
         assert info["edge_count"] == 1
 
+    async def test_connect_component_as_tool_auto_enables_tool_mode(self):
+        created = await mcp_server_module.create_flow("ToolModeAutoTest")
+        url_comp = await mcp_server_module.add_component(created["id"], "URLComponent")
+        agent = await mcp_server_module.add_component(created["id"], "Agent")
+
+        # Before: normal outputs
+        info = await mcp_server_module.get_component_info(created["id"], url_comp["id"])
+        output_names = [o["name"] for o in info["outputs"]]
+        assert "component_as_tool" not in output_names
+
+        # Connect via component_as_tool — should auto-enable tool_mode
+        await mcp_server_module.connect_components(
+            created["id"], url_comp["id"], "component_as_tool", agent["id"], "tools"
+        )
+
+        # After: tool_mode enabled, output switched
+        info = await mcp_server_module.get_component_info(created["id"], url_comp["id"])
+        output_names = [o["name"] for o in info["outputs"]]
+        assert output_names == ["component_as_tool"]
+
 
 @pytest.mark.usefixtures("mcp_client")
 class TestDisconnectComponents:
