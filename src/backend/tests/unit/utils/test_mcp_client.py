@@ -1,16 +1,16 @@
-"""Unit tests for langflow.agentic.mcp_client — redact, registry, and client modules.
+"""Unit tests for lfx.mcp — redact, registry, and client modules.
 
 These test pure functions only (no network, no server).
 """
 
 import pytest
-from langflow.agentic.mcp_client.client import LangflowClient
-from langflow.agentic.mcp_client.redact import (
+from lfx.mcp.client import LangflowClient
+from lfx.mcp.redact import (
     is_sensitive_field,
     redact_node,
     redact_template,
 )
-from langflow.agentic.mcp_client.registry import (
+from lfx.mcp.registry import (
     describe_component,
     search_registry,
 )

@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from langflow.agentic.mcp_client.client import LangflowClient
+    from lfx.mcp.client import LangflowClient
 
 
 async def load_registry(client: LangflowClient) -> dict[str, dict]:

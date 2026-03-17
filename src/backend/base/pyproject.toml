@@ -474,4 +474,3 @@ all = [
 
 [project.scripts]
 langflow-base = "langflow.langflow_launcher:main"
-langflow-mcp-client = "langflow.agentic.mcp_client.__main__:main"

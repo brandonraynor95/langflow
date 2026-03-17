@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from mcp.server.fastmcp import FastMCP
+
 from lfx.graph.flow_builder import (
     add_component as fb_add_component,
 )
@@ -40,13 +42,11 @@ from lfx.graph.flow_builder import (
 from lfx.graph.flow_builder import (
     remove_connection as fb_remove_connection,
 )
-from mcp.server.fastmcp import FastMCP
-
-from langflow.agentic.mcp_client.client import LangflowClient
-from langflow.agentic.mcp_client.registry import (
+from lfx.mcp.client import LangflowClient
+from lfx.mcp.registry import (
     describe_component as reg_describe,
 )
-from langflow.agentic.mcp_client.registry import (
+from lfx.mcp.registry import (
     load_registry,
     search_registry,
 )
@@ -360,7 +360,7 @@ async def get_component_info(
     info = fb_get_component(flow, component_id)
 
     # Redact sensitive params (checks field name against SENSITIVE_KEYWORDS)
-    from langflow.agentic.mcp_client.redact import is_sensitive_field
+    from lfx.mcp.redact import is_sensitive_field
 
     for key in list(info.get("params", {}).keys()):
         if is_sensitive_field(key) and info["params"][key]:

@@ -1,4 +1,4 @@
-"""Integration tests for langflow.agentic.mcp_client.server MCP tools.
+"""Integration tests for lfx.mcp.server MCP tools.
 
 Uses the client_fixture (real Langflow app via ASGITransport) — no mocking.
 Tests the full roundtrip: MCP tool -> LangflowClient -> Langflow API -> DB.
@@ -6,8 +6,8 @@ Tests the full roundtrip: MCP tool -> LangflowClient -> Langflow API -> DB.
 
 import pytest
 from httpx import AsyncClient
-from langflow.agentic.mcp_client import server as mcp_server_module
-from langflow.agentic.mcp_client.client import LangflowClient
+from lfx.mcp import server as mcp_server_module
+from lfx.mcp.client import LangflowClient
 
 
 @pytest.fixture
