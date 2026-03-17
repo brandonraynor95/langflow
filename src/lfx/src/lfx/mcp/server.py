@@ -222,21 +222,53 @@ async def duplicate_flow(flow_id: str, new_name: str | None = None) -> dict[str,
 async def list_starter_projects() -> list[dict[str, Any]]:
     """List available starter project templates.
 
-    These are pre-built example flows that can be duplicated as starting points.
+    These are pre-built example flows that can be used as starting points
+    via use_starter_project.
 
     Returns:
-        List of starter projects with id, name, description, and graph overview.
+        List of starter projects with name, description, and graph overview.
     """
     flows = await _get_client().get("/flows/basic_examples/")
     return [
         {
-            "id": f["id"],
             "name": f.get("name", ""),
             "description": f.get("description", ""),
             "graph": fb_graph_repr(f),
         }
         for f in flows
     ]
+
+
+@mcp.tool()
+async def use_starter_project(starter_name: str, new_name: str | None = None) -> dict[str, Any]:
+    """Create a new flow from a starter project template.
+
+    Args:
+        starter_name: Name of the starter project (from list_starter_projects).
+        new_name: Name for the new flow (defaults to starter name).
+
+    Returns:
+        Dict with 'id', 'name', and 'description' of the created flow.
+    """
+    flows = await _get_client().get("/flows/basic_examples/")
+    starter = None
+    for f in flows:
+        if f.get("name", "").lower() == starter_name.lower():
+            starter = f
+            break
+    if starter is None:
+        available = [f.get("name", "") for f in flows]
+        msg = f"Starter project '{starter_name}' not found. Available: {available}"
+        raise ValueError(msg)
+
+    name = new_name or starter.get("name", "Untitled")
+    copy_data = {
+        "name": name,
+        "description": starter.get("description", ""),
+        "data": starter.get("data", {}),
+    }
+    result = await _get_client().post("/flows/", json_data=copy_data)
+    return {"id": result["id"], "name": result["name"], "description": result.get("description", "")}
 
 
 # ---------------------------------------------------------------------------
