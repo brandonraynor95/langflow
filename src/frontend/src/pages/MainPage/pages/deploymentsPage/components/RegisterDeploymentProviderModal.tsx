@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { usePostCreateDeploymentProvider } from "@/controllers/API/queries/deployments/use-deployments";
+import type {
+  DeploymentProvider,
+  DeploymentProvidersResponse,
+} from "@/controllers/API/queries/deployments/use-deployments";
 import StepperModal from "@/modals/stepperModal/StepperModal";
 import { StepProvider } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
+import { MOCK_PROVIDERS } from "@/pages/MainPage/pages/deploymentsPage/mockData";
 import useAlertStore from "@/stores/alertStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -10,17 +14,17 @@ import { PROVIDER_OPTIONS } from "../constants";
 type RegisterDeploymentProviderModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRegistered?: () => void;
 };
 
 export const RegisterDeploymentProviderModal = ({
   open,
   onOpenChange,
+  onRegistered,
 }: RegisterDeploymentProviderModalProps) => {
   const queryClient = useQueryClient();
   const setErrorData = useAlertStore((state) => state.setErrorData);
   const setSuccessData = useAlertStore((state) => state.setSuccessData);
-  const { mutate: createProvider, isPending } =
-    usePostCreateDeploymentProvider();
 
   const [providerKey, setProviderKey] = useState("watsonx-orchestrate");
   const [backendUrl, setBackendUrl] = useState("");
@@ -38,14 +42,18 @@ export const RegisterDeploymentProviderModal = ({
     if (!providerKey.trim()) {
       return "Provider key is required.";
     }
-    if (!backendUrl.trim()) {
-      return "Backend URL is required.";
-    }
-    if (!apiKey.trim()) {
-      return "API key is required.";
-    }
     return null;
   };
+
+  const toMockDeploymentProviders = (): DeploymentProvider[] =>
+    MOCK_PROVIDERS.map((provider) => ({
+      id: provider.id,
+      account_id: null,
+      provider_key:
+        provider.id === "watsonx" ? "watsonx-orchestrate" : provider.id,
+      backend_url: provider.endpoint,
+      registered_at: new Date().toISOString(),
+    }));
 
   const handleSubmit = () => {
     const validationError = validate();
@@ -54,35 +62,36 @@ export const RegisterDeploymentProviderModal = ({
       return;
     }
 
-    createProvider(
-      {
-        provider_key: providerKey.trim(),
-        backend_url: backendUrl.trim(),
-        api_key: apiKey.trim(),
-        account_id:
-          providerKey === "watsonx-orchestrate"
-            ? undefined
-            : accountId.trim() || undefined,
-      },
-      {
-        onSuccess: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: ["useGetDeploymentProviders"],
-          });
-          setSuccessData({
-            title: "Deployment provider registered successfully",
-          });
-          onOpenChange(false);
-          resetState();
-        },
-        onError: () => {
-          setErrorData({
-            title: "Could not register deployment provider",
-            list: ["Check your backend URL/API key and try again."],
-          });
-        },
-      },
+    const registeredProvider: DeploymentProvider = {
+      id:
+        globalThis.crypto?.randomUUID?.() ??
+        `mock-provider-${Date.now().toString(36)}`,
+      account_id:
+        providerKey === "watsonx-orchestrate" ? null : accountId.trim() || null,
+      provider_key: providerKey.trim(),
+      backend_url: backendUrl.trim() || "https://api.example.com",
+      registered_at: new Date().toISOString(),
+    };
+
+    const mockProviders = toMockDeploymentProviders();
+    const mergedProviders = [registeredProvider, ...mockProviders];
+
+    queryClient.setQueriesData<DeploymentProvidersResponse>(
+      { queryKey: ["useGetDeploymentProviders"] },
+      (currentData) => ({
+        providers: mergedProviders,
+        page: currentData?.page ?? 1,
+        size: currentData?.size ?? 20,
+        total: mergedProviders.length,
+      }),
     );
+
+    setSuccessData({
+      title: "Deployment provider registered successfully",
+    });
+    onOpenChange(false);
+    onRegistered?.();
+    resetState();
   };
 
   return (
@@ -115,9 +124,7 @@ export const RegisterDeploymentProviderModal = ({
           >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} loading={isPending}>
-            Register Provider
-          </Button>
+          <Button onClick={handleSubmit}>Register Provider</Button>
         </div>
       }
     >

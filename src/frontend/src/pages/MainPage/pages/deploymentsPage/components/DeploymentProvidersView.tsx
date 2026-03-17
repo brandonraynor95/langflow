@@ -16,12 +16,14 @@ const STATUS_COLOR: Record<string, string> = {
   Connected: "text-green-500",
   Error: "text-red-500",
   Pending: "text-yellow-400",
+  "Not Connected": "text-zinc-400",
 };
 
 const STATUS_DOT_COLOR: Record<string, string> = {
   Connected: "bg-green-500",
   Error: "bg-red-500",
   Pending: "bg-yellow-400",
+  "Not Connected": "bg-zinc-500",
 };
 
 const HEALTH_DOT_COLOR: Record<string, string> = {
@@ -35,7 +37,7 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
   Draft: "border-zinc-500/30 bg-zinc-500/15 text-zinc-400",
 };
 
-type ProviderStatus = "Connected" | "Error" | "Pending";
+type ProviderStatus = "Connected" | "Error" | "Pending" | "Not Connected";
 
 type MockProviderCard = {
   id: string;
@@ -51,17 +53,6 @@ type MockProviderCard = {
 
 const MOCK_PROVIDER_CARDS: MockProviderCard[] = [
   {
-    id: "langflow-cloud",
-    providerName: "Langflow Cloud",
-    providerKey: "langflow",
-    status: "Connected",
-    endpoint: "https://cloud.langflow.io",
-    lastVerified: "6 days ago",
-    deployments: 12,
-    actionLabel: "Test Connection",
-    iconName: "Cloud",
-  },
-  {
     id: "watsonx-orchestrate",
     providerName: "watsonx Orchestrate",
     providerKey: "watsonx",
@@ -73,26 +64,15 @@ const MOCK_PROVIDER_CARDS: MockProviderCard[] = [
     iconName: "WatsonxOrchestrate",
   },
   {
-    id: "aws-cloud-deploy",
-    providerName: "AWS Cloud Deploy",
-    providerKey: "cloud",
-    status: "Error",
-    endpoint: "https://aws.example.com",
+    id: "kubernetes",
+    providerName: "Kubernetes",
+    providerKey: "kubernetes",
+    status: "Not Connected",
+    endpoint: "https://kubernetes.example.com",
     lastVerified: "6 days ago",
-    deployments: 3,
-    actionLabel: "Reconnect",
-    iconName: "Cloud",
-  },
-  {
-    id: "azure-functions",
-    providerName: "Azure Functions",
-    providerKey: "cloud",
-    status: "Connected",
-    endpoint: "https://azure-functions.microsoft.com",
-    lastVerified: "6 days ago",
-    deployments: 5,
+    deployments: 12,
     actionLabel: "Test Connection",
-    iconName: "Cloud",
+    iconName: "Kubernetes",
   },
 ];
 
@@ -248,9 +228,8 @@ const DeploymentsTableSkeleton = () => {
       {Array.from({ length: DEPLOYMENT_SKELETON_ROWS }).map((_, index) => (
         <div
           key={`deployment-skeleton-row-${index}`}
-          className={`grid grid-cols-[2fr_1fr_1fr_0.8fr_2fr_1.2fr_60px_48px] items-center gap-4 px-4 py-4 ${
-            index < DEPLOYMENT_SKELETON_ROWS - 1 ? "border-b border-border" : ""
-          }`}
+          className={`grid grid-cols-[2fr_1fr_1fr_0.8fr_2fr_1.2fr_60px_48px] items-center gap-4 px-4 py-4 ${index < DEPLOYMENT_SKELETON_ROWS - 1 ? "border-b border-border" : ""
+            }`}
         >
           <div className="flex flex-col gap-1">
             <Skeleton className="h-4 w-40" />
@@ -334,10 +313,9 @@ export const DeploymentProvidersView = ({
                       </span>
                       <span className="flex items-center gap-1">
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            STATUS_DOT_COLOR[provider.status] ??
+                          className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT_COLOR[provider.status] ??
                             "bg-muted-foreground"
-                          }`}
+                            }`}
                         />
                         <span className="text-xs pl-1">{provider.status}</span>
                       </span>

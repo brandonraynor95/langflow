@@ -2,7 +2,7 @@ import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import StepperModal, {
   StepperModalFooter,
 } from "@/modals/stepperModal/StepperModal";
-import { StepAgent } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepAgent";
+import { StepAttachFlows } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepAttachFlows";
 import { StepBasics } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepBasics";
 import { StepConfiguration } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepConfiguration";
 import { StepProvider } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepProvider";
@@ -13,7 +13,7 @@ import { PROVIDER_OPTIONS, TOTAL_STEPS } from "../constants";
 import type { FlowCheckpointGroup } from "../types";
 import { DeployFlowStepper } from "./DeployFlowStepper";
 
-const STEP_LABELS = ["Provider", "Basics", "Agent", "Configure Flow", "Review"];
+const STEP_LABELS = ["Provider", "Type", "Attach Flows", "Review"];
 
 type DeploymentStepperModalProps = {
   open: boolean;
@@ -76,27 +76,15 @@ export const DeploymentStepperModal = ({
       currentStep={currentStep}
       totalSteps={TOTAL_STEPS}
       showProgress={false}
-      description={
-        currentStep === 1
-          ? ""
-          : currentStep === 2
-            ? "Set your deployment details"
-            : currentStep === 3
-              ? "Choose an existing agent or create a new one"
-              : currentStep === 4
-                ? "Assign a configuration to your flow"
-                : "Review the details of your deployment before finalizing"
-      }
+      description={""}
       title={
         currentStep === 1
           ? "Provider"
           : currentStep === 2
-            ? "Deployment Basics"
+            ? "Deployment Type"
             : currentStep === 3
-              ? "Agent Selection"
-              : currentStep === 4
-                ? "Configure Flow"
-                : "Review & Deploy"
+              ? "Attach Flows"
+              : "Review Deployment"
       }
       bgClassName="bg-secondary"
       width="w-[752px]"
@@ -156,7 +144,7 @@ export const DeploymentStepperModal = ({
       )}
 
       {currentStep === 3 && (
-        <StepAgent
+        <StepAttachFlows
           selectedItems={selectedItems}
           toggleItem={toggleItem}
           flows={checkpointGroups}

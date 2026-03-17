@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
 import { useGetDeployments } from "@/controllers/API/queries/deployments/use-deployments";
 import { useGetRefreshFlowsQuery } from "@/controllers/API/queries/flows/use-get-refresh-flows-query";
 import useAlertStore from "@/stores/alertStore";
 import { useFolderStore } from "@/stores/foldersStore";
 import type { FlowType } from "@/types/flow";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import { ConfigureDeploymentProviderModal } from "./components/ConfigureDeploymentProviderModal";
 import { DeploymentCreationStatusView } from "./components/DeploymentCreationStatusView";
 import { DeploymentStepperModal } from "./components/DeploymentStepperModal";
 import { DeploymentsEmptyState } from "./components/DeploymentsEmptyState";
-import { DeploymentsLoadingView } from "./components/DeploymentsLoadingView";
 import { DeploymentsView } from "./components/DeploymentsView";
 import { RegisterDeploymentProviderModal } from "./components/RegisterDeploymentProviderModal";
 import { SubTabToggle } from "./components/SubTabToggle";
@@ -34,6 +33,8 @@ const DeploymentsTab = () => {
   const [activeSubTab, setActiveSubTab] = useState<"deployments" | "providers">(
     "deployments",
   );
+  const [forceShowProvidersDashboard, setForceShowProvidersDashboard] =
+    useState(false);
 
   // --- Providers ---
   const {
@@ -134,8 +135,14 @@ const DeploymentsTab = () => {
     createdDeploymentUiMeta,
   });
 
+  const shouldShowProvidersDashboard =
+    hasProviders || forceShowProvidersDashboard;
+
   // Reset created state on provider change
   useEffect(() => {
+    if (!providerId) {
+      return;
+    }
     resetCreatedState();
     setDeploymentsPage(1);
   }, [providerId, resetCreatedState]);
@@ -197,7 +204,7 @@ const DeploymentsTab = () => {
         className="pointer-events-none absolute inset-0 z-40"
         style={{
           background:
-            providersQuery.isLoading || !hasProviders
+            providersQuery.isLoading || !shouldShowProvidersDashboard
               ? "linear-gradient(to bottom, transparent 0%, transparent 25%, hsl(var(--background) / 0.5) 45%, hsl(var(--background)) 65%, hsl(var(--background)) 100%)"
               : "transparent",
         }}
@@ -216,12 +223,19 @@ const DeploymentsTab = () => {
             <SubTabToggle
               activeSubTab={activeSubTab}
               onChangeSubTab={setActiveSubTab}
-              showCreateButtons={hasProviders && !providersQuery.isLoading}
+              onCreate={(tab) => {
+                if (tab === "providers") {
+                  setRegisterProviderOpen(true);
+                  return;
+                }
+                handleOpenChange(true);
+              }}
+              showCreateButtons={
+                shouldShowProvidersDashboard && !providersQuery.isLoading
+              }
             />
 
-            {providersQuery.isLoading && false ? (
-              <DeploymentsLoadingView activeSubTab={activeSubTab} />
-            ) : !hasProviders ? (
+            {!shouldShowProvidersDashboard ? (
               <DeploymentsEmptyState
                 activeSubTab={activeSubTab}
                 onCreateDeployment={() => handleOpenChange(true)}
@@ -287,6 +301,10 @@ const DeploymentsTab = () => {
         <RegisterDeploymentProviderModal
           open={registerProviderOpen}
           onOpenChange={setRegisterProviderOpen}
+          onRegistered={() => {
+            setForceShowProvidersDashboard(true);
+            setActiveSubTab("providers");
+          }}
         />
         <ConfigureDeploymentProviderModal
           open={configureProviderOpen}

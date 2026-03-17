@@ -12,7 +12,7 @@ import {
 import { StepperModal, StepperModalFooter } from "@/modals/stepperModal";
 import { CURRENT_DRAFT_ID } from "@/pages/FlowPage/components/flowSidebarComponent/components/FlowHistorySidebar/constants";
 import { RegisterDeploymentProviderModal } from "@/pages/MainPage/pages/deploymentsPage/components/RegisterDeploymentProviderModal";
-import { StepAgent } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepAgent";
+import { StepAttachFlows } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepAttachFlows";
 import { StepBasics } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepBasics";
 import { StepConfiguration } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepConfiguration";
 import { StepReview } from "@/pages/MainPage/pages/deploymentsPage/components/steps/StepReview";
@@ -373,7 +373,7 @@ export default function FlowDeployModal({
               />
             )}
             {currentStep === 2 && (
-              <StepAgent
+              <StepAttachFlows
                 selectedItems={selectedItems}
                 toggleItem={toggleItem}
                 flows={checkpointGroups}

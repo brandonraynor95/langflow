@@ -68,7 +68,7 @@ const DEFAULT_CONFIG: Required<StepProviderConfig> = {
 type ResolvedStepProviderConfig = Required<StepProviderConfig>;
 
 const PROVIDER_CARD_BASE_CLASS =
-  "rounded-lg border p-3 bg-muted transition-colors";
+  "rounded-lg border p-3 bg-muted transition-colors h-[80px]";
 const PROVIDER_CARD_SELECTED_CLASS = "border-2 border-foreground";
 const PROVIDER_CARD_UNSELECTED_CLASS =
   "border-border hover:border-muted-foreground";
@@ -190,7 +190,7 @@ export const StepProvider = ({
                     : PROVIDER_CARD_UNSELECTED_CLASS
                   }`}
               >
-                <div className="h-full flex flex-col justify-between">
+                <div className="flex flex-col">
                   <div className="flex flex-row gap-3 justify-start items-center">
                     {provider.iconNode ? (
                       provider.iconNode
