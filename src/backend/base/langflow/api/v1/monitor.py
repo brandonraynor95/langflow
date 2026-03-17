@@ -215,7 +215,8 @@ async def delete_messages_session(
 
     if owned_ids != all_ids:
         raise HTTPException(
-            status_code=403, detail="You don't have permission to delete one or more messages in this session"
+            status_code=403,
+            detail="You don't have permission to delete one or more messages in this session",
         )
 
     try:

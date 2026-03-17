@@ -294,7 +294,7 @@ async def other_user(client):  # noqa: ARG001
             db_user = await session.get(User, user.id)
             if db_user:
                 await session.delete(db_user)
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 
