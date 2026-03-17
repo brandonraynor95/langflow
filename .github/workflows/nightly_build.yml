@@ -207,13 +207,17 @@ jobs:
 
   frontend-tests:
     if: github.repository == 'langflow-ai/langflow' && !inputs.skip_frontend_tests
-    name: Run Frontend Tests
+    name: Run Frontend Tests - ${{ matrix.os }}
     needs: create-nightly-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     uses: ./.github/workflows/typescript_test.yml
     with:
       tests_folder: "tests"
       release: true
-      runs-on: ${{ inputs['runs_on'] || github.event.inputs['runs_on'] || 'ubuntu-latest' }}
+      runs-on: ${{ matrix.os }}
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       STORE_API_KEY: ${{ secrets.STORE_API_KEY }}
@@ -305,6 +309,13 @@ jobs:
                 ]
               },
               {
+                \"type\": \"section\",
+                \"text\": {
+                  \"type\": \"mrkdwn\",
+                  \"text\": \"*Note:* Frontend tests now run on both Linux and Windows\"
+                }
+              },
+              {
                 \"type\": \"context\",
                 \"elements\": [
                   {
@@ -317,39 +328,46 @@ jobs:
           }" ${{ secrets.LANGFLOW_ENG_SLACK_WEBHOOK_URL }}
 
       - name: Send success notification to Slack
-        if: ${{ !inputs.skip_slack && needs.release-nightly-build.result == 'success' }}
-        run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data '{
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "✅ *Nightly Build Successful*"
-                }
-              },
-              {
-                "type": "section",
-                "fields": [
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Job:*\nrelease-nightly-build"
-                  },
-                  {
-                    "type": "mrkdwn",
-                    "text": "*Status:*\n`${{ needs.release-nightly-build.result }}`"
-                  }
-                ]
-              },
-              {
-                "type": "context",
-                "elements": [
-                  {
-                    "type": "mrkdwn",
-                    "text": "<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View full logs on GitHub>"
-                  }
-                ]
-              }
-            ]
-          }' ${{ secrets.LANGFLOW_ENG_SLACK_WEBHOOK_URL }}
+       if: ${{ !inputs.skip_slack && needs.release-nightly-build.result == 'success' }}
+       run: |
+         curl -X POST -H 'Content-type: application/json' \
+         --data '{
+           "blocks": [
+             {
+               "type": "section",
+               "text": {
+                 "type": "mrkdwn",
+                 "text": "✅ *Nightly Build Successful*"
+               }
+             },
+             {
+               "type": "section",
+               "fields": [
+                 {
+                   "type": "mrkdwn",
+                   "text": "*Job:*\nrelease-nightly-build"
+                 },
+                 {
+                   "type": "mrkdwn",
+                   "text": "*Status:*\n`${{ needs.release-nightly-build.result }}`"
+                 }
+               ]
+             },
+             {
+               "type": "section",
+               "text": {
+                 "type": "mrkdwn",
+                 "text": "*Platforms:* Linux & Windows Playwright tests passed"
+               }
+             },
+             {
+               "type": "context",
+               "elements": [
+                 {
+                   "type": "mrkdwn",
+                   "text": "<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View full logs on GitHub>"
+                 }
+               ]
+             }
+           ]
+         }' ${{ secrets.LANGFLOW_ENG_SLACK_WEBHOOK_URL }}
