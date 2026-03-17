@@ -28,6 +28,9 @@ from lfx.graph.flow_builder import (
     needs_server_update,
 )
 from lfx.graph.flow_builder import (
+    flow_graph_repr as fb_graph_repr,
+)
+from lfx.graph.flow_builder import (
     flow_info as fb_flow_info,
 )
 from lfx.graph.flow_builder import (
@@ -133,21 +136,28 @@ async def create_flow(name: str = "Untitled Flow", description: str = "") -> dic
 
 
 @mcp.tool()
-async def list_flows() -> list[dict[str, Any]]:
+async def list_flows(query: str | None = None) -> list[dict[str, Any]]:
     """List all flows on the Langflow server.
 
+    Args:
+        query: Optional filter by name (case-insensitive).
+
     Returns:
-        List of dicts with 'id', 'name', 'description', and component counts.
+        List of dicts with 'id', 'name', 'description', graph overview, and component counts.
     """
     flows = await _get_client().get("/flows/")
     results = []
     for f in flows:
+        name = f.get("name", "")
+        if query and query.lower() not in name.lower():
+            continue
         data = f.get("data", {})
         results.append(
             {
                 "id": f["id"],
-                "name": f.get("name", ""),
+                "name": name,
                 "description": f.get("description", ""),
+                "graph": fb_graph_repr(f),
                 "node_count": len(data.get("nodes", [])),
                 "edge_count": len(data.get("edges", [])),
             }
@@ -168,6 +178,7 @@ async def get_flow_info(flow_id: str) -> dict[str, Any]:
     flow = await _get_flow(flow_id)
     info = fb_flow_info(flow)
     info["id"] = flow_id
+    info["graph"] = fb_graph_repr(flow)
     return info
 
 
@@ -183,6 +194,49 @@ async def delete_flow(flow_id: str) -> dict[str, str]:
     """
     await _get_client().delete(f"/flows/{flow_id}")
     return {"deleted": flow_id}
+
+
+@mcp.tool()
+async def duplicate_flow(flow_id: str, new_name: str | None = None) -> dict[str, Any]:
+    """Duplicate an existing flow.
+
+    Args:
+        flow_id: The UUID of the flow to duplicate.
+        new_name: Name for the copy (defaults to original name + " (copy)").
+
+    Returns:
+        Dict with 'id', 'name', and 'description' of the new flow.
+    """
+    flow = await _get_flow(flow_id)
+    name = new_name or f"{flow.get('name', 'Untitled')} (copy)"
+    copy_data = {
+        "name": name,
+        "description": flow.get("description", ""),
+        "data": flow.get("data", {}),
+    }
+    result = await _get_client().post("/flows/", json_data=copy_data)
+    return {"id": result["id"], "name": result["name"], "description": result.get("description", "")}
+
+
+@mcp.tool()
+async def list_starter_projects() -> list[dict[str, Any]]:
+    """List available starter project templates.
+
+    These are pre-built example flows that can be duplicated as starting points.
+
+    Returns:
+        List of starter projects with id, name, description, and graph overview.
+    """
+    flows = await _get_client().get("/flows/basic_examples/")
+    return [
+        {
+            "id": f["id"],
+            "name": f.get("name", ""),
+            "description": f.get("description", ""),
+            "graph": fb_graph_repr(f),
+        }
+        for f in flows
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -404,18 +458,23 @@ async def get_component_info(
 
 
 @mcp.tool()
-async def search_component_types(query: str | None = None, category: str | None = None) -> list[dict[str, Any]]:
+async def search_component_types(
+    query: str | None = None,
+    category: str | None = None,
+    output_type: str | None = None,
+) -> list[dict[str, Any]]:
     """Search available component types.
 
     Args:
         query: Search term to filter by name or category (case-insensitive).
         category: Filter by category name (case-insensitive).
+        output_type: Filter by output type (e.g. "LanguageModel", "Tool", "Message").
 
     Returns:
         List of matching component types with type, category, display_name, description.
     """
     registry = await _get_registry()
-    return search_registry(registry, query=query, category=category)
+    return search_registry(registry, query=query, category=category, output_type=output_type)
 
 
 @mcp.tool()
