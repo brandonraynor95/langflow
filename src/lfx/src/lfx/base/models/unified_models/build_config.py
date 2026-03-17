@@ -80,15 +80,22 @@ def apply_provider_variable_config_to_build_config(
         # load_from_db=True tells the runtime to resolve the actual value.
         var_key = var_info.get("variable_key")
         if var_key:
-            has_stored = var_key in stored_values and stored_values[var_key].strip()
-            has_env = bool(os.environ.get(var_key, "").strip())
-            if has_stored or has_env:
+            # Only set the value if the field is currently empty or not already set to load from db
+            # This prevents overwriting user-selected global variables
+            current_value = field_config.get("value")
+            current_load_from_db = field_config.get("load_from_db", False)
+            if not current_value or (not current_load_from_db):
                 field_config["value"] = var_key
                 field_config["load_from_db"] = True
                 logger.debug(
-                    "Set field %s to variable name %s (value resolved at runtime)",
+                    "Set field %s to var name %s (value resolved at runtime)",
                     field_name,
                     var_key,
+                )
+            else:
+                logger.debug(
+                    "Skipping auto-set for field %s - user has already selected a value (load_from_db=True)",
+                    field_name,
                 )
 
     return build_config
