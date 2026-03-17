@@ -392,6 +392,57 @@ class TestGraphRepr:
 
 
 # ---------------------------------------------------------------------------
+# Batch
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.usefixtures("mcp_client")
+class TestBatch:
+    async def test_batch_build_flow(self):
+        """Build a complete ChatInput -> ChatOutput flow in one batch call."""
+        results = await mcp_server_module.batch(
+            [
+                {"tool": "create_flow", "args": {"name": "BatchTest"}},
+                {"tool": "add_component", "args": {"flow_id": "$0.id", "component_type": "ChatInput"}},
+                {"tool": "add_component", "args": {"flow_id": "$0.id", "component_type": "ChatOutput"}},
+                {
+                    "tool": "connect_components",
+                    "args": {
+                        "flow_id": "$0.id",
+                        "source_id": "$1.id",
+                        "source_output": "message",
+                        "target_id": "$2.id",
+                        "target_input": "input_value",
+                    },
+                },
+                {"tool": "get_flow_info", "args": {"flow_id": "$0.id"}},
+            ]
+        )
+        assert len(results) == 5
+        assert results[0]["name"] == "BatchTest"
+        assert results[1]["id"].startswith("ChatInput-")
+        assert results[4]["node_count"] == 2
+        assert results[4]["edge_count"] == 1
+
+    async def test_batch_unknown_tool_raises(self):
+        with pytest.raises(ValueError, match="unknown tool"):
+            await mcp_server_module.batch(
+                [
+                    {"tool": "nonexistent_tool", "args": {}},
+                ]
+            )
+
+    async def test_batch_bad_ref_raises(self):
+        with pytest.raises(ValueError, match="out of range"):
+            await mcp_server_module.batch(
+                [
+                    {"tool": "create_flow", "args": {"name": "RefTest"}},
+                    {"tool": "get_flow_info", "args": {"flow_id": "$5.id"}},
+                ]
+            )
+
+
+# ---------------------------------------------------------------------------
 # Execution
 # ---------------------------------------------------------------------------
 

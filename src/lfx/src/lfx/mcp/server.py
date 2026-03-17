@@ -76,7 +76,8 @@ mcp = FastMCP(
         "- describe_component_type shows a type's inputs, outputs, fields, and advanced_fields\n"
         "- Connections are type-safe: an output's types must overlap with the input's input_types\n"
         "- Outputs named 'component_as_tool' turn any component into a Tool for an Agent\n"
-        "- search_component_types with no args returns all available types"
+        "- search_component_types with no args returns all available types\n"
+        "- Use batch to send multiple actions in one call with $N.field references"
     ),
 )
 
@@ -600,3 +601,108 @@ async def run_flow(
         "tweaks": tweaks or {},
     }
     return await _get_client().post(f"/run/{flow_id}", json_data=request, timeout=300.0)
+
+
+# ---------------------------------------------------------------------------
+# Batch
+# ---------------------------------------------------------------------------
+
+# Tool name -> callable mapping (built lazily)
+_TOOL_MAP: dict[str, Any] | None = None
+
+
+def _get_tool_map() -> dict[str, Any]:
+    global _TOOL_MAP  # noqa: PLW0603
+    if _TOOL_MAP is None:
+        _TOOL_MAP = {
+            "login": login,
+            "create_flow": create_flow,
+            "list_flows": list_flows,
+            "get_flow_info": get_flow_info,
+            "delete_flow": delete_flow,
+            "duplicate_flow": duplicate_flow,
+            "list_starter_projects": list_starter_projects,
+            "use_starter_project": use_starter_project,
+            "add_component": add_component,
+            "remove_component": remove_component,
+            "configure_component": configure_component,
+            "list_components": list_components,
+            "get_component_info": get_component_info,
+            "search_component_types": search_component_types,
+            "describe_component_type": describe_component_type,
+            "connect_components": connect_components,
+            "disconnect_components": disconnect_components,
+            "run_flow": run_flow,
+        }
+    return _TOOL_MAP
+
+
+import re  # noqa: E402
+
+_REF_PATTERN = re.compile(r"^\$(\d+)\.(\w+)$")
+
+
+def _resolve_refs(value: Any, results: list[Any]) -> Any:
+    """Replace $N.field references with actual values from previous results."""
+    if isinstance(value, str):
+        match = _REF_PATTERN.match(value)
+        if match:
+            idx, field = int(match.group(1)), match.group(2)
+            if idx >= len(results):
+                msg = f"Reference ${idx} is out of range (only {len(results)} results so far)"
+                raise ValueError(msg)
+            result = results[idx]
+            if isinstance(result, dict) and field in result:
+                return result[field]
+            msg = f"${idx}.{field}: field '{field}' not found in result {idx}"
+            raise ValueError(msg)
+        return value
+    if isinstance(value, dict):
+        return {k: _resolve_refs(v, results) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_resolve_refs(v, results) for v in value]
+    return value
+
+
+@mcp.tool()
+async def batch(actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Execute multiple actions in sequence, returning all results.
+
+    Use $N.field to reference results from previous actions (zero-indexed).
+
+    Example -- build a complete chatbot in one call:
+        [
+            {"tool": "create_flow", "args": {"name": "My Chatbot"}},
+            {"tool": "add_component", "args": {"flow_id": "$0.id", "component_type": "ChatInput"}},
+            {"tool": "add_component", "args": {"flow_id": "$0.id", "component_type": "OpenAIModel"}},
+            {"tool": "add_component", "args": {"flow_id": "$0.id", "component_type": "ChatOutput"}},
+            {"tool": "connect_components", "args": {
+                "flow_id": "$0.id", "source_id": "$1.id", "source_output": "message",
+                "target_id": "$2.id", "target_input": "input_value"
+            }},
+            {"tool": "connect_components", "args": {
+                "flow_id": "$0.id", "source_id": "$2.id", "source_output": "text_output",
+                "target_id": "$3.id", "target_input": "input_value"
+            }}
+        ]
+
+    Args:
+        actions: List of {"tool": "tool_name", "args": {...}} dicts.
+    """
+    tool_map = _get_tool_map()
+    results: list[dict[str, Any]] = []
+
+    for i, action in enumerate(actions):
+        tool_name = action.get("tool", "")
+        if tool_name not in tool_map:
+            available = sorted(tool_map.keys())
+            msg = f"Action {i}: unknown tool '{tool_name}'. Available: {available}"
+            raise ValueError(msg)
+
+        raw_args = action.get("args", {})
+        resolved_args = _resolve_refs(raw_args, results)
+
+        result = await tool_map[tool_name](**resolved_args)
+        results.append(result if isinstance(result, dict) else {"result": result})
+
+    return results
