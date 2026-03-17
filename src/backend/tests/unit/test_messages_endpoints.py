@@ -4,13 +4,16 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlmodel import select
+
 from langflow.memory import aadd_messagetables
 
 # Assuming you have these imports available
 from langflow.services.database.models.flow.model import Flow
 from langflow.services.database.models.message import MessageCreate, MessageRead, MessageUpdate
 from langflow.services.database.models.message.model import MessageTable
-from langflow.services.deps import session_scope
+from langflow.services.database.models.user.model import User, UserRead
+from langflow.services.deps import get_auth_service, session_scope
 
 
 @pytest.fixture
@@ -262,3 +265,143 @@ async def test_get_messages_empty_result_with_encoded_nonexistent_session(client
     assert response.status_code == 200, response.text
     messages = response.json()
     assert len(messages) == 0
+
+
+# ---------------------------------------------------------------------------
+# Ownership tests for DELETE /monitor/messages and /monitor/messages/session
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+async def other_user(client):  # noqa: ARG001
+    async with session_scope() as session:
+        user = User(
+            username="other_owner_user",
+            password=get_auth_service().get_password_hash("testpassword"),
+            is_active=True,
+            is_superuser=False,
+        )
+        stmt = select(User).where(User.username == user.username)
+        if existing := (await session.exec(stmt)).first():
+            user = existing
+        else:
+            session.add(user)
+            await session.flush()
+            await session.refresh(user)
+        user = UserRead.model_validate(user, from_attributes=True)
+    yield user
+    try:
+        async with session_scope() as session:
+            db_user = await session.get(User, user.id)
+            if db_user:
+                await session.delete(db_user)
+    except Exception:
+        pass
+
+
+@pytest.fixture
+async def other_user_headers(client, other_user):
+    login_data = {"username": other_user.username, "password": "testpassword"}
+    response = await client.post("api/v1/login", data=login_data)
+    assert response.status_code == 200
+    tokens = response.json()
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+@pytest.fixture
+async def messages_owned_by_other_user(other_user):
+    async with session_scope() as session:
+        flow = Flow(
+            name="other_owner_flow",
+            user_id=other_user.id,
+            data={"nodes": [], "edges": []},
+        )
+        session.add(flow)
+        await session.flush()
+
+        messages = [
+            MessageCreate(text="Other user msg 1", sender="User", sender_name="User", session_id="other_session"),
+            MessageCreate(text="Other user msg 2", sender="AI", sender_name="AI", session_id="other_session"),
+        ]
+        messagetables = [MessageTable.model_validate(m, from_attributes=True) for m in messages]
+        for mt in messagetables:
+            mt.flow_id = flow.id
+        return await aadd_messagetables(messagetables, session)
+
+
+@pytest.mark.api_key_required
+async def test_delete_messages_cannot_delete_other_users_messages(
+    client: AsyncClient,
+    messages_owned_by_other_user,
+    logged_in_headers,
+    other_user_headers,
+):
+    """DELETE /monitor/messages returns 403 when requesting to delete messages not owned by the requester."""
+    other_ids = [str(msg.id) for msg in messages_owned_by_other_user]
+
+    # user A tries to delete user B's messages — must return 403
+    response = await client.request(
+        "DELETE", "api/v1/monitor/messages", json=other_ids, headers=logged_in_headers
+    )
+    assert response.status_code == 403
+
+    # user B's messages must still exist
+    response = await client.get("api/v1/monitor/messages", headers=other_user_headers)
+    assert response.status_code == 200
+    remaining_ids = {msg["id"] for msg in response.json()}
+    assert all(msg_id in remaining_ids for msg_id in other_ids)
+
+
+@pytest.mark.api_key_required
+async def test_delete_messages_returns_403_for_mixed_ownership(
+    client: AsyncClient,
+    created_messages,
+    messages_owned_by_other_user,
+    logged_in_headers,
+    other_user_headers,
+):
+    """DELETE /monitor/messages returns 403 when the request includes IDs not owned by the requester."""
+    own_ids = [str(msg.id) for msg in created_messages]
+    other_ids = [str(msg.id) for msg in messages_owned_by_other_user]
+
+    # Send a mixed list — own + other user's — must return 403 and delete nothing
+    response = await client.request(
+        "DELETE", "api/v1/monitor/messages", json=own_ids + other_ids, headers=logged_in_headers
+    )
+    assert response.status_code == 403
+
+    # Own messages must remain intact
+    response = await client.get("api/v1/monitor/messages", headers=logged_in_headers)
+    assert response.status_code == 200
+    remaining_ids = {msg["id"] for msg in response.json()}
+    assert all(msg_id in remaining_ids for msg_id in own_ids)
+
+    # Other user's messages must also remain intact
+    response = await client.get("api/v1/monitor/messages", headers=other_user_headers)
+    assert response.status_code == 200
+    remaining_ids = {msg["id"] for msg in response.json()}
+    assert all(msg_id in remaining_ids for msg_id in other_ids)
+
+
+@pytest.mark.api_key_required
+async def test_delete_messages_session_cannot_delete_other_users_session(
+    client: AsyncClient,
+    messages_owned_by_other_user,
+    logged_in_headers,
+    other_user_headers,
+):
+    """DELETE /monitor/messages/session/{id} returns 403 when the session belongs to another user."""
+    session_id = "other_session"
+
+    # user A tries to wipe user B's session — must return 403
+    response = await client.delete(
+        f"api/v1/monitor/messages/session/{session_id}", headers=logged_in_headers
+    )
+    assert response.status_code == 403
+
+    # user B's messages in that session must remain
+    response = await client.get(
+        "api/v1/monitor/messages", params={"session_id": session_id}, headers=other_user_headers
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == len(messages_owned_by_other_user)

@@ -99,8 +99,26 @@ async def get_messages(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.delete("/messages", status_code=204, dependencies=[Depends(get_current_active_user)])
-async def delete_messages(message_ids: list[UUID], session: DbSession) -> None:
+@router.delete("/messages", status_code=204)
+async def delete_messages(
+    message_ids: list[UUID],
+    session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) -> None:
+    try:
+        owned_ids_result = await session.exec(
+            select(MessageTable.id).join(Flow, MessageTable.flow_id == Flow.id).where(
+                MessageTable.id.in_(message_ids),  # type: ignore[attr-defined]
+                Flow.user_id == current_user.id,
+            )
+        )
+        owned_ids = set(owned_ids_result.all())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+    if owned_ids != set(message_ids):
+        raise HTTPException(status_code=403, detail="You don't have permission to delete one or more of these messages")
+
     try:
         await session.exec(delete(MessageTable).where(MessageTable.id.in_(message_ids)))  # type: ignore[attr-defined]
     except Exception as e:
@@ -171,11 +189,33 @@ async def update_session_id(
     return message_responses
 
 
-@router.delete("/messages/session/{session_id}", status_code=204, dependencies=[Depends(get_current_active_user)])
+@router.delete("/messages/session/{session_id}", status_code=204)
 async def delete_messages_session(
     session_id: str,
     session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
 ):
+    try:
+        all_ids_result = await session.exec(
+            select(MessageTable.id).where(col(MessageTable.session_id) == session_id)
+        )
+        all_ids = set(all_ids_result.all())
+
+        if not all_ids:
+            return
+
+        owned_ids_result = await session.exec(
+            select(MessageTable.id)
+            .join(Flow, MessageTable.flow_id == Flow.id)
+            .where(col(MessageTable.session_id) == session_id, Flow.user_id == current_user.id)
+        )
+        owned_ids = set(owned_ids_result.all())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+    if owned_ids != all_ids:
+        raise HTTPException(status_code=403, detail="You don't have permission to delete one or more messages in this session")
+
     try:
         await session.exec(
             delete(MessageTable)
@@ -185,7 +225,7 @@ async def delete_messages_session(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-    return {"message": "Messages deleted successfully"}
+    return None
 
 
 @router.get("/transactions", dependencies=[Depends(get_current_active_user)])
