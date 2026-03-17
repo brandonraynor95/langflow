@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import langflowAssistantIcon from "@/assets/langflow_assistant.svg";
@@ -50,6 +50,25 @@ export function AssistantMessageItem({
     message.result?.validated === false && message.result?.validationError;
   const [validationAnimationComplete, setValidationAnimationComplete] =
     useState(false);
+
+  // Timeout fallback: if message is complete but animation hasn't finished, force completion
+  useEffect(() => {
+    if (
+      message.status === "complete" &&
+      (hasValidatedResult || hasValidationError) &&
+      !validationAnimationComplete
+    ) {
+      const timer = setTimeout(() => {
+        setValidationAnimationComplete(true);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    message.status,
+    hasValidatedResult,
+    hasValidationError,
+    validationAnimationComplete,
+  ]);
 
   // Generate randomized messages once per message
   const thinkingMessage = useMemo(() => getRandomThinkingMessage(), []);

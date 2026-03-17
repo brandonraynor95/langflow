@@ -13,6 +13,10 @@ export interface AgenticProgressEvent {
   step: AgenticStepType;
   attempt: number;
   max_attempts: number;
+  message?: string;
+  error?: string;
+  class_name?: string;
+  component_code?: string;
 }
 
 export interface AgenticTokenEvent {
@@ -64,6 +68,10 @@ export interface AgenticProgressState {
   step: AgenticStepType;
   attempt: number;
   maxAttempts: number;
+  message?: string;
+  error?: string;
+  className?: string;
+  componentCode?: string;
 }
 
 export interface AgenticResult {

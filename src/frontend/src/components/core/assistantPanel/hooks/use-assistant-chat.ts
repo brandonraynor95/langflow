@@ -97,6 +97,10 @@ export function useAssistantChat(): UseAssistantChatReturn {
                           step: event.step,
                           attempt: event.attempt,
                           maxAttempts: event.max_attempts,
+                          message: event.message,
+                          error: event.error,
+                          className: event.class_name,
+                          componentCode: event.component_code,
                         },
                         completedSteps: [...completedSteps],
                       }

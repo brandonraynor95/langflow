@@ -43,6 +43,7 @@ export default function CodeAreaModal({
   open: myOpen,
   setOpen: mySetOpen,
   componentId,
+  size = "x-large",
 }: codeAreaModalPropsType): JSX.Element {
   const [code, setCode] = useState(value);
   const [open, setOpen] =
@@ -206,7 +207,7 @@ export default function CodeAreaModal({
       }}
       open={open}
       setOpen={setOpen}
-      size="x-large"
+      size={size as "x-large" | "large" | "medium" | "small"}
     >
       <BaseModal.Trigger>{children}</BaseModal.Trigger>
       <BaseModal.Header description={CODE_PROMPT_DIALOG_SUBTITLE}>

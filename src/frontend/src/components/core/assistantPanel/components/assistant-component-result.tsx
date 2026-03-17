@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, FileText } from "lucide-react";
 import type { AgenticResult } from "@/controllers/API/queries/agentic";
-import { ViewCodeModal } from "./view-code-modal";
+import CodeAreaModal from "@/modals/codeAreaModal";
 
 const APPROVED_DISPLAY_DURATION_MS = 3000;
 
@@ -112,7 +112,7 @@ export function AssistantComponentResult({
         {inputs.length > 0 && (
           <div>
             <h4 className="mb-1.5 text-xs font-semibold text-foreground">Inputs</h4>
-            <div className="flex flex-wrap gap-1.5 pl-1">
+            <div className="flex flex-wrap gap-1.5">
               {inputs.map((input) => (
                 <span key={input.name} className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                   {input.name} <span className="text-muted-foreground/60">({input.type})</span>
@@ -124,7 +124,7 @@ export function AssistantComponentResult({
         {outputs.length > 0 && (
           <div>
             <h4 className="mb-1.5 text-xs font-semibold text-foreground">Outputs</h4>
-            <div className="flex flex-wrap gap-1.5 pl-1">
+            <div className="flex flex-wrap gap-1.5">
               {outputs.map((output) => (
                 <span key={output.name} className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                   {output.name} <span className="text-muted-foreground/60">({output.type})</span>
@@ -161,11 +161,19 @@ export function AssistantComponentResult({
       </div>
 
       {result.componentCode && (
-        <ViewCodeModal
-          code={result.componentCode}
+        <CodeAreaModal
+          value={result.componentCode}
+          setValue={() => {}}
+          nodeClass={undefined}
+          setNodeClass={() => {}}
+          dynamic={false}
+          readonly={true}
           open={isViewCodeOpen}
-          onOpenChange={setIsViewCodeOpen}
-        />
+          setOpen={setIsViewCodeOpen}
+          size="medium"
+        >
+          <></>
+        </CodeAreaModal>
       )}
     </div>
   );

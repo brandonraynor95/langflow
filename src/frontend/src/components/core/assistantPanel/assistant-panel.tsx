@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import type { AgenticStepType } from "@/controllers/API/queries/agentic";
 import { cn } from "@/utils/utils";
@@ -14,6 +14,24 @@ import {
   useAssistantChat,
   useEnabledModels,
 } from "./hooks";
+
+const PANEL_SIZE_KEY = "langflow-assistant-panel-size";
+const DEFAULT_SIZE = { width: 620, height: 600 };
+const MIN_SIZE = { width: 400, height: 400 };
+const MAX_SIZE = { width: 900, height: 800 };
+
+function getStoredSize(): { width: number; height: number } {
+  try {
+    const stored = localStorage.getItem(PANEL_SIZE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.width && parsed.height) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_SIZE;
+}
 
 interface AssistantInputWithScrollProps {
   onSend: (content: string, model: AssistantModel | null) => void;
@@ -72,6 +90,8 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
       if (document.querySelector("[role='dialog']")) return;
       // Don't close if clicking the canvas controls (let the toggle button handle it)
       if (el.closest?.("[data-testid='main_canvas_controls']")) return;
+      // Don't close if interacting with a resize handle
+      if (el.closest?.("[data-resize-handle]")) return;
       onClose();
     };
 
@@ -107,18 +127,75 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
   }, [isOpen]);
 
   const useExpandedSize = hasMessages || hasExpandedOnce;
+  const [panelSize, setPanelSize] = useState(getStoredSize);
+
+  const handleEdgeResize = useCallback(
+    (e: React.MouseEvent, edges: { x?: "left" | "right"; y?: "top" }) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startW = panelSize.width;
+      const startH = panelSize.height;
+
+      const handleMouseMove = (ev: MouseEvent) => {
+        let newW = startW;
+        let newH = startH;
+
+        if (edges.x === "right") {
+          newW = startW + (ev.clientX - startX);
+        } else if (edges.x === "left") {
+          newW = startW - (ev.clientX - startX);
+        }
+
+        if (edges.y === "top") {
+          newH = startH - (ev.clientY - startY);
+        }
+
+        setPanelSize({
+          width: Math.min(MAX_SIZE.width, Math.max(MIN_SIZE.width, newW)),
+          height: Math.min(MAX_SIZE.height, Math.max(MIN_SIZE.height, newH)),
+        });
+      };
+
+      const handleMouseUp = () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        setPanelSize((prev) => {
+          localStorage.setItem(PANEL_SIZE_KEY, JSON.stringify(prev));
+          return prev;
+        });
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [panelSize],
+  );
 
   const containerClasses = cn(
     "flex flex-col transition-[opacity,transform] duration-200 fixed shadow-xl will-change-[opacity,transform]",
     "z-50 bottom-16 left-[calc(50%+140px)] -translate-x-1/2 rounded-2xl border border-border",
-    useExpandedSize ? "h-[600px] w-[620px]" : "h-auto w-[520px]",
     isOpen
       ? "opacity-100 translate-y-0"
       : "opacity-0 translate-y-4 pointer-events-none",
   );
 
+  const containerStyle = useExpandedSize
+    ? {
+        width: panelSize.width,
+        height: panelSize.height,
+      }
+    : {
+        width: panelSize.width,
+      };
+
   return (
-    <div ref={panelRef} className={containerClasses}>
+    <div
+      ref={panelRef}
+      className={containerClasses}
+      style={containerStyle}
+    >
       <div className="absolute inset-0 rounded-2xl bg-background" />
 
       <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden">
@@ -174,6 +251,42 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
           />
         )}
       </div>
+
+      {/* Edge resize handles — invisible hitboxes with hover highlight */}
+      {useExpandedSize && (
+        <>
+          {/* Left edge */}
+          <div
+            data-resize-handle
+            className="absolute top-3 bottom-3 -left-[5px] z-30 w-[10px] cursor-ew-resize rounded-full transition-colors hover:bg-primary/20"
+            onMouseDown={(e) => handleEdgeResize(e, { x: "left" })}
+          />
+          {/* Right edge */}
+          <div
+            data-resize-handle
+            className="absolute top-3 bottom-3 -right-[5px] z-30 w-[10px] cursor-ew-resize rounded-full transition-colors hover:bg-primary/20"
+            onMouseDown={(e) => handleEdgeResize(e, { x: "right" })}
+          />
+          {/* Top edge */}
+          <div
+            data-resize-handle
+            className="absolute -top-[5px] right-3 left-3 z-30 h-[10px] cursor-ns-resize rounded-full transition-colors hover:bg-primary/20"
+            onMouseDown={(e) => handleEdgeResize(e, { y: "top" })}
+          />
+          {/* Top-left corner */}
+          <div
+            data-resize-handle
+            className="absolute -top-[5px] -left-[5px] z-30 h-[14px] w-[14px] cursor-nw-resize rounded-full transition-colors hover:bg-primary/30"
+            onMouseDown={(e) => handleEdgeResize(e, { x: "left", y: "top" })}
+          />
+          {/* Top-right corner */}
+          <div
+            data-resize-handle
+            className="absolute -top-[5px] -right-[5px] z-30 h-[14px] w-[14px] cursor-ne-resize rounded-full transition-colors hover:bg-primary/30"
+            onMouseDown={(e) => handleEdgeResize(e, { x: "right", y: "top" })}
+          />
+        </>
+      )}
     </div>
   );
 }

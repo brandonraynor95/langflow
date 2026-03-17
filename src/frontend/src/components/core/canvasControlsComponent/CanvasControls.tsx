@@ -65,7 +65,7 @@ const CanvasControls = ({
           <Button
             unstyled
             size="icon"
-            className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md hover:bg-muted"
+            className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-md hover:bg-muted"
             onClick={handleAssistantClick}
           >
             {/* Muted icon - normal state */}
@@ -75,7 +75,7 @@ const CanvasControls = ({
               viewBox="0 0 16 16"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="text-muted-foreground group-hover:hidden"
+              className="absolute inset-0 m-auto text-muted-foreground transition-opacity duration-150 group-hover:opacity-0"
             >
               <path
                 d="M2.1665 11.3333H3.83317L7.1665 8H8.83317L12.1665 4.66667H13.8332M7.1665 13H8.83317L12.1665 9.66667H13.8332M2.1665 6.33333H3.83317L7.1665 3H8.83317"
@@ -89,7 +89,7 @@ const CanvasControls = ({
             <img
               src={langflowAssistantIcon}
               alt="Langflow Assistant"
-              className="hidden h-full w-full object-cover group-hover:block"
+              className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-150 group-hover:opacity-100"
             />
           </Button>
         </div>

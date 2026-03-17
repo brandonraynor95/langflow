@@ -64,7 +64,7 @@ This context owns:
 | **TokenEvent** | Real-time streaming of LLM output tokens for Q&A responses | `AgenticTokenEvent`, `format_token_event()` |
 | **Validation** | Process of compiling and instantiating generated component code to verify correctness | `validate_component_code()`, `ValidationResult` |
 | **ValidationRetry** | Automatic re-generation attempt when validation fails, including error context | `VALIDATION_RETRY_TEMPLATE`, `max_retries` |
-| **ViewMode** | Display mode for the assistant panel: sidebar (docked left) or floating (centered modal) | `AssistantViewMode`, `useAssistantViewMode()` |
+| **FloatingPanel** | The assistant panel displayed as a floating overlay centered on the canvas | `AssistantPanel` |
 | **ModelProvider** | External LLM service (OpenAI, Anthropic, etc.) used for generation | `provider`, `PREFERRED_PROVIDERS` |
 | **EnabledProvider** | A model provider that has been configured with valid API credentials | `get_enabled_providers_for_user()` |
 | **FlowExecutor** | Service that runs Langflow flows programmatically for assistant operations | `FlowExecutor`, `execute_flow_file()` |
@@ -232,13 +232,6 @@ The frontend implements automatic model selection to ensure a valid model is alw
 - **And** a new session ID should be generated
 - **And** subsequent messages should not reference previous conversation
 
-### Scenario: Preserve chat history across view mode changes
-- **Given** I have messages in the assistant chat
-- **And** the assistant is in sidebar mode
-- **When** I switch to floating mode
-- **Then** all my chat history should be preserved
-- **And** the conversation should continue seamlessly
-
 ### Scenario: Multi-language support
 - **Given** the assistant panel is open
 - **When** I enter "Crie um componente que soma dois numeros" (Portuguese)
@@ -313,18 +306,11 @@ The frontend implements automatic model selection to ensure a valid model is alw
 
 ### Scenario: Clear conversation history
 - **Given** I have multiple messages in the chat
-- **When** I click the clear history / new session button
+- **When** I click the "+ New session" button
 - **Then** all messages should be removed
 - **And** a new `session_id` should be generated
-- **And** the empty state should appear (sidebar mode)
+- **And** the panel should stay at expanded size
 - **And** any in-progress generation should be cancelled
-
-### Scenario: Use sidebar view mode
-- **Given** the assistant panel is in floating mode
-- **When** I click the view mode toggle
-- **Then** the panel should dock to the left side
-- **And** the panel should span the full height
-- **And** my preference should be persisted
 
 ---
 
@@ -418,35 +404,30 @@ Automatically validate generated code by instantiating the component class. On f
 
 ---
 
-### ADR-004: Floating and Sidebar View Modes
+### ADR-004: Floating-Only Panel (Sidebar Removed)
 
-**Status**: Accepted
+**Status**: Accepted (supersedes previous floating+sidebar decision)
 
 #### Context
-Different users have different workflows. Some prefer a focused chat experience, others want the assistant always visible while working on the canvas.
+The initial design supported both floating and sidebar view modes. However, the floating panel with dynamic open/close and size expansion worked well as a standalone solution — it stays out of the way, doesn't conflict with other areas of Langflow (sidebar, playground, canvas), and the open/close/resize behavior feels natural. The sidebar mode added complexity (spacer divs, negative margins, conditional styling) for a view that wasn't needed.
 
 #### Decision
-Support two view modes: floating (centered modal) and sidebar (docked left). Persist user preference in local storage.
-
-#### Implementation Note
-The `AssistantPanel` component uses a **single-instance pattern** where the same component handles both view modes internally. This ensures chat history and state are preserved when users switch between floating and sidebar modes. The view mode is stored in a shared Zustand store (`useAssistantViewMode`) rather than conditionally rendering separate components.
+Remove the sidebar view mode entirely. The assistant always uses the floating panel. Removed: view mode toggle, `AssistantViewMode` type, `useAssistantViewMode` hook, sidebar spacer div, and all sidebar-conditional CSS from FlowPage.
 
 #### Consequences
 
 **Benefits:**
-- Flexible UI adapts to user preference
-- Sidebar mode enables continuous assistance while building
-- Floating mode provides focused interaction
-- Chat history preserved across view mode changes
+- Simpler codebase — single layout to maintain
+- No spacer divs or negative margins affecting the flow page
+- Focused, polished experience for v1
+- Resizable floating panel covers all use cases
 
 **Trade-offs:**
-- Additional UI complexity
-- Two layouts to maintain
-- Responsive design challenges
+- Users cannot dock the assistant to the side (can be revisited later if needed)
 
 **Impact on Product:**
-- Improved user satisfaction through customization
-- Better workflow integration
+- Cleaner, more focused feature for initial release
+- Faster iteration on a single well-polished layout
 
 ---
 
@@ -817,7 +798,7 @@ Event: `cancelled`
 - [ ] Press **A** on the canvas to open the assistant and verify the input is auto-focused
 - [ ] Press **Escape** to close the assistant (from both canvas and input focus)
 - [ ] Verify the input placeholder shows "Working on it..." during generation (not a random suggestion)
-- [ ] Toggle between sidebar and floating view modes
+- [ ] Resize the floating panel by dragging edges and verify size is persisted
 - [ ] Verify zoom percentage display doesn't shift the controls bar when zooming between 60% and 200%
 - [ ] Open the assistant panel with previous messages and verify it opens instantly (no lag)
 

@@ -289,12 +289,13 @@ async def execute_flow_with_validation_streaming(
                 yield format_cancelled_event()
                 return
 
-            # Step 4: Validating
+            # Step 4: Validating (include code so frontend can show preview)
             yield format_progress_event(
                 "validating",
                 attempt,
                 max_retries,
                 message="Validating component code...",
+                component_code=code,
             )
             await asyncio.sleep(VALIDATION_UI_DELAY_SECONDS)
 

@@ -1,5 +1,6 @@
 """Component code validation."""
 
+import ast
 import re
 
 from lfx.custom.validate import create_class, extract_class_name
@@ -8,6 +9,20 @@ from langflow.agentic.api.schemas import ValidationResult
 
 # Regex pattern to extract class name that inherits from Component
 CLASS_NAME_PATTERN = re.compile(r"class\s+(\w+)\s*\([^)]*Component[^)]*\)")
+
+
+class _ReturnChecker(ast.NodeVisitor):
+    """Check which methods have return statements with values."""
+
+    def __init__(self):
+        self.methods_with_return: set[str] = set()
+
+    def visit_FunctionDef(self, node):
+        for child in ast.walk(node):
+            if isinstance(child, ast.Return) and child.value is not None:
+                self.methods_with_return.add(node.name)
+                break
+        self.generic_visit(node)
 
 
 def _extract_class_name_regex(code: str) -> str | None:
@@ -42,7 +57,25 @@ def validate_component_code(code: str) -> ValidationResult:
 
         # Instantiate the class to trigger __init__ validation
         # This catches errors like overlapping input/output names
-        component_class()
+        instance = component_class()
+
+        # Check that output methods have return statements with values
+        if hasattr(instance, "outputs") and instance.outputs:
+            try:
+                tree = ast.parse(code)
+                checker = _ReturnChecker()
+                checker.visit(tree)
+                for output in instance.outputs:
+                    method_name = getattr(output, "method", None)
+                    if method_name and method_name not in checker.methods_with_return:
+                        return ValidationResult(
+                            is_valid=False,
+                            code=code,
+                            error=f"Output method '{method_name}' does not have a return statement with a value",
+                            class_name=class_name,
+                        )
+            except SyntaxError:
+                pass  # AST parse failure already caught by create_class
 
         return ValidationResult(is_valid=True, code=code, class_name=class_name)
     except (

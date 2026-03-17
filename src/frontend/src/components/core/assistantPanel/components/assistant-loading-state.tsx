@@ -222,6 +222,25 @@ function AssistantLoadingStateComponent({
             Attempt {progress.attempt} of {progress.maxAttempts}
           </div>
         )}
+
+        {/* Validation error display */}
+        {progress.error && (
+          <div className="mt-2 rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            {progress.error}
+          </div>
+        )}
+
+        {/* Collapsible code preview during validation */}
+        {progress.componentCode && (
+          <details className="mt-3 border-t border-border pt-2">
+            <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+              View generated code
+            </summary>
+            <pre className="mt-2 max-h-[200px] overflow-auto rounded bg-muted p-2 text-xs">
+              <code>{progress.componentCode}</code>
+            </pre>
+          </details>
+        )}
       </div>
     </div>
   );
