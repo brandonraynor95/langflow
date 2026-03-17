@@ -21,7 +21,6 @@ _MODEL_OPTIONS_CACHE_TTL_SECONDS = 30
 def apply_provider_variable_config_to_build_config(
     build_config: dict,
     provider: str,
-    user_id: UUID | str | None = None,
 ) -> dict:
     """Apply provider variable metadata to component build config fields."""
     # Resolve helpers via package namespace so tests patching
@@ -48,10 +47,7 @@ def apply_provider_variable_config_to_build_config(
         if mapping_field:
             vars_by_field[mapping_field] = v
 
-    # Fetch all stored credential values for this provider in one call so we
-    # use the variable service (DB-first, env fallback) rather than reading
-    # os.environ directly.
-    stored_values = unified_models_module.get_all_variables_for_provider(user_id, provider)
+    # Apply the current provider's variable metadata to show/configure the right fields and pre-populate credentials.
     for field_name, var_info in vars_by_field.items():
         if field_name not in build_config:
             continue
@@ -327,9 +323,7 @@ def handle_model_input_update(
     if isinstance(current_model_value, list) and len(current_model_value) > 0:
         provider = current_model_value[0].get("provider", "")
         if provider:
-            build_config = unified_models_module.apply_provider_variable_config_to_build_config(
-                build_config, provider, user_id=getattr(component, "user_id", None)
-            )
+            build_config = unified_models_module.apply_provider_variable_config_to_build_config(build_config, provider)
 
         # Also handle WatsonX-specific embedding fields that are not in provider metadata
         if cache_key_prefix == "embedding_model_options":
