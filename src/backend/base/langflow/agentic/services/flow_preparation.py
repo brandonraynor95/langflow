@@ -6,6 +6,11 @@ from pathlib import Path
 from lfx.base.models.model_metadata import MODEL_PROVIDER_METADATA, get_provider_param_mapping
 
 
+def get_provider_config(provider: str) -> dict | None:
+    """Return provider metadata for backward compatibility with existing callers/tests."""
+    return MODEL_PROVIDER_METADATA.get(provider)
+
+
 def inject_model_into_flow(
     flow_data: dict,
     provider: str,
@@ -26,7 +31,7 @@ def inject_model_into_flow(
     Raises:
         ValueError: If provider is unknown
     """
-    provider_config = MODEL_PROVIDER_METADATA.get(provider)
+    provider_config = get_provider_config(provider)
     if provider_config is None:
         msg = f"Unknown provider: {provider}"
         raise ValueError(msg)
@@ -36,16 +41,18 @@ def inject_model_into_flow(
     api_key_var = api_key_var or provider_config.get("variable_name")
 
     metadata = {
-        "api_key_param": param_mapping.get("api_key_param", "api_key"),
+        "api_key_param": param_mapping.get("api_key_param", provider_config.get("api_key_param", "api_key")),
         "context_length": 128000,
-        "model_class": param_mapping.get("model_class", "ChatOpenAI"),
-        "model_name_param": param_mapping.get("model_name_param", "model"),
+        "model_class": param_mapping.get("model_class", provider_config.get("model_class", "ChatOpenAI")),
+        "model_name_param": param_mapping.get("model_name_param", provider_config.get("model_name_param", "model")),
     }
 
     # Add extra params from param mapping (url_param, project_id_param, base_url_param)
     for extra_param in ("url_param", "project_id_param", "base_url_param"):
         if extra_param in param_mapping:
             metadata[extra_param] = param_mapping[extra_param]
+        elif extra_param in provider_config:
+            metadata[extra_param] = provider_config[extra_param]
 
     model_value = [
         {
