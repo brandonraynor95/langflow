@@ -58,7 +58,25 @@ from lfx.mcp.registry import (
 _client: LangflowClient | None = None
 _registry: dict[str, dict] | None = None
 
-mcp = FastMCP("langflow-mcp-client")
+mcp = FastMCP(
+    "langflow-mcp",
+    instructions=(
+        "Langflow MCP server -- build and run AI flows on a Langflow instance.\n"
+        "\n"
+        "Typical workflow:\n"
+        "  1. login (or set LANGFLOW_API_KEY env var)\n"
+        "  2. search_component_types / describe_component_type to discover components\n"
+        "  3. create_flow (or use_starter_project for a pre-built template)\n"
+        "  4. add_component for each node\n"
+        "  5. configure_component to set parameters\n"
+        "  6. connect_components to wire outputs to inputs\n"
+        "  7. run_flow to execute\n"
+        "\n"
+        "Use describe_component_type to see a component's inputs, outputs, fields,\n"
+        "and advanced_fields. Outputs named 'component_as_tool' turn any component\n"
+        "into a Tool for an Agent -- just connect it to the Agent's 'tools' input."
+    ),
+)
 
 
 def _get_client() -> LangflowClient:
@@ -92,18 +110,14 @@ async def _patch_flow(flow_id: str, flow: dict) -> dict:
 
 @mcp.tool()
 async def login(username: str, password: str, server_url: str | None = None) -> dict[str, str]:
-    """Authenticate with a Langflow server.
+    """Authenticate with a Langflow server. Call this first.
 
-    The credentials are stored internally and used automatically for all
-    subsequent tool calls. The API key is not returned for security.
+    Credentials are stored and reused for all subsequent calls.
 
     Args:
         username: Langflow username.
         password: Langflow password.
         server_url: Server URL (defaults to LANGFLOW_SERVER_URL env var or http://localhost:7860).
-
-    Returns:
-        Dict with 'status' and 'server_url'.
     """
     global _client, _registry  # noqa: PLW0603
     if _client is not None:
@@ -121,14 +135,11 @@ async def login(username: str, password: str, server_url: str | None = None) -> 
 
 @mcp.tool()
 async def create_flow(name: str = "Untitled Flow", description: str = "") -> dict[str, Any]:
-    """Create a new empty flow on the Langflow server.
+    """Create a new empty flow. Add components and connections after creating.
 
     Args:
         name: Flow name.
         description: Flow description.
-
-    Returns:
-        Dict with 'id', 'name', and 'description' of the created flow.
     """
     flow = empty_flow(name=name, description=description)
     result = await _get_client().post("/flows/", json_data=flow)
@@ -137,13 +148,10 @@ async def create_flow(name: str = "Untitled Flow", description: str = "") -> dic
 
 @mcp.tool()
 async def list_flows(query: str | None = None) -> list[dict[str, Any]]:
-    """List all flows on the Langflow server.
+    """List flows on the server. Each result includes an ASCII graph diagram.
 
     Args:
         query: Optional filter by name (case-insensitive).
-
-    Returns:
-        List of dicts with 'id', 'name', 'description', graph overview, and component counts.
     """
     flows = await _get_client().get("/flows/")
     results = []
@@ -167,13 +175,10 @@ async def list_flows(query: str | None = None) -> list[dict[str, Any]]:
 
 @mcp.tool()
 async def get_flow_info(flow_id: str) -> dict[str, Any]:
-    """Get summary information about a flow.
+    """Get detailed info about a flow: components, connections, ASCII graph diagram.
 
     Args:
         flow_id: The flow UUID.
-
-    Returns:
-        Dict with name, description, component list, input/output nodes, and counts.
     """
     flow = await _get_flow(flow_id)
     info = fb_flow_info(flow)
@@ -188,9 +193,6 @@ async def delete_flow(flow_id: str) -> dict[str, str]:
 
     Args:
         flow_id: The flow UUID to delete.
-
-    Returns:
-        Confirmation dict.
     """
     await _get_client().delete(f"/flows/{flow_id}")
     return {"deleted": flow_id}
@@ -198,14 +200,11 @@ async def delete_flow(flow_id: str) -> dict[str, str]:
 
 @mcp.tool()
 async def duplicate_flow(flow_id: str, new_name: str | None = None) -> dict[str, Any]:
-    """Duplicate an existing flow.
+    """Create a copy of an existing flow.
 
     Args:
         flow_id: The UUID of the flow to duplicate.
         new_name: Name for the copy (defaults to original name + " (copy)").
-
-    Returns:
-        Dict with 'id', 'name', and 'description' of the new flow.
     """
     flow = await _get_flow(flow_id)
     name = new_name or f"{flow.get('name', 'Untitled')} (copy)"
@@ -220,14 +219,7 @@ async def duplicate_flow(flow_id: str, new_name: str | None = None) -> dict[str,
 
 @mcp.tool()
 async def list_starter_projects() -> list[dict[str, Any]]:
-    """List available starter project templates.
-
-    These are pre-built example flows that can be used as starting points
-    via use_starter_project.
-
-    Returns:
-        List of starter projects with name, description, and graph overview.
-    """
+    """List pre-built example flows. Use use_starter_project to create one."""
     flows = await _get_client().get("/flows/basic_examples/")
     return [
         {
@@ -244,11 +236,8 @@ async def use_starter_project(starter_name: str, new_name: str | None = None) ->
     """Create a new flow from a starter project template.
 
     Args:
-        starter_name: Name of the starter project (from list_starter_projects).
+        starter_name: Exact name from list_starter_projects (case-insensitive).
         new_name: Name for the new flow (defaults to starter name).
-
-    Returns:
-        Dict with 'id', 'name', and 'description' of the created flow.
     """
     flows = await _get_client().get("/flows/basic_examples/")
     starter = None
@@ -278,17 +267,11 @@ async def use_starter_project(starter_name: str, new_name: str | None = None) ->
 
 @mcp.tool()
 async def add_component(flow_id: str, component_type: str) -> dict[str, Any]:
-    """Add a component to a flow.
-
-    Fetches the flow, adds the component with proper template from the registry,
-    applies layout, and saves back.
+    """Add a component to a flow. Use describe_component_type first to see available types.
 
     Args:
         flow_id: The flow UUID.
         component_type: Component type name (e.g. "ChatInput", "OpenAIModel").
-
-    Returns:
-        Dict with 'id' and 'display_name' of the added component.
     """
     flow = await _get_flow(flow_id)
     registry = await _get_registry()
@@ -300,14 +283,11 @@ async def add_component(flow_id: str, component_type: str) -> dict[str, Any]:
 
 @mcp.tool()
 async def remove_component(flow_id: str, component_id: str) -> dict[str, str]:
-    """Remove a component and its connections from a flow.
+    """Remove a component and all its connections from a flow.
 
     Args:
         flow_id: The flow UUID.
-        component_id: The component ID to remove (e.g. "ChatInput-a1B2c").
-
-    Returns:
-        Confirmation dict.
+        component_id: The component ID (e.g. "ChatInput-a1B2c").
     """
     flow = await _get_flow(flow_id)
     fb_remove_component(flow, component_id)
@@ -322,18 +302,15 @@ async def configure_component(
     component_id: str,
     params: dict[str, Any],
 ) -> dict[str, Any]:
-    """Configure a component's parameters.
+    """Set parameter values on a component. Use get_component_info to check current values first.
 
-    Automatically handles dynamic fields (real_time_refresh, tool_mode) by
-    calling the server's /custom_component/update endpoint when needed.
+    Some fields (like model_name) trigger server-side updates that may refresh
+    available options for other fields. This is handled automatically.
 
     Args:
         flow_id: The flow UUID.
         component_id: The component ID.
         params: Dict of parameter names to values (e.g. {"model_name": "gpt-4o", "temperature": 0.5}).
-
-    Returns:
-        Dict with component_id and configured params.
     """
     client = _get_client()
     flow = await _get_flow(flow_id)
@@ -411,13 +388,10 @@ async def configure_component(
 
 @mcp.tool()
 async def list_components(flow_id: str) -> list[dict[str, Any]]:
-    """List all components in a flow.
+    """List all components in a flow with their IDs, names, and types.
 
     Args:
         flow_id: The flow UUID.
-
-    Returns:
-        List of dicts with 'id', 'display_name', and 'type' for each component.
     """
     flow = await _get_flow(flow_id)
     return fb_list_components(flow)
@@ -429,18 +403,15 @@ async def get_component_info(
     component_id: str,
     field_name: str | None = None,
 ) -> dict[str, Any]:
-    """Get details about a specific component in a flow.
+    """Get a component's current parameter values and outputs.
 
-    Sensitive fields (API keys, passwords) are redacted in the response.
+    Sensitive fields (API keys, passwords) are redacted. Use field_name
+    to check a single field's value before changing it.
 
     Args:
         flow_id: The flow UUID.
         component_id: The component ID.
-        field_name: Optional field name to return only that field's value and metadata.
-
-    Returns:
-        When field_name is None: dict with id, display_name, type, params, and outputs.
-        When field_name is given: dict with component_id, field_name, value, and field metadata.
+        field_name: Optional -- return only this field's value and metadata.
     """
     flow = await _get_flow(flow_id)
     info = fb_get_component(flow, component_id)
@@ -495,15 +466,12 @@ async def search_component_types(
     category: str | None = None,
     output_type: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Search available component types.
+    """Find component types by name, category, or output type.
 
     Args:
         query: Search term to filter by name or category (case-insensitive).
-        category: Filter by category name (case-insensitive).
-        output_type: Filter by output type (e.g. "LanguageModel", "Tool", "Message").
-
-    Returns:
-        List of matching component types with type, category, display_name, description.
+        category: Filter by exact category (e.g. "models", "inputs", "outputs").
+        output_type: Filter by what the component produces (e.g. "LanguageModel", "Message", "Tool").
     """
     registry = await _get_registry()
     return search_registry(registry, query=query, category=category, output_type=output_type)
@@ -511,13 +479,13 @@ async def search_component_types(
 
 @mcp.tool()
 async def describe_component_type(component_type: str) -> dict[str, Any]:
-    """Describe a component type's inputs, outputs, and configuration.
+    """Get a component type's inputs, outputs, configurable fields, and advanced fields.
+
+    Outputs named 'component_as_tool' can be connected to an Agent's 'tools'
+    input to use any component as a tool.
 
     Args:
         component_type: The component type name (e.g. "ChatInput", "OpenAIModel").
-
-    Returns:
-        Dict with type, category, display_name, description, inputs, and outputs.
     """
     registry = await _get_registry()
     return reg_describe(registry, component_type)
@@ -536,20 +504,17 @@ async def connect_components(
     target_id: str,
     target_input: str,
 ) -> dict[str, Any]:
-    """Connect two components in a flow.
+    """Connect an output of one component to an input of another.
 
-    Creates an edge from source_output to target_input with proper
-    ReactFlow handle format.
+    Use describe_component_type to see available outputs and inputs.
+    Connecting via 'component_as_tool' automatically enables tool mode.
 
     Args:
         flow_id: The flow UUID.
         source_id: Source component ID.
-        source_output: Source output name (e.g. "message", "text_output").
+        source_output: Output name on the source (e.g. "message", "text_output", "component_as_tool").
         target_id: Target component ID.
-        target_input: Target input name (e.g. "input_value").
-
-    Returns:
-        Dict with connection details.
+        target_input: Input name on the target (e.g. "input_value", "tools").
     """
     flow = await _get_flow(flow_id)
 
@@ -584,11 +549,8 @@ async def disconnect_components(
         flow_id: The flow UUID.
         source_id: Source component ID.
         target_id: Target component ID.
-        source_output: Optional filter by source output name.
-        target_input: Optional filter by target input name.
-
-    Returns:
-        Dict with count of removed connections.
+        source_output: Only remove connections from this output.
+        target_input: Only remove connections to this input.
     """
     flow = await _get_flow(flow_id)
     removed = fb_remove_connection(flow, source_id, target_id, source_output, target_input)
@@ -612,17 +574,14 @@ async def run_flow(
     output_type: str = "chat",
     tweaks: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Execute a flow and return results.
+    """Run a flow and return the output.
 
     Args:
         flow_id: The flow UUID.
-        input_value: Input text to send to the flow.
+        input_value: Text to send to the flow's input component.
         input_type: Input type (default: "chat").
         output_type: Output type (default: "chat").
-        tweaks: Optional dict of component tweaks {component_id: {param: value}}.
-
-    Returns:
-        Flow execution results.
+        tweaks: Override component params at runtime: {component_id: {param: value}}.
     """
     request = {
         "input_value": input_value,
