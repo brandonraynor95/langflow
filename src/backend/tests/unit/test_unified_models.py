@@ -91,7 +91,6 @@ def test_update_model_options_with_custom_field_name():
     """Test that update_model_options_in_build_config works with custom field names."""
     # Create mock component
     mock_component = MagicMock()
-    mock_component.user_id = "test-user-123"
     mock_component.cache = {}
     mock_component.log = MagicMock()
 
@@ -105,7 +104,7 @@ def test_update_model_options_with_custom_field_name():
     }
 
     # Mock options function
-    def mock_get_options(user_id):  # noqa: ARG001
+    def mock_get_options(user_id=None):  # noqa: ARG001
         return [
             {"name": "text-embedding-ada-002", "provider": "OpenAI"},
             {"name": "embed-english-v3.0", "provider": "Cohere"},
@@ -135,7 +134,6 @@ def test_update_model_options_with_custom_field_name():
 def test_update_model_options_static_options_with_custom_field_name():
     """Static pre-populated options should be detected using the custom field name, not 'model'."""
     mock_component = MagicMock()
-    mock_component.user_id = "test-user-static"
     mock_component.cache = {}
     mock_component.log = MagicMock()
 
@@ -152,9 +150,7 @@ def test_update_model_options_static_options_with_custom_field_name():
         component=mock_component,
         build_config=build_config,
         cache_key_prefix="test_static_custom",
-        get_options_func=lambda user_id=None: [],  # noqa: ARG005
-        field_name=None,
-        field_value="",
+        get_options_func=list,
         model_field_name="embedding_model",
     )
 
@@ -166,7 +162,6 @@ def test_update_model_options_default_field_name():
     """Test that update_model_options_in_build_config uses 'model' as default field name."""
     # Create mock component
     mock_component = MagicMock()
-    mock_component.user_id = "test-user-456"
     mock_component.cache = {}
     mock_component.log = MagicMock()
 
@@ -180,7 +175,7 @@ def test_update_model_options_default_field_name():
     }
 
     # Mock options function
-    def mock_get_options(user_id):  # noqa: ARG001
+    def mock_get_options(user_id=None):  # noqa: ARG001
         return [{"name": "gpt-4", "provider": "OpenAI"}]
 
     # Call without specifying model_field_name (should default to "model")
@@ -204,9 +199,8 @@ def test_update_model_options_default_field_name():
 # ---------------------------------------------------------------------------
 
 
-def _make_mock_component(user_id="test-user"):
+def _make_mock_component():
     component = MagicMock()
-    component.user_id = user_id
     component.cache = {}
     component.log = MagicMock()
     return component
@@ -276,30 +270,30 @@ def test_get_embeddings_passthrough_embeddings_object():
     from langchain_core.embeddings import Embeddings as BaseEmbeddings
 
     mock_emb = MagicMock(spec=BaseEmbeddings)
-    result = get_embeddings(mock_emb, user_id=None)
+    result = get_embeddings(mock_emb)
     assert result is mock_emb
 
 
 def test_get_embeddings_empty_list_raises():
     with pytest.raises(ValueError, match="An embedding model selection is required"):
-        get_embeddings([], user_id=None)
+        get_embeddings([])
 
 
 def test_get_embeddings_none_raises():
     with pytest.raises(ValueError, match="An embedding model selection is required"):
-        get_embeddings(None, user_id=None)
+        get_embeddings(None)
 
 
 def test_get_embeddings_non_list_raises():
     with pytest.raises(ValueError, match="An embedding model selection is required"):
-        get_embeddings("gpt-4", user_id=None)
+        get_embeddings("gpt-4")
 
 
 @patch("lfx.base.models.unified_models.get_api_key_for_provider")
 def test_get_embeddings_missing_api_key_non_ollama_raises(mock_get_api_key):
     mock_get_api_key.return_value = None
     with pytest.raises(ValueError, match="OpenAI API key is required"):
-        get_embeddings([_make_openai_embedding_model()], user_id=None, api_key=None)
+        get_embeddings([_make_openai_embedding_model()])
 
 
 @patch("lfx.base.models.unified_models.get_api_key_for_provider")
@@ -311,7 +305,7 @@ def test_get_embeddings_missing_model_name_raises(mock_get_api_key):
         "metadata": {"embedding_class": "OpenAIEmbeddings", "param_mapping": {"model": "model"}},
     }
     with pytest.raises(ValueError, match="Embedding model name is required"):
-        get_embeddings([model_dict], user_id=None)
+        get_embeddings([model_dict])
 
 
 @patch("lfx.base.models.unified_models.get_api_key_for_provider")
@@ -323,7 +317,7 @@ def test_get_embeddings_missing_embedding_class_raises(mock_get_api_key):
         "metadata": {"param_mapping": {"model": "model"}},
     }
     with pytest.raises(ValueError, match="No embedding class defined in metadata"):
-        get_embeddings([model_dict], user_id=None)
+        get_embeddings([model_dict])
 
 
 @patch("lfx.base.models.unified_models.get_api_key_for_provider")
@@ -335,7 +329,7 @@ def test_get_embeddings_empty_param_mapping_raises(mock_get_api_key):
         "metadata": {"embedding_class": "OpenAIEmbeddings", "param_mapping": {}},
     }
     with pytest.raises(ValueError, match="Parameter mapping not found in metadata"):
-        get_embeddings([model_dict], user_id=None)
+        get_embeddings([model_dict])
 
 
 @patch("lfx.base.models.unified_models.get_api_key_for_provider")
@@ -347,7 +341,7 @@ def test_get_embeddings_openai_basic(mock_get_class, mock_get_api_key):
     mock_embedding_class.return_value = mock_instance
     mock_get_class.return_value = mock_embedding_class
 
-    result = get_embeddings([_make_openai_embedding_model()], user_id=None, api_key="sk-test")
+    result = get_embeddings([_make_openai_embedding_model()], api_key="sk-test")
 
     assert result is mock_instance
     mock_get_class.assert_called_once_with("OpenAIEmbeddings")
@@ -366,11 +360,9 @@ def test_get_embeddings_optional_params_only_added_when_mapped(mock_get_class, m
 
     get_embeddings(
         [_make_openai_embedding_model()],
-        user_id=None,
         api_key="sk-test",
         chunk_size=500,
         max_retries=5,
-        dimensions=None,
     )
 
     kwargs = mock_embedding_class.call_args.kwargs
@@ -401,7 +393,7 @@ def test_get_embeddings_google_timeout_wrapped_in_dict(mock_get_class, mock_get_
         },
     }
 
-    get_embeddings([google_model], user_id=None, api_key="google-key", request_timeout=30.0)
+    get_embeddings([google_model], api_key="google-key", request_timeout=30.0)
 
     kwargs = mock_embedding_class.call_args.kwargs
     assert kwargs.get("request_options") == {"timeout": 30.0}
@@ -425,7 +417,7 @@ def test_get_embeddings_ollama_defaults_to_localhost(mock_get_vars, mock_get_cla
         },
     }
 
-    get_embeddings([ollama_model], user_id=None)
+    get_embeddings([ollama_model])
 
     kwargs = mock_embedding_class.call_args.kwargs
     assert kwargs.get("base_url") == "http://localhost:11434"
@@ -449,7 +441,7 @@ def test_get_embeddings_ollama_custom_base_url(mock_get_vars, mock_get_class, mo
         },
     }
 
-    get_embeddings([ollama_model], user_id=None, ollama_base_url="http://custom-host:11434")
+    get_embeddings([ollama_model], ollama_base_url="http://custom-host:11434")
 
     kwargs = mock_embedding_class.call_args.kwargs
     assert kwargs.get("base_url") == "http://custom-host:11434"
@@ -480,7 +472,6 @@ def test_get_embeddings_watsonx_url_and_project_id(mock_get_vars, mock_get_class
 
     get_embeddings(
         [watsonx_model],
-        user_id=None,
         api_key="ibm-key",
         watsonx_url="https://us-south.ml.cloud.ibm.com",
         watsonx_project_id="proj-123",
@@ -517,7 +508,6 @@ def test_get_embeddings_watsonx_truncate_and_input_text(mock_get_vars, mock_get_
 
     get_embeddings(
         [watsonx_model],
-        user_id=None,
         api_key="ibm-key",
         watsonx_url="https://us-south.ml.cloud.ibm.com",
         watsonx_project_id="proj-123",
@@ -563,7 +553,6 @@ def test_get_embeddings_watsonx_no_params_when_not_provided(mock_get_vars, mock_
 
     get_embeddings(
         [watsonx_model],
-        user_id=None,
         api_key="ibm-key",
         watsonx_url="https://us-south.ml.cloud.ibm.com",
         watsonx_project_id="proj-123",
@@ -594,7 +583,7 @@ def test_get_embeddings_watsonx_error_wraps_message(mock_get_vars, mock_get_clas
     }
 
     with pytest.raises(ValueError, match="IBM WatsonX requires additional configuration"):
-        get_embeddings([watsonx_model], user_id=None, api_key="ibm-key")
+        get_embeddings([watsonx_model], api_key="ibm-key")
 
 
 # ---------------------------------------------------------------------------
@@ -654,7 +643,7 @@ def test_handle_model_input_update_calls_apply_provider_config_when_model_select
             component, build_config, field_value=selected_model, field_name="model", get_options_func=get_options
         )
 
-        mock_apply.assert_called_once_with(build_config, "OpenAI", user_id="test-user")
+        mock_apply.assert_called_once_with(build_config, "OpenAI")
 
 
 def test_handle_model_input_update_watsonx_embedding_shows_special_fields():
@@ -777,7 +766,7 @@ def test_handle_model_input_update_custom_model_field_name():
         )
 
         # Should call apply_provider_variable_config with the correct provider
-        mock_apply.assert_called_once_with(result, "OpenAI", user_id="test-user")
+        mock_apply.assert_called_once_with(result, "OpenAI")
 
     # Should have updated the embedding_model field
     assert "embedding_model" in result
@@ -810,4 +799,4 @@ def test_handle_model_input_update_custom_field_name_reads_default_from_correct_
             model_field_name="my_model",
         )
 
-        mock_apply.assert_called_once_with(result, "OpenAI", user_id="test-user")
+        mock_apply.assert_called_once_with(result, "OpenAI")

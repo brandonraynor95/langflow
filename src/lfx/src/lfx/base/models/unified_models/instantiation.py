@@ -188,7 +188,7 @@ def get_llm(
 
 def get_embeddings(
     model,
-    user_id: UUID | str | None,
+    user_id: UUID | str | None = None,
     api_key=None,
     *,
     api_base=None,
