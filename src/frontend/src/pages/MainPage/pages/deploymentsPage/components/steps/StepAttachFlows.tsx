@@ -1,6 +1,6 @@
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEffect, useMemo, useState } from "react";
 
 type CheckpointAttachItem = {
   id: string;
@@ -186,10 +186,11 @@ export const StepAttachFlows = ({
                     key={flow.id}
                     type="button"
                     onClick={() => setSelectedFlowId(flow.id)}
-                    className={`flex w-full items-start gap-3 p-4 text-left transition-colors ${isSelected
+                    className={`flex w-full items-start gap-3 p-4 text-left transition-colors ${
+                      isSelected
                         ? "border-border bg-muted"
                         : "border-transparent hover:border-border hover:bg-muted/60"
-                      }`}
+                    }`}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -213,7 +214,7 @@ export const StepAttachFlows = ({
           <div className="border-b border-border p-4 text-sm text-muted-foreground">
             Select a version to attach to this deployment
           </div>
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-2">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden pl-4 py-2">
             <h3 className="text-[18px] py-2 font-semibold leading-tight">
               {selectedFlow?.name}
             </h3>
@@ -228,10 +229,11 @@ export const StepAttachFlows = ({
                         key={version.id}
                         type="button"
                         onClick={() => setSelectedVersionId(version.id)}
-                        className={`flex w-full items-center gap-4 rounded-xl border p-3 text-left transition-colors ${isSelected
+                        className={`flex w-full items-center gap-4 rounded-xl border p-3 text-left transition-colors ${
+                          isSelected
                             ? "border-primary bg-primary/10"
                             : "border-transparent bg-muted hover:border-border"
-                          }`}
+                        }`}
                       >
                         <Checkbox
                           checked={isSelected}
@@ -254,7 +256,7 @@ export const StepAttachFlows = ({
               </div>
             </div>
 
-            <div className="mt-auto py-2">
+            <div className="mt-auto py-2 pr-4">
               <Button type="button" className="w-full" disabled={!canAttach}>
                 Attach Flow
               </Button>
