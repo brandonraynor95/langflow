@@ -266,9 +266,7 @@ class ComponentToolkit:
                     StructuredTool(
                         name=formatted_name,
                         description=build_description(self.component),
-                        func=_build_output_function(
-                            self.component, output_method, event_manager, output.name
-                        ),
+                        func=_build_output_function(self.component, output_method, event_manager, output.name),
                         args_schema=args_schema,
                         handle_tool_error=True,
                         callbacks=callbacks,
