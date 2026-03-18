@@ -20,7 +20,7 @@ def serve_command_wrapper(
     ),
     host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host to bind the server to"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to bind the server to"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show diagnostic output and execution details"),  # noqa: FBT001, FBT003
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show diagnostic output and execution details"),  # noqa: FBT003
     env_file: str | None = typer.Option(
         None,
         "--env-file",

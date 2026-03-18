@@ -1,20 +1,20 @@
-"""lfx validate — structural and semantic validation of Langflow flow JSON.
+"""lfx validate -- structural and semantic validation of Langflow flow JSON.
 
 Validation levels (each level implies all levels below it):
 
-    Level 1 – structural
+    Level 1 - structural
         The file parses as valid JSON and contains the expected top-level keys
         (``id``, ``name``, ``data``, ``data.nodes``, ``data.edges``).
 
-    Level 2 – components
+    Level 2 - components
         Every node's ``data.type`` references a component type that exists in
         the lfx component registry.
 
-    Level 3 – edge types
+    Level 3 - edge types
         Connected ports carry compatible types (source output type must be
         assignable to target input type).
 
-    Level 4 – required inputs
+    Level 4 - required inputs
         Every required input field on every component has a value or an
         incoming edge connected to it.
 
@@ -32,10 +32,15 @@ from typing import Any
 
 import typer
 from rich.console import Console
-from rich.table import Table
 
 console = Console(stderr=True)
 ok_console = Console()
+
+# Validation level constants
+_LEVEL_STRUCTURAL = 1
+_LEVEL_COMPONENTS = 2
+_LEVEL_EDGE_TYPES = 3
+_LEVEL_REQUIRED_INPUTS = 4
 
 
 # ---------------------------------------------------------------------------
@@ -71,7 +76,7 @@ class ValidationResult:
 
 
 # ---------------------------------------------------------------------------
-# Level 1 – structural checks (pure JSON, no component loading)
+# Level 1 - structural checks (pure JSON, no component loading)
 # ---------------------------------------------------------------------------
 
 _REQUIRED_TOP_LEVEL = {"id", "name", "data"}
@@ -85,7 +90,7 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
     for key in sorted(missing_top):
         result.issues.append(
             ValidationIssue(
-                level=1,
+                level=_LEVEL_STRUCTURAL,
                 severity="error",
                 node_id=None,
                 node_name=None,
@@ -98,7 +103,7 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
     if not isinstance(data, dict):
         result.issues.append(
             ValidationIssue(
-                level=1,
+                level=_LEVEL_STRUCTURAL,
                 severity="error",
                 node_id=None,
                 node_name=None,
@@ -111,7 +116,7 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
     for key in sorted(missing_data):
         result.issues.append(
             ValidationIssue(
-                level=1,
+                level=_LEVEL_STRUCTURAL,
                 severity="error",
                 node_id=None,
                 node_name=None,
@@ -124,7 +129,7 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
     if not isinstance(nodes, list):
         result.issues.append(
             ValidationIssue(
-                level=1,
+                level=_LEVEL_STRUCTURAL,
                 severity="error",
                 node_id=None,
                 node_name=None,
@@ -137,7 +142,7 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
         if not isinstance(node, dict):
             result.issues.append(
                 ValidationIssue(
-                    level=1,
+                    level=_LEVEL_STRUCTURAL,
                     severity="error",
                     node_id=None,
                     node_name=None,
@@ -150,7 +155,7 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
             if req not in node:
                 result.issues.append(
                     ValidationIssue(
-                        level=1,
+                        level=_LEVEL_STRUCTURAL,
                         severity="error",
                         node_id=node.get("id"),
                         node_name=_node_display_name(node),
@@ -163,11 +168,11 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
         if isinstance(node_data, dict) and "type" not in node_data:
             result.issues.append(
                 ValidationIssue(
-                    level=1,
+                    level=_LEVEL_STRUCTURAL,
                     severity="warning",
                     node_id=node.get("id"),
                     node_name=_node_display_name(node),
-                    message="Node is missing 'data.type' — component type cannot be determined",
+                    message="Node is missing 'data.type' -- component type cannot be determined",
                 )
             )
 
@@ -175,21 +180,15 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
 
 
 def _node_display_name(node: dict[str, Any]) -> str | None:
-    return (
-        node.get("data", {}).get("node", {}).get("display_name")
-        or node.get("data", {}).get("id")
-        or node.get("id")
-    )
+    return node.get("data", {}).get("node", {}).get("display_name") or node.get("data", {}).get("id") or node.get("id")
 
 
 # ---------------------------------------------------------------------------
-# Level 2 – component existence (loads lfx component registry)
+# Level 2 - component existence (loads lfx component registry)
 # ---------------------------------------------------------------------------
 
 
-def _check_component_existence(
-    flow: dict[str, Any], result: ValidationResult
-) -> None:
+def _check_component_existence(flow: dict[str, Any], result: ValidationResult) -> None:
     try:
         from lfx.interface.utils import initialize_components  # type: ignore[import-untyped]
 
@@ -197,7 +196,7 @@ def _check_component_existence(
     except Exception as exc:  # noqa: BLE001
         result.issues.append(
             ValidationIssue(
-                level=2,
+                level=_LEVEL_COMPONENTS,
                 severity="warning",
                 node_id=None,
                 node_name=None,
@@ -216,26 +215,21 @@ def _check_component_existence(
         if component_type not in component_registry:
             result.issues.append(
                 ValidationIssue(
-                    level=2,
+                    level=_LEVEL_COMPONENTS,
                     severity="error",
                     node_id=node.get("id"),
                     node_name=_node_display_name(node),
-                    message=(
-                        f"Unknown component type '{component_type}'. "
-                        "This component may be missing or outdated."
-                    ),
+                    message=(f"Unknown component type '{component_type}'. This component may be missing or outdated."),
                 )
             )
 
 
 # ---------------------------------------------------------------------------
-# Level 3 – edge type compatibility
+# Level 3 - edge type compatibility
 # ---------------------------------------------------------------------------
 
 
-def _check_edge_type_compatibility(
-    flow: dict[str, Any], result: ValidationResult
-) -> None:
+def _check_edge_type_compatibility(flow: dict[str, Any], result: ValidationResult) -> None:
     """Check that source output types are compatible with target input types.
 
     This is a best-effort check: if type information is missing from the node
@@ -262,31 +256,29 @@ def _check_edge_type_compatibility(
         if not src_node or not tgt_node:
             result.issues.append(
                 ValidationIssue(
-                    level=3,
+                    level=_LEVEL_EDGE_TYPES,
                     severity="error",
                     node_id=None,
                     node_name=None,
-                    message=(
-                        f"Edge references non-existent node(s): "
-                        f"source={src_id!r}, target={tgt_id!r}"
-                    ),
+                    message=(f"Edge references non-existent node(s): source={src_id!r}, target={tgt_id!r}"),
                 )
             )
             continue
 
-        src_type: str | None = src_handle.get("output_types", [None])[0] if src_handle.get("output_types") else None
+        output_types: list[str] = src_handle.get("output_types", [])
+        src_type: str | None = output_types[0] if output_types else None
         tgt_type: str | None = tgt_handle.get("type")
 
-        if src_type and tgt_type and src_type != tgt_type and tgt_type != "Any":
+        if src_type and tgt_type and tgt_type not in {src_type, "Any"}:
             result.issues.append(
                 ValidationIssue(
-                    level=3,
+                    level=_LEVEL_EDGE_TYPES,
                     severity="warning",
                     node_id=tgt_id,
                     node_name=_node_display_name(tgt_node),
                     message=(
                         f"Possible type mismatch on edge from "
-                        f"'{_node_display_name(src_node)}' → '{_node_display_name(tgt_node)}': "
+                        f"'{_node_display_name(src_node)}' -> '{_node_display_name(tgt_node)}': "
                         f"source emits '{src_type}', target expects '{tgt_type}'"
                     ),
                 )
@@ -294,13 +286,11 @@ def _check_edge_type_compatibility(
 
 
 # ---------------------------------------------------------------------------
-# Level 4 – required inputs connected
+# Level 4 - required inputs connected
 # ---------------------------------------------------------------------------
 
 
-def _check_required_inputs(
-    flow: dict[str, Any], result: ValidationResult
-) -> None:
+def _check_required_inputs(flow: dict[str, Any], result: ValidationResult) -> None:
     """Verify that all required input fields have a value or an incoming edge."""
     data = flow.get("data", {})
     nodes = data.get("nodes", [])
@@ -338,13 +328,11 @@ def _check_required_inputs(
             if not has_value and not has_edge:
                 result.issues.append(
                     ValidationIssue(
-                        level=4,
+                        level=_LEVEL_REQUIRED_INPUTS,
                         severity="error",
                         node_id=node_id,
                         node_name=_node_display_name(node),
-                        message=(
-                            f"Required input '{field_name}' has no value and no incoming edge"
-                        ),
+                        message=f"Required input '{field_name}' has no value and no incoming edge",
                     )
                 )
 
@@ -357,7 +345,7 @@ def _check_required_inputs(
 def validate_flow_file(
     path: Path,
     *,
-    level: int = 4,
+    level: int = _LEVEL_REQUIRED_INPUTS,
     skip_components: bool = False,
     skip_edge_types: bool = False,
     skip_required_inputs: bool = False,
@@ -370,7 +358,10 @@ def validate_flow_file(
     except (OSError, PermissionError) as exc:
         result.issues.append(
             ValidationIssue(
-                level=1, severity="error", node_id=None, node_name=None,
+                level=_LEVEL_STRUCTURAL,
+                severity="error",
+                node_id=None,
+                node_name=None,
                 message=f"Cannot read file: {exc}",
             )
         )
@@ -378,30 +369,33 @@ def validate_flow_file(
     except json.JSONDecodeError as exc:
         result.issues.append(
             ValidationIssue(
-                level=1, severity="error", node_id=None, node_name=None,
+                level=_LEVEL_STRUCTURAL,
+                severity="error",
+                node_id=None,
+                node_name=None,
                 message=f"Invalid JSON: {exc}",
             )
         )
         return result
 
-    # Level 1 – structural
+    # Level 1 - structural
     can_continue = _check_structural(flow, result)
-    if not can_continue or level < 2:
+    if not can_continue or level < _LEVEL_COMPONENTS:
         return result
 
-    # Level 2 – component existence
+    # Level 2 - component existence
     if not skip_components:
         _check_component_existence(flow, result)
-    if level < 3:
+    if level < _LEVEL_EDGE_TYPES:
         return result
 
-    # Level 3 – edge type compatibility
+    # Level 3 - edge type compatibility
     if not skip_edge_types:
         _check_edge_type_compatibility(flow, result)
-    if level < 4:
+    if level < _LEVEL_REQUIRED_INPUTS:
         return result
 
-    # Level 4 – required inputs
+    # Level 4 - required inputs
     if not skip_required_inputs:
         _check_required_inputs(flow, result)
 
@@ -417,22 +411,21 @@ def _render_results(results: list[ValidationResult], *, verbose: bool) -> None:
     for result in results:
         label = f"[bold]{result.path}[/bold]"
         if result.ok:
-            ok_console.print(f"[green]✓[/green] {label}")
+            ok_console.print(f"[green]\u2713[/green] {label}")
         else:
-            console.print(f"[red]✗[/red] {label}")
+            console.print(f"[red]\u2717[/red] {label}")
 
         if verbose or not result.ok:
             for issue in result.issues:
                 color = "red" if issue.severity == "error" else "yellow"
                 loc = f" [{issue.node_name or issue.node_id}]" if (issue.node_id or issue.node_name) else ""
-                console.print(
-                    f"  [{color}][L{issue.level} {issue.severity.upper()}][/{color}]{loc} {issue.message}"
-                )
+                console.print(f"  [{color}][L{issue.level} {issue.severity.upper()}][/{color}]{loc} {issue.message}")
 
 
 def validate_command(
     flow_paths: list[str],
     level: int,
+    *,
     skip_components: bool,
     skip_edge_types: bool,
     skip_required_inputs: bool,
@@ -461,9 +454,8 @@ def validate_command(
     if output_format == "json":
         import json as _json
 
-        out = []
-        for r in results:
-            out.append({
+        out = [
+            {
                 "path": str(r.path),
                 "ok": r.ok,
                 "issues": [
@@ -476,7 +468,9 @@ def validate_command(
                     }
                     for i in r.issues
                 ],
-            })
+            }
+            for r in results
+        ]
         sys.stdout.write(_json.dumps(out, indent=2) + "\n")
     else:
         _render_results(results, verbose=verbose)

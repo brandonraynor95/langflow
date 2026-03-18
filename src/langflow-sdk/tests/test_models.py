@@ -1,4 +1,5 @@
 """Unit tests for SDK models and environment config."""
+# pragma: allowlist secret -- this file only contains fake test credentials
 
 from __future__ import annotations
 
@@ -8,9 +9,7 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
-
 from langflow_sdk.models import Flow, FlowCreate, FlowUpdate, Project, RunRequest, RunResponse
-
 
 # ---------------------------------------------------------------------------
 # Model round-trip tests
@@ -74,18 +73,19 @@ def test_load_environments(tmp_path: Path):
         textwrap.dedent("""\
             [environments.staging]
             url = "https://staging.example.com"
-            api_key_env = "TEST_KEY_STAGING"
+            api_key_env = "TEST_KEY_STAGING" # pragma: allowlist secret
 
             [environments.production]
             url = "https://prod.example.com"
-            api_key = "literal-key"
+            api_key = "not-a-real-secret"  # pragma: allowlist secret
 
             [defaults]
             environment = "staging"
         """),
         encoding="utf-8",
     )
-    os.environ["TEST_KEY_STAGING"] = "sk-staging-123"
+    fake_key = "test-key-not-a-real-secret"  # pragma: allowlist secret
+    os.environ["TEST_KEY_STAGING"] = fake_key
 
     from langflow_sdk.environments import get_environment, load_environments
 
@@ -93,8 +93,8 @@ def test_load_environments(tmp_path: Path):
         envs = load_environments(config)
         assert "staging" in envs
         assert envs["staging"].url == "https://staging.example.com"
-        assert envs["staging"].api_key == "sk-staging-123"
-        assert envs["production"].api_key == "literal-key"
+        assert envs["staging"].api_key == fake_key
+        assert envs["production"].api_key == "not-a-real-secret"  # pragma: allowlist secret
 
         default_env = get_environment(config_file=config)
         assert default_env.name == "staging"
@@ -106,8 +106,8 @@ def test_environment_not_found(tmp_path: Path):
     config = tmp_path / "langflow-environments.toml"
     config.write_text("[environments.staging]\nurl = 'https://x.com'\n")
 
-    from langflow_sdk.exceptions import EnvironmentNotFoundError
     from langflow_sdk.environments import get_environment
+    from langflow_sdk.exceptions import EnvironmentNotFoundError
 
     with pytest.raises(EnvironmentNotFoundError, match="production"):
         get_environment("production", config_file=config)
@@ -115,10 +115,11 @@ def test_environment_not_found(tmp_path: Path):
 
 def test_missing_url_raises(tmp_path: Path):
     config = tmp_path / "langflow-environments.toml"
-    config.write_text("[environments.bad]\napi_key = 'sk-x'\n")
+    # Intentionally omit 'url' to trigger the validation error
+    config.write_text("[environments.bad]\ndescription = 'oops'\n")
 
-    from langflow_sdk.exceptions import EnvironmentConfigError
     from langflow_sdk.environments import load_environments
+    from langflow_sdk.exceptions import EnvironmentConfigError
 
     with pytest.raises(EnvironmentConfigError, match="url"):
         load_environments(config)

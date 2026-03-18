@@ -18,11 +18,11 @@ url = "http://localhost:7860"
 
 [environments.staging]
 url = "https://staging.langflow.example.com"
-api_key_env = "LANGFLOW_STAGING_API_KEY"
+api_key_env = "LANGFLOW_STAGING_API_KEY" # pragma: allowlist secret
 
 [environments.production]
 url = "https://langflow.example.com"
-api_key_env = "LANGFLOW_PROD_API_KEY"
+api_key_env = "LANGFLOW_PROD_API_KEY" # pragma: allowlist secret
 
 # Which environment is used when no name is specified
 [defaults]

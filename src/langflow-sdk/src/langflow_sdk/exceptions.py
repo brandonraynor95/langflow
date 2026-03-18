@@ -38,8 +38,7 @@ class EnvironmentNotFoundError(LangflowError):
     def __init__(self, name: str) -> None:
         self.name = name
         super().__init__(
-            f"Environment {name!r} not found. "
-            "Check your langflow-environments.toml (or LANGFLOW_ENV variable)."
+            f"Environment {name!r} not found. Check your langflow-environments.toml (or LANGFLOW_ENV variable)."
         )
 
 

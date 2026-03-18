@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import io
 import zipfile
-from typing import Any
-from uuid import UUID
+from http import HTTPStatus
+from typing import TYPE_CHECKING, Any, Self
 
 import httpx
 
@@ -28,7 +28,11 @@ from langflow_sdk.models import (
     RunResponse,
 )
 
+if TYPE_CHECKING:
+    from uuid import UUID
+
 _DEFAULT_TIMEOUT = 60.0
+_HTTP_201_CREATED = HTTPStatus.CREATED.value
 
 
 def _raise_for_status(response: httpx.Response) -> None:
@@ -41,11 +45,11 @@ def _raise_for_status(response: httpx.Response) -> None:
         detail = response.text
 
     status = response.status_code
-    if status in (401, 403):
+    if status in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
         raise LangflowAuthError(status, detail)
-    if status == 404:
+    if status == HTTPStatus.NOT_FOUND:
         raise LangflowNotFoundError(status, detail)
-    if status == 422:
+    if status == HTTPStatus.UNPROCESSABLE_ENTITY:
         raise LangflowValidationError(status, detail)
     raise LangflowHTTPError(status, detail)
 
@@ -55,6 +59,11 @@ def _build_headers(api_key: str | None) -> dict[str, str]:
     if api_key:
         headers["x-api-key"] = api_key
     return headers
+
+
+def _connection_error(base_url: str, exc: Exception) -> LangflowConnectionError:
+    msg = f"Could not connect to Langflow at {base_url}: {exc}"
+    return LangflowConnectionError(msg)
 
 
 # ---------------------------------------------------------------------------
@@ -69,7 +78,7 @@ class LangflowClient:
 
         client = LangflowClient(
             base_url="https://langflow.example.com",
-            api_key="sk-...",
+            api_key="<your-api-key>",  # pragma: allowlist secret
         )
         flows = client.list_flows()
     """
@@ -94,7 +103,7 @@ class LangflowClient:
         if self._owns_client:
             self._http.close()
 
-    def __enter__(self) -> LangflowClient:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:
@@ -124,9 +133,7 @@ class LangflowClient:
                 headers=headers,
             )
         except httpx.ConnectError as exc:
-            raise LangflowConnectionError(
-                f"Could not connect to Langflow at {self._base_url}: {exc}"
-            ) from exc
+            raise _connection_error(self._base_url, exc) from exc
         _raise_for_status(response)
         return response
 
@@ -185,7 +192,7 @@ class LangflowClient:
             f"/api/v1/flows/{flow_id}",
             json=flow.model_dump(exclude_none=True),
         )
-        return Flow.model_validate(resp.json()), resp.status_code == 201
+        return Flow.model_validate(resp.json()), resp.status_code == _HTTP_201_CREATED
 
     def delete_flow(self, flow_id: UUID | str) -> None:
         self._request("DELETE", f"/api/v1/flows/{flow_id}")
@@ -265,7 +272,7 @@ class AsyncLangflowClient:
 
         async with AsyncLangflowClient(
             base_url="https://langflow.example.com",
-            api_key="sk-...",
+            api_key="<your-api-key>",  # pragma: allowlist secret
         ) as client:
             flows = await client.list_flows()
     """
@@ -290,7 +297,7 @@ class AsyncLangflowClient:
         if self._owns_client:
             await self._http.aclose()
 
-    async def __aenter__(self) -> AsyncLangflowClient:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *_: object) -> None:
@@ -320,9 +327,7 @@ class AsyncLangflowClient:
                 headers=headers,
             )
         except httpx.ConnectError as exc:
-            raise LangflowConnectionError(
-                f"Could not connect to Langflow at {self._base_url}: {exc}"
-            ) from exc
+            raise _connection_error(self._base_url, exc) from exc
         _raise_for_status(response)
         return response
 
@@ -377,7 +382,7 @@ class AsyncLangflowClient:
             f"/api/v1/flows/{flow_id}",
             json=flow.model_dump(exclude_none=True),
         )
-        return Flow.model_validate(resp.json()), resp.status_code == 201
+        return Flow.model_validate(resp.json()), resp.status_code == _HTTP_201_CREATED
 
     async def delete_flow(self, flow_id: UUID | str) -> None:
         await self._request("DELETE", f"/api/v1/flows/{flow_id}")

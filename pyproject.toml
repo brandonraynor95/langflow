@@ -327,6 +327,19 @@ external = ["RUF027"]
 "src/lfx/src/lfx/inputs/input_mixin.py" = [
     "S105",  # False positive: PASSWORD is a type constant
 ]
+"src/lfx/src/lfx/__main__.py" = [
+    "B008",   # Typer CLI requires function calls in argument defaults
+    "FBT001", # Bool flags are the standard typer pattern
+]
+"src/langflow-sdk/src/langflow_sdk/environments.py" = [
+    "TRY003", # Contextual error messages are necessary here
+    "EM102",  # f-string messages assigned before raise where possible
+]
+"src/langflow-sdk/tests/*" = [
+    "S101",   # assert is the standard pytest assertion style
+    "INP001", # Not a package namespace issue in tests
+    "TC003",  # pytest fixture type hints are evaluated at runtime
+]
 "src/lfx/src/lfx/schema/table.py" = [
     "S105",  # False positive: PASSWORD is a formatter type
 ]
