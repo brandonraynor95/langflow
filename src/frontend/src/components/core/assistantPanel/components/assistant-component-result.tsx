@@ -121,7 +121,9 @@ export function AssistantComponentResult({
         )}
         {inputs.length > 0 && (
           <div>
-            <h4 className="mb-1.5 text-xs font-semibold text-foreground">Inputs</h4>
+            <h4 className="mb-1.5 text-xs font-semibold text-foreground">
+              Inputs
+            </h4>
             <div className="flex flex-wrap gap-1.5">
               {inputs.map((input) => (
                 <span
@@ -139,7 +141,9 @@ export function AssistantComponentResult({
         )}
         {outputs.length > 0 && (
           <div>
-            <h4 className="mb-1.5 text-xs font-semibold text-foreground">Outputs</h4>
+            <h4 className="mb-1.5 text-xs font-semibold text-foreground">
+              Outputs
+            </h4>
             <div className="flex flex-wrap gap-1.5">
               {outputs.map((output) => (
                 <span

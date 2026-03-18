@@ -183,7 +183,6 @@ body:has([data-radix-popper-content-wrapper]) .react-flow__pane {
   cursor: default !important;
 }
 
-
 .react-flow__edge .react-flow__edge-path {
   transition: color;
   stroke: var(--connection) !important;
