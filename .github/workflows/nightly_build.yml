@@ -332,46 +332,46 @@ jobs:
           }" ${{ secrets.LANGFLOW_ENG_SLACK_WEBHOOK_URL }}
 
       - name: Send success notification to Slack
-       if: ${{ !inputs.skip_slack && needs.release-nightly-build.result == 'success' }}
-       run: |
-         curl -X POST -H 'Content-type: application/json' \
-         --data '{
-           "blocks": [
-             {
-               "type": "section",
-               "text": {
-                 "type": "mrkdwn",
-                 "text": "✅ *Nightly Build Successful*"
-               }
-             },
-             {
-               "type": "section",
-               "fields": [
-                 {
-                   "type": "mrkdwn",
-                   "text": "*Job:*\nrelease-nightly-build"
-                 },
-                 {
-                   "type": "mrkdwn",
-                   "text": "*Status:*\n`${{ needs.release-nightly-build.result }}`"
-                 }
-               ]
-             },
-             {
-               "type": "section",
-               "text": {
-                 "type": "mrkdwn",
-                 "text": "*Platforms:* Linux & Windows Playwright tests passed"
-               }
-             },
-             {
-               "type": "context",
-               "elements": [
-                 {
-                   "type": "mrkdwn",
-                   "text": "<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View full logs on GitHub>"
-                 }
-               ]
-             }
-           ]
-         }' ${{ secrets.LANGFLOW_ENG_SLACK_WEBHOOK_URL }}
+        if: ${{ !inputs.skip_slack && needs.release-nightly-build.result == 'success' }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "✅ *Nightly Build Successful*"
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Job:*\nrelease-nightly-build"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Status:*\n`${{ needs.release-nightly-build.result }}`"
+                  }
+                ]
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Platforms:* Linux & Windows Playwright tests passed"
+                }
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View full logs on GitHub>"
+                  }
+                ]
+              }
+            ]
+          }' ${{ secrets.LANGFLOW_ENG_SLACK_WEBHOOK_URL }}
