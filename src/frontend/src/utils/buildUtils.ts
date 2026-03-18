@@ -778,7 +778,11 @@ async function onEvent(
       const { component_id, output, name, message, type: logType } = data;
       useFlowStore
         .getState()
-        .appendLogToFlowPool(component_id, output, { name, message, type: logType });
+        .appendLogToFlowPool(component_id, output, {
+          name,
+          message,
+          type: logType,
+        });
       break;
     }
     default:

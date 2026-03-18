@@ -182,7 +182,11 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
     };
     get().setFlowPool(newFlowPool);
   },
-  appendLogToFlowPool: (nodeId: string, outputName: string, log: LogsLogType) => {
+  appendLogToFlowPool: (
+    nodeId: string,
+    outputName: string,
+    log: LogsLogType,
+  ) => {
     const prevPool = get().flowPool;
     const prevEntries = prevPool[nodeId];
     if (!prevEntries || prevEntries.length === 0) {
