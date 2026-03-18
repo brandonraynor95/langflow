@@ -170,14 +170,14 @@ class LangflowClient:
         return Flow.model_validate(resp.json())
 
     def create_flow(self, flow: FlowCreate) -> Flow:
-        resp = self._request("POST", "/api/v1/flows/", json=flow.model_dump(exclude_none=True))
+        resp = self._request("POST", "/api/v1/flows/", json=flow.model_dump(mode="json", exclude_none=True))
         return Flow.model_validate(resp.json())
 
     def update_flow(self, flow_id: UUID | str, update: FlowUpdate) -> Flow:
         resp = self._request(
             "PATCH",
             f"/api/v1/flows/{flow_id}",
-            json=update.model_dump(exclude_none=True),
+            json=update.model_dump(mode="json", exclude_none=True),
         )
         return Flow.model_validate(resp.json())
 
@@ -190,7 +190,7 @@ class LangflowClient:
         resp = self._request(
             "PUT",
             f"/api/v1/flows/{flow_id}",
-            json=flow.model_dump(exclude_none=True),
+            json=flow.model_dump(mode="json", exclude_none=True),
         )
         return Flow.model_validate(resp.json()), resp.status_code == _HTTP_201_CREATED
 
@@ -205,7 +205,7 @@ class LangflowClient:
         resp = self._request(
             "POST",
             f"/api/v1/run/{flow_id_or_endpoint}",
-            json=request.model_dump(exclude_none=True),
+            json=request.model_dump(mode="json", exclude_none=True),
         )
         return RunResponse.model_validate(resp.json())
 
@@ -222,14 +222,14 @@ class LangflowClient:
         return ProjectWithFlows.model_validate(resp.json())
 
     def create_project(self, project: ProjectCreate) -> Project:
-        resp = self._request("POST", "/api/v1/projects/", json=project.model_dump(exclude_none=True))
+        resp = self._request("POST", "/api/v1/projects/", json=project.model_dump(mode="json", exclude_none=True))
         return Project.model_validate(resp.json())
 
     def update_project(self, project_id: UUID | str, update: ProjectUpdate) -> Project:
         resp = self._request(
             "PATCH",
             f"/api/v1/projects/{project_id}",
-            json=update.model_dump(exclude_none=True),
+            json=update.model_dump(mode="json", exclude_none=True),
         )
         return Project.model_validate(resp.json())
 
@@ -364,14 +364,14 @@ class AsyncLangflowClient:
         return Flow.model_validate(resp.json())
 
     async def create_flow(self, flow: FlowCreate) -> Flow:
-        resp = await self._request("POST", "/api/v1/flows/", json=flow.model_dump(exclude_none=True))
+        resp = await self._request("POST", "/api/v1/flows/", json=flow.model_dump(mode="json", exclude_none=True))
         return Flow.model_validate(resp.json())
 
     async def update_flow(self, flow_id: UUID | str, update: FlowUpdate) -> Flow:
         resp = await self._request(
             "PATCH",
             f"/api/v1/flows/{flow_id}",
-            json=update.model_dump(exclude_none=True),
+            json=update.model_dump(mode="json", exclude_none=True),
         )
         return Flow.model_validate(resp.json())
 
@@ -380,7 +380,7 @@ class AsyncLangflowClient:
         resp = await self._request(
             "PUT",
             f"/api/v1/flows/{flow_id}",
-            json=flow.model_dump(exclude_none=True),
+            json=flow.model_dump(mode="json", exclude_none=True),
         )
         return Flow.model_validate(resp.json()), resp.status_code == _HTTP_201_CREATED
 
@@ -395,7 +395,7 @@ class AsyncLangflowClient:
         resp = await self._request(
             "POST",
             f"/api/v1/run/{flow_id_or_endpoint}",
-            json=request.model_dump(exclude_none=True),
+            json=request.model_dump(mode="json", exclude_none=True),
         )
         return RunResponse.model_validate(resp.json())
 
@@ -412,14 +412,14 @@ class AsyncLangflowClient:
         return ProjectWithFlows.model_validate(resp.json())
 
     async def create_project(self, project: ProjectCreate) -> Project:
-        resp = await self._request("POST", "/api/v1/projects/", json=project.model_dump(exclude_none=True))
+        resp = await self._request("POST", "/api/v1/projects/", json=project.model_dump(mode="json", exclude_none=True))
         return Project.model_validate(resp.json())
 
     async def update_project(self, project_id: UUID | str, update: ProjectUpdate) -> Project:
         resp = await self._request(
             "PATCH",
             f"/api/v1/projects/{project_id}",
-            json=update.model_dump(exclude_none=True),
+            json=update.model_dump(mode="json", exclude_none=True),
         )
         return Project.model_validate(resp.json())
 

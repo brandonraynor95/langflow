@@ -208,6 +208,163 @@ def requirements_command_wrapper(
         typer.echo(content, nl=False)
 
 
+@app.command(name="export", help="Normalize flow JSON for git (local) or pull from a remote instance")
+def export_command_wrapper(
+    flow_paths: list[str] = typer.Argument(
+        default=None,
+        help="Path(s) to local flow JSON file(s) to normalize. Omit when using --flow-id or --project-id.",
+    ),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file path (single-file local mode only).",
+    ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output-dir",
+        "-d",
+        help="Directory to write exported flows into (remote mode or multi-file).",
+    ),
+    env: str | None = typer.Option(
+        None,
+        "--env",
+        "-e",
+        help="Environment name from langflow-environments.toml (required for remote mode).",
+    ),
+    flow_id: str | None = typer.Option(
+        None,
+        "--flow-id",
+        help="Pull and export a single flow by UUID from the remote instance.",
+    ),
+    project_id: str | None = typer.Option(
+        None,
+        "--project-id",
+        help="Pull and export all flows in a project by UUID from the remote instance.",
+    ),
+    environments_file: str | None = typer.Option(
+        None,
+        "--environments-file",
+        help="Path to langflow-environments.toml (overrides default lookup).",
+    ),
+    in_place: bool = typer.Option(
+        False,  # noqa: FBT003
+        "--in-place",
+        "-i",
+        help="Overwrite each input file with its normalized version.",
+    ),
+    strip_volatile: bool = typer.Option(
+        True,  # noqa: FBT003
+        "--strip-volatile/--keep-volatile",
+        help="Strip instance-specific fields (updated_at, user_id, folder_id).",
+    ),
+    strip_secrets: bool = typer.Option(
+        True,  # noqa: FBT003
+        "--strip-secrets/--keep-secrets",
+        help="Clear values of password/load_from_db template fields.",
+    ),
+    code_as_lines: bool = typer.Option(
+        False,  # noqa: FBT003
+        "--code-as-lines",
+        help="Convert code-type template field values to a list of lines.",
+    ),
+    strip_node_volatile: bool = typer.Option(
+        True,  # noqa: FBT003
+        "--strip-node-volatile/--keep-node-volatile",
+        help="Strip transient node keys (positionAbsolute, dragging, selected).",
+    ),
+    indent: int = typer.Option(
+        2,
+        "--indent",
+        help="JSON indentation level.",
+    ),
+) -> None:
+    """Export and normalize Langflow flow JSON for version control (lazy-loaded)."""
+    from lfx.cli.export import export_command
+
+    export_command(
+        flow_paths=flow_paths or [],
+        output=output,
+        output_dir=output_dir,
+        env=env,
+        flow_id=flow_id,
+        project_id=project_id,
+        environments_file=environments_file,
+        in_place=in_place,
+        strip_volatile=strip_volatile,
+        strip_secrets=strip_secrets,
+        code_as_lines=code_as_lines,
+        strip_node_volatile=strip_node_volatile,
+        indent=indent,
+    )
+
+
+@app.command(name="push", help="Push flow JSON to a remote Langflow instance (upsert by stable ID)")
+def push_command_wrapper(
+    flow_paths: list[str] = typer.Argument(
+        default=None,
+        help="Path(s) to flow JSON file(s) to push. Use --dir for a whole directory.",
+    ),
+    env: str = typer.Option(
+        ...,
+        "--env",
+        "-e",
+        help="Environment name from langflow-environments.toml.",
+    ),
+    dir_path: str | None = typer.Option(
+        None,
+        "--dir",
+        "-d",
+        help="Directory of flow JSON files to push (pushes all *.json files).",
+    ),
+    project: str | None = typer.Option(
+        None,
+        "--project",
+        "-p",
+        help="Target project name on the remote instance. Created if it does not exist.",
+    ),
+    project_id: str | None = typer.Option(
+        None,
+        "--project-id",
+        help="Target project UUID (alternative to --project).",
+    ),
+    environments_file: str | None = typer.Option(
+        None,
+        "--environments-file",
+        help="Path to langflow-environments.toml (overrides default lookup).",
+    ),
+    dry_run: bool = typer.Option(
+        False,  # noqa: FBT003
+        "--dry-run",
+        help="Show what would be pushed without making any changes.",
+    ),
+    normalize: bool = typer.Option(
+        True,  # noqa: FBT003
+        "--normalize/--no-normalize",
+        help="Normalize (strip volatile fields, sort keys) before pushing.",
+    ),
+    strip_secrets: bool = typer.Option(
+        True,  # noqa: FBT003
+        "--strip-secrets/--keep-secrets",
+        help="Clear password/load_from_db field values before pushing.",
+    ),
+) -> None:
+    """Push Langflow flows to a remote instance using stable IDs for upsert (lazy-loaded)."""
+    from lfx.cli.push import push_command
+
+    push_command(
+        flow_paths=flow_paths or [],
+        env=env,
+        dir_path=dir_path,
+        project=project,
+        project_id=project_id,
+        environments_file=environments_file,
+        dry_run=dry_run,
+        normalize=normalize,
+        strip_secrets=strip_secrets,
+    )
+
+
 @app.command(name="validate", help="Validate one or more flow JSON files", no_args_is_help=True)
 def validate_command_wrapper(
     flow_paths: list[str] = typer.Argument(
