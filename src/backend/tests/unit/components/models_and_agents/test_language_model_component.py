@@ -389,12 +389,12 @@ class TestLanguageModelComponent(ComponentTestBaseWithoutClient):
         self, mock_opts, component_class, default_kwargs
     ):
         """Selecting Ollama shows ollama_base_url and hides WatsonX-specific fields."""
-        mock_opts.return_value = []
+        ollama_model = [{"name": "llama3.2", "provider": "Ollama", "metadata": {}}]
+        mock_opts.return_value = ollama_model
         component = component_class(**default_kwargs)
         component._user_id = None
 
         build_config = self._get_build_config(component)
-        ollama_model = [{"name": "llama3.2", "provider": "Ollama", "metadata": {}}]
 
         updated = component.update_build_config(build_config, ollama_model, field_name="model")
 
@@ -407,12 +407,12 @@ class TestLanguageModelComponent(ComponentTestBaseWithoutClient):
         self, mock_opts, component_class, default_kwargs
     ):
         """Selecting OpenAI hides ollama_base_url and WatsonX-specific fields."""
-        mock_opts.return_value = []
+        openai_model = [{"name": "gpt-4o", "provider": "OpenAI", "metadata": {}}]
+        mock_opts.return_value = openai_model
         component = component_class(**default_kwargs)
         component._user_id = None
 
         build_config = self._get_build_config(component)
-        openai_model = [{"name": "gpt-4o", "provider": "OpenAI", "metadata": {}}]
 
         updated = component.update_build_config(build_config, openai_model, field_name="model")
 
@@ -425,12 +425,12 @@ class TestLanguageModelComponent(ComponentTestBaseWithoutClient):
         self, mock_opts, component_class, default_kwargs
     ):
         """Selecting IBM WatsonX shows both watsonx URL and project_id fields."""
-        mock_opts.return_value = []
+        watsonx_model = [{"name": "ibm/granite-13b-chat-v2", "provider": "IBM WatsonX", "metadata": {}}]
+        mock_opts.return_value = watsonx_model
         component = component_class(**default_kwargs)
         component._user_id = None
 
         build_config = self._get_build_config(component)
-        watsonx_model = [{"name": "ibm/granite-13b-chat-v2", "provider": "IBM WatsonX", "metadata": {}}]
 
         updated = component.update_build_config(build_config, watsonx_model, field_name="model")
 
