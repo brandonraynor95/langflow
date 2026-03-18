@@ -337,6 +337,164 @@ class TestDescribeComponentType:
 
 
 @pytest.mark.usefixtures("mcp_client")
+class TestCreateFlowFromSpec:
+    async def test_create_flow_from_spec(self):
+        spec = """\
+name: SpecTest
+description: A test flow
+
+nodes:
+  A: ChatInput
+  B: ChatOutput
+
+edges:
+  A.message -> B.input_value
+"""
+        result = await mcp_server_module.create_flow_from_spec(spec)
+        assert result["name"] == "SpecTest"
+        assert result["node_count"] == 2
+        assert result["edge_count"] == 1
+        assert "A" in result["node_id_map"]
+        assert "B" in result["node_id_map"]
+        assert "graph" in result
+
+    async def test_create_flow_from_spec_with_config(self):
+        spec = """\
+name: SpecConfigTest
+
+nodes:
+  A: ChatInput
+  B: ChatOutput
+
+edges:
+  A.message -> B.input_value
+
+config:
+  A.input_value: Hello from spec
+"""
+        result = await mcp_server_module.create_flow_from_spec(spec)
+        info = await mcp_server_module.get_component_info(
+            result["id"], result["node_id_map"]["A"], field_name="input_value"
+        )
+        assert info["value"] == "Hello from spec"
+
+    async def test_create_flow_from_spec_with_tool_mode(self):
+        spec = """\
+name: SpecToolTest
+
+nodes:
+  A: ChatInput
+  B: Agent
+  C: ChatOutput
+  D: URLComponent
+
+edges:
+  A.message -> B.input_value
+  D.component_as_tool -> B.tools
+  B.response -> C.input_value
+"""
+        result = await mcp_server_module.create_flow_from_spec(spec)
+        assert result["node_count"] == 4
+        assert result["edge_count"] == 3
+        # URLComponent should have tool_mode enabled
+        url_info = await mcp_server_module.get_component_info(result["id"], result["node_id_map"]["D"])
+        output_names = [o["name"] for o in url_info["outputs"]]
+        assert output_names == ["component_as_tool"]
+
+    async def test_create_flow_from_spec_unknown_node_in_config(self):
+        spec = """\
+name: BadConfig
+
+nodes:
+  A: ChatInput
+
+config:
+  Z.field: value
+"""
+        with pytest.raises(ValueError, match="unknown node 'Z'"):
+            await mcp_server_module.create_flow_from_spec(spec)
+
+    async def test_create_flow_from_spec_unknown_node_in_edge(self):
+        spec = """\
+name: BadEdge
+
+nodes:
+  A: ChatInput
+
+edges:
+  A.message -> Z.input_value
+"""
+        with pytest.raises(ValueError, match="unknown target 'Z'"):
+            await mcp_server_module.create_flow_from_spec(spec)
+
+    async def test_create_flow_from_spec_prompt_template_variables(self):
+        """Prompt Template with {var} in template creates dynamic input fields."""
+        spec = """\
+name: PromptVarTest
+
+nodes:
+  A: ChatInput
+  B: Prompt Template
+  C: OpenAIModel
+  D: ChatOutput
+
+edges:
+  A.message -> B.user_input
+  B.prompt -> C.input_value
+  C.text_output -> D.input_value
+
+config:
+  B.template: |
+    Translate to French: {user_input}
+"""
+        result = await mcp_server_module.create_flow_from_spec(spec)
+        assert result["node_count"] == 4
+        assert result["edge_count"] == 3
+
+        # Verify the dynamic field was created
+        prompt_info = await mcp_server_module.get_component_info(result["id"], result["node_id_map"]["B"])
+        assert "user_input" in prompt_info["params"]
+
+    async def test_create_flow_from_spec_prompt_multiple_variables(self):
+        """Prompt with multiple {vars} creates all corresponding fields."""
+        spec = """\
+name: MultiVarTest
+
+nodes:
+  A: Prompt Template
+
+config:
+  A.template: |
+    {tone} translation of {text} to {language}
+"""
+        result = await mcp_server_module.create_flow_from_spec(spec)
+        prompt_info = await mcp_server_module.get_component_info(result["id"], result["node_id_map"]["A"])
+        assert "tone" in prompt_info["params"]
+        assert "text" in prompt_info["params"]
+        assert "language" in prompt_info["params"]
+
+    async def test_create_flow_from_spec_coerces_numeric_config(self):
+        spec = """\
+name: CoerceTest
+
+nodes:
+  A: ChatInput
+  B: ChatOutput
+
+edges:
+  A.message -> B.input_value
+
+config:
+  A.input_value: 42
+"""
+        result = await mcp_server_module.create_flow_from_spec(spec)
+        info = await mcp_server_module.get_component_info(
+            result["id"], result["node_id_map"]["A"], field_name="input_value"
+        )
+        assert info["value"] == 42
+
+
+@pytest.mark.usefixtures("mcp_client")
 class TestDuplicateFlow:
     async def test_duplicate_flow(self):
         created = await mcp_server_module.create_flow("OriginalFlow", "desc")
