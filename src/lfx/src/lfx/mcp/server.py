@@ -9,6 +9,8 @@ Tools are organized into 5 groups: auth, flow, component, connection, execution.
 
 from __future__ import annotations
 
+import contextlib
+import re
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -26,6 +28,7 @@ from lfx.graph.flow_builder import (
     empty_flow,
     layout_flow,
     needs_server_update,
+    parse_flow_spec,
 )
 from lfx.graph.flow_builder import (
     flow_graph_repr as fb_graph_repr,
@@ -147,6 +150,171 @@ async def create_flow(name: str = "Untitled Flow", description: str = "") -> dic
     flow = empty_flow(name=name, description=description)
     result = await _get_client().post("/flows/", json_data=flow)
     return {"id": result["id"], "name": result["name"], "description": result.get("description", "")}
+
+
+_TEMPLATE_VAR_RE = re.compile(r"\{(\w+)\}")
+
+PROMPT_TYPES = {"Prompt Template", "Prompt"}
+
+
+async def _create_prompt_template_vars(flow_id: str, parsed: dict, id_map: dict[str, str]) -> None:
+    """Create dynamic input fields for Prompt template variables.
+
+    When a Prompt Template's template contains {variable_name} placeholders,
+    the UI creates input fields for them. This function does the same so that
+    edges can connect to those fields.
+    """
+    # Find Prompt nodes that have template config
+    node_types = {n["id"]: n["type"] for n in parsed["nodes"]}
+    prompt_nodes = {sid for sid, ntype in node_types.items() if ntype in PROMPT_TYPES}
+    if not prompt_nodes:
+        return
+
+    flow = await _get_flow(flow_id)
+    changed = False
+
+    for spec_id in prompt_nodes:
+        real_id = id_map.get(spec_id)
+        if real_id is None:
+            continue
+
+        # Find the node in the flow
+        node = None
+        for n in flow.get("data", {}).get("nodes", []):
+            if n.get("data", {}).get("id") == real_id:
+                node = n
+                break
+        if node is None:
+            continue
+
+        template = node["data"].get("node", {}).get("template", {})
+        template_value = ""
+        if isinstance(template.get("template"), dict):
+            template_value = template["template"].get("value", "")
+
+        if not template_value:
+            continue
+
+        # Parse {variable_name} placeholders
+        variables = _TEMPLATE_VAR_RE.findall(template_value)
+        for var_name in variables:
+            if var_name in template:
+                continue  # already exists
+            template[var_name] = {
+                "_input_type": "MessageInput",
+                "advanced": False,
+                "display_name": var_name,
+                "dynamic": False,
+                "info": "",
+                "input_types": ["Message"],
+                "list": False,
+                "load_from_db": False,
+                "name": var_name,
+                "placeholder": "",
+                "required": False,
+                "show": True,
+                "title_case": False,
+                "tool_mode": False,
+                "trace_as_metadata": True,
+                "type": "str",
+                "value": "",
+            }
+            changed = True
+
+        # Update custom_fields to track template variables
+        custom_fields = node["data"]["node"].setdefault("custom_fields", {})
+        custom_fields["template"] = variables
+
+    if changed:
+        await _patch_flow(flow_id, flow)
+
+
+@mcp.tool()
+async def create_flow_from_spec(spec: str) -> dict[str, Any]:
+    """Create a complete flow from a compact text spec. Best for building full flows.
+
+    Format:
+        name: My Chatbot
+        description: A simple chatbot
+
+        nodes:
+          A: ChatInput
+          B: OpenAIModel
+          C: ChatOutput
+
+        edges:
+          A.message -> B.input_value
+          B.text_output -> C.input_value
+
+        config:
+          B.model_name: gpt-4o
+          B.temperature: 0.5
+
+    Use describe_component_type to find output/input names for edges.
+    Connecting via component_as_tool auto-enables tool mode.
+    Multi-line config values use YAML-style "| " continuation.
+
+    Args:
+        spec: The flow spec as a text string.
+    """
+    parsed = parse_flow_spec(spec)
+
+    # Validate references before creating anything
+    node_ids = {n["id"] for n in parsed["nodes"]}
+    for spec_id in parsed.get("config", {}):
+        if spec_id not in node_ids:
+            msg = f"Config references unknown node '{spec_id}'. Available: {sorted(node_ids)}"
+            raise ValueError(msg)
+    for edge in parsed.get("edges", []):
+        if edge["source_id"] not in node_ids:
+            msg = f"Edge references unknown source '{edge['source_id']}'. Available: {sorted(node_ids)}"
+            raise ValueError(msg)
+        if edge["target_id"] not in node_ids:
+            msg = f"Edge references unknown target '{edge['target_id']}'. Available: {sorted(node_ids)}"
+            raise ValueError(msg)
+
+    # Create flow
+    created = await create_flow(
+        name=parsed.get("name", "Untitled Flow"),
+        description=parsed.get("description", ""),
+    )
+    flow_id = created["id"]
+
+    try:
+        # Add all components
+        id_map: dict[str, str] = {}
+        for node in parsed["nodes"]:
+            result = await add_component(flow_id, node["type"])
+            id_map[node["id"]] = result["id"]
+
+        # Apply config via configure_component (handles dynamic fields automatically)
+        for spec_id, params in parsed.get("config", {}).items():
+            await configure_component(flow_id, id_map[spec_id], params)
+
+        # Create dynamic template variable fields on Prompt components.
+        # When a Prompt template contains {var_name}, the UI creates an input
+        # field for it. We do the same here so edges can connect to them.
+        await _create_prompt_template_vars(flow_id, parsed, id_map)
+
+        # Connect edges via connect_components (handles tool_mode automatically)
+        for edge in parsed["edges"]:
+            await connect_components(
+                flow_id,
+                id_map[edge["source_id"]],
+                edge["source_output"],
+                id_map[edge["target_id"]],
+                edge["target_input"],
+            )
+    except Exception:
+        # Clean up the partially-built flow (best-effort)
+        with contextlib.suppress(Exception):
+            await delete_flow(flow_id)
+        raise
+
+    # Return flow info
+    info = await get_flow_info(flow_id)
+    info["node_id_map"] = id_map
+    return info
 
 
 @mcp.tool()
@@ -617,6 +785,7 @@ def _get_tool_map() -> dict[str, Any]:
         _TOOL_MAP = {
             "login": login,
             "create_flow": create_flow,
+            "create_flow_from_spec": create_flow_from_spec,
             "list_flows": list_flows,
             "get_flow_info": get_flow_info,
             "delete_flow": delete_flow,
@@ -636,8 +805,6 @@ def _get_tool_map() -> dict[str, Any]:
         }
     return _TOOL_MAP
 
-
-import re  # noqa: E402
 
 _REF_PATTERN = re.compile(r"^\$(\d+)\.(\w+)$")
 
