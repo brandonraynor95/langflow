@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import json
 import time
@@ -29,6 +30,10 @@ class EventManager:
     def __init__(self, queue):
         self.queue = queue
         self.events: dict[str, PartialEventCallback] = {}
+        try:
+            self._loop: asyncio.AbstractEventLoop | None = asyncio.get_running_loop()
+        except RuntimeError:
+            self._loop = None
 
     @staticmethod
     def _validate_callback(callback: EventCallback) -> None:
@@ -77,7 +82,18 @@ class EventManager:
         str_data = json.dumps(json_data) + "\n\n"
         if self.queue:
             try:
-                self.queue.put_nowait((event_id, str_data.encode("utf-8"), time.time()))
+                item = (event_id, str_data.encode("utf-8"), time.time())
+                try:
+                    asyncio.get_running_loop()
+                    # Called from within the event loop — safe to call directly
+                    self.queue.put_nowait(item)
+                except RuntimeError:
+                    # Called from a thread outside the event loop (e.g. sync tool in executor)
+                    # Use call_soon_threadsafe so asyncio wakes up the queue getter properly
+                    if self._loop is not None and self._loop.is_running():
+                        self._loop.call_soon_threadsafe(self.queue.put_nowait, item)
+                    else:
+                        self.queue.put_nowait(item)
             except Exception:  # noqa: BLE001
                 logger.debug("Queue not available for event")
 
@@ -99,6 +115,7 @@ def create_default_event_manager(queue=None):
     manager.register_event("on_end_vertex", "end_vertex")
     manager.register_event("on_build_start", "build_start")
     manager.register_event("on_build_end", "build_end")
+    manager.register_event("on_log", "log")
     return manager
 
 
@@ -111,4 +128,5 @@ def create_stream_tokens_event_manager(queue=None):
     manager.register_event("on_error", "error")
     manager.register_event("on_build_start", "build_start")
     manager.register_event("on_build_end", "build_end")
+    manager.register_event("on_log", "log")
     return manager

@@ -95,48 +95,14 @@ def _build_output_function(component: Component, output_method: Callable, event_
             if event_manager:
                 event_manager.on_build_start(data={"id": comp.get_id()})
             comp.set(*args, **kwargs)
+            comp._event_manager = event_manager
+            comp._current_output = TOOL_OUTPUT_NAME
             result = local_method()
+            comp._current_output = ""
             if event_manager:
-                # Emit end_vertex with outputs and logs so frontend can display them for tool components
-                from datetime import datetime, timezone
-
-                component_logs = component.get_logs()
-                log_list = [log.model_dump() for log in component_logs] if component_logs else []
-
-                # Build tool metadata for proper display (name, description, tags)
-                tool_info = {
-                    "name": output_method.__name__,
-                    "description": component.description or "",
-                    "tags": [output_method.__name__],
-                }
-
-                logs = {TOOL_OUTPUT_NAME: log_list}
-                outputs = {TOOL_OUTPUT_NAME: {"message": tool_info, "type": "tool_output"}}
-
-                event_manager.send_event(
-                    event_type="end_vertex",
-                    data={
-                        "build_data": {
-                            "id": component.get_id(),
-                            "valid": True,
-                            "inactivated_vertices": None,
-                            "next_vertices_ids": [],
-                            "top_level_vertices": [],
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                            "params": None,
-                            "messages": [],
-                            "artifacts": None,
-                            "data": {
-                                "results": {},
-                                "outputs": outputs,
-                                "logs": logs,
-                                "messages": [],
-                            },
-                        }
-                    },
-                )
-                event_manager.on_build_end(data={"id": component.get_id()})
+                event_manager.on_build_end(data={"id": comp.get_id()})
         except Exception as e:
+            comp._current_output = ""
             raise ToolException(e) from e
 
         if isinstance(result, Message):
@@ -150,7 +116,9 @@ def _build_output_function(component: Component, output_method: Callable, event_
 
 
 def _build_output_async_function(
-    component: Component, output_method: Callable, event_manager: EventManager | None = None
+    component: Component,
+    output_method: Callable,
+    event_manager: EventManager | None = None,
 ):
     method_name = output_method.__name__
 
@@ -163,49 +131,14 @@ def _build_output_async_function(
             if event_manager:
                 await asyncio.to_thread(event_manager.on_build_start, data={"id": comp.get_id()})
             comp.set(*args, **kwargs)
+            comp._event_manager = event_manager
+            comp._current_output = TOOL_OUTPUT_NAME
             result = await local_method()
+            comp._current_output = ""
             if event_manager:
-                # Emit end_vertex with outputs and logs so frontend can display them for tool components
-                from datetime import datetime, timezone
-
-                component_logs = component.get_logs()
-                log_list = [log.model_dump() for log in component_logs] if component_logs else []
-
-                # Build tool metadata for proper display (name, description, tags)
-                tool_info = {
-                    "name": output_method.__name__,
-                    "description": component.description or "",
-                    "tags": [output_method.__name__],
-                }
-
-                logs = {TOOL_OUTPUT_NAME: log_list}
-                outputs = {TOOL_OUTPUT_NAME: {"message": tool_info, "type": "tool_output"}}
-
-                await asyncio.to_thread(
-                    event_manager.send_event,
-                    event_type="end_vertex",
-                    data={
-                        "build_data": {
-                            "id": component.get_id(),
-                            "valid": True,
-                            "inactivated_vertices": None,
-                            "next_vertices_ids": [],
-                            "top_level_vertices": [],
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                            "params": None,
-                            "messages": [],
-                            "artifacts": None,
-                            "data": {
-                                "results": {},
-                                "outputs": outputs,
-                                "logs": logs,
-                                "messages": [],
-                            },
-                        }
-                    },
-                )
-                await asyncio.to_thread(event_manager.on_build_end, data={"id": component.get_id()})
+                await asyncio.to_thread(event_manager.on_build_end, data={"id": comp.get_id()})
         except Exception as e:
+            comp._current_output = ""
             raise ToolException(e) from e
         if isinstance(result, Message):
             return result.get_text()
@@ -315,7 +248,9 @@ class ComponentToolkit:
                     StructuredTool(
                         name=formatted_name,
                         description=build_description(self.component),
-                        coroutine=_build_output_async_function(self.component, output_method, event_manager),
+                        coroutine=_build_output_async_function(
+                            self.component, output_method, event_manager, output.name
+                        ),
                         args_schema=args_schema,
                         handle_tool_error=True,
                         callbacks=callbacks,
@@ -331,7 +266,9 @@ class ComponentToolkit:
                     StructuredTool(
                         name=formatted_name,
                         description=build_description(self.component),
-                        func=_build_output_function(self.component, output_method, event_manager),
+                        func=_build_output_function(
+                            self.component, output_method, event_manager, output.name
+                        ),
                         args_schema=args_schema,
                         handle_tool_error=True,
                         callbacks=callbacks,

@@ -774,6 +774,13 @@ async function onEvent(
     case "build_end":
       useFlowStore.getState().updateBuildStatus([data.id], BuildStatus.BUILT);
       break;
+    case "log": {
+      const { component_id, output, name, message, type: logType } = data;
+      useFlowStore
+        .getState()
+        .appendLogToFlowPool(component_id, output, { name, message, type: logType });
+      break;
+    }
     default:
       return true;
   }

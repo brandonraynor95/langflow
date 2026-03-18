@@ -162,7 +162,8 @@ function NodeOutputField({
     () => ({
       displayOutputPreview:
         !!flowPool[flowPoolId] &&
-        logHasMessage(flowPoolNode?.data, internalOutputName),
+        (logHasMessage(flowPoolNode?.data, internalOutputName) ||
+          (flowPoolNode?.data?.logs?.[internalOutputName]?.length ?? 0) > 0),
       unknownOutput: logTypeIsUnknown(flowPoolNode?.data, internalOutputName),
       errorOutput: logTypeIsError(flowPoolNode?.data, internalOutputName),
     }),
