@@ -330,6 +330,7 @@ external = ["RUF027"]
 "src/lfx/src/lfx/__main__.py" = [
     "B008",   # Typer CLI requires function calls in argument defaults
     "FBT001", # Bool flags are the standard typer pattern
+    "FBT003", # Boolean positional values in typer.Option() calls
 ]
 "src/langflow-sdk/src/langflow_sdk/environments.py" = [
     "TRY003", # Contextual error messages are necessary here

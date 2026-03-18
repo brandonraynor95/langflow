@@ -20,7 +20,7 @@ def serve_command_wrapper(
     ),
     host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host to bind the server to"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to bind the server to"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show diagnostic output and execution details"),  # noqa: FBT003
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show diagnostic output and execution details"),
     env_file: str | None = typer.Option(
         None,
         "--env-file",
@@ -38,12 +38,12 @@ def serve_command_wrapper(
     ),
     *,
     stdin: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--stdin",
         help="Read JSON flow content from stdin (alternative to script_path)",
     ),
     check_variables: bool = typer.Option(
-        True,  # noqa: FBT003
+        True,
         "--check-variables/--no-check-variables",
         help="Check global variables for environment compatibility",
     ),
@@ -103,18 +103,18 @@ def run_command_wrapper(
         help="Check global variables for environment compatibility",
     ),
     verbose: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "-v",
         "--verbose",
         help="Show basic progress information",
     ),
     verbose_detailed: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "-vv",
         help="Show detailed progress and debug information",
     ),
     verbose_full: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "-vvv",
         help="Show full debugging output including component logs",
     ),
@@ -163,12 +163,12 @@ def requirements_command_wrapper(
     ),
     *,
     no_lfx: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--no-lfx",
         help="Exclude the LFX package from output",
     ),
     no_pin: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--no-pin",
         help="Do not pin package versions (default: pin to currently installed versions)",
     ),
@@ -206,6 +206,72 @@ def requirements_command_wrapper(
         typer.echo(f"Requirements written to {output}")
     else:
         typer.echo(content, nl=False)
+
+
+@app.command(name="init", help="Scaffold a new Flow DevOps project")
+def init_command_wrapper(
+    project_dir: str = typer.Argument(
+        ".",
+        help="Directory to scaffold (created if it does not exist; default: current directory).",
+    ),
+    github_actions: bool = typer.Option(
+        True,
+        "--github-actions/--no-github-actions",
+        help="Copy GitHub Actions workflow templates into .github/workflows/.",
+    ),
+    overwrite: bool = typer.Option(
+        False,
+        "--overwrite",
+        help="Write files even if the target directory already contains files.",
+    ),
+) -> None:
+    """Scaffold a Flow DevOps project: flows/, tests/, environments config, and CI templates."""
+    from pathlib import Path
+
+    from lfx.cli.init import init_command
+
+    init_command(project_dir=Path(project_dir), github_actions=github_actions, overwrite=overwrite)
+
+
+@app.command(name="status", help="Compare local flow files against a remote Langflow instance")
+def status_command_wrapper(
+    flow_paths: list[str] = typer.Argument(
+        default=None,
+        help="Specific flow JSON file(s) to check. Omit to scan --dir (default: flows/).",
+    ),
+    env: str | None = typer.Option(
+        None,
+        "--env",
+        "-e",
+        help="Environment name from langflow-environments.toml. Uses [defaults] if omitted.",
+    ),
+    dir_path: str | None = typer.Option(
+        None,
+        "--dir",
+        "-d",
+        help="Directory of flow JSON files to compare (default: flows/ in cwd).",
+    ),
+    environments_file: str | None = typer.Option(
+        None,
+        "--environments-file",
+        help="Path to langflow-environments.toml (overrides default lookup).",
+    ),
+    show_remote_only: bool = typer.Option(
+        False,
+        "--remote-only",
+        help="Also list flows that exist on the server but have no local file.",
+    ),
+) -> None:
+    """Show whether local flow files are in sync, ahead, or missing vs the remote instance."""
+    from lfx.cli.status import status_command
+
+    status_command(
+        dir_path=dir_path,
+        flow_paths=flow_paths or [],
+        env=env,
+        environments_file=environments_file,
+        show_remote_only=show_remote_only,
+    )
 
 
 @app.command(name="export", help="Normalize flow JSON for git (local) or pull from a remote instance")
@@ -248,28 +314,28 @@ def export_command_wrapper(
         help="Path to langflow-environments.toml (overrides default lookup).",
     ),
     in_place: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--in-place",
         "-i",
         help="Overwrite each input file with its normalized version.",
     ),
     strip_volatile: bool = typer.Option(
-        True,  # noqa: FBT003
+        True,
         "--strip-volatile/--keep-volatile",
         help="Strip instance-specific fields (updated_at, user_id, folder_id).",
     ),
     strip_secrets: bool = typer.Option(
-        True,  # noqa: FBT003
+        True,
         "--strip-secrets/--keep-secrets",
         help="Clear values of password/load_from_db template fields.",
     ),
     code_as_lines: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--code-as-lines",
         help="Convert code-type template field values to a list of lines.",
     ),
     strip_node_volatile: bool = typer.Option(
-        True,  # noqa: FBT003
+        True,
         "--strip-node-volatile/--keep-node-volatile",
         help="Strip transient node keys (positionAbsolute, dragging, selected).",
     ),
@@ -334,17 +400,17 @@ def push_command_wrapper(
         help="Path to langflow-environments.toml (overrides default lookup).",
     ),
     dry_run: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--dry-run",
         help="Show what would be pushed without making any changes.",
     ),
     normalize: bool = typer.Option(
-        True,  # noqa: FBT003
+        True,
         "--normalize/--no-normalize",
         help="Normalize (strip volatile fields, sort keys) before pushing.",
     ),
     strip_secrets: bool = typer.Option(
-        True,  # noqa: FBT003
+        True,
         "--strip-secrets/--keep-secrets",
         help="Clear password/load_from_db field values before pushing.",
     ),
@@ -385,22 +451,22 @@ def validate_command_wrapper(
         ),
     ),
     skip_components: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--skip-components",
         help="Skip component existence checks (level 2)",
     ),
     skip_edge_types: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--skip-edge-types",
         help="Skip edge type compatibility checks (level 3)",
     ),
     skip_required_inputs: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--skip-required-inputs",
         help="Skip required-inputs checks (level 4)",
     ),
     verbose: bool = typer.Option(
-        False,  # noqa: FBT003
+        False,
         "--verbose",
         "-v",
         help="Print all issues including warnings for passing flows",
