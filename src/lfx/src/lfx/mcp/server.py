@@ -10,6 +10,7 @@ Tools are organized into 5 groups: auth, flow, component, connection, execution.
 from __future__ import annotations
 
 import contextlib
+import contextvars
 import re
 from typing import Any
 
@@ -57,9 +58,10 @@ from lfx.mcp.registry import (
     search_registry,
 )
 
-# Module-level state
-_client: LangflowClient | None = None
-_registry: dict[str, dict] | None = None
+# Per-session state (contextvars isolate concurrent sessions, e.g. multiple
+# agents connecting over SSE).
+_client_var: contextvars.ContextVar[LangflowClient | None] = contextvars.ContextVar("_client", default=None)
+_registry_var: contextvars.ContextVar[dict[str, dict] | None] = contextvars.ContextVar("_registry", default=None)
 
 mcp = FastMCP(
     "langflow-mcp",
@@ -86,17 +88,19 @@ mcp = FastMCP(
 
 
 def _get_client() -> LangflowClient:
-    global _client  # noqa: PLW0603
-    if _client is None:
-        _client = LangflowClient()
-    return _client
+    client = _client_var.get()
+    if client is None:
+        client = LangflowClient()
+        _client_var.set(client)
+    return client
 
 
 async def _get_registry() -> dict[str, dict]:
-    global _registry  # noqa: PLW0603
-    if _registry is None:
-        _registry = await load_registry(_get_client())
-    return _registry
+    registry = _registry_var.get()
+    if registry is None:
+        registry = await load_registry(_get_client())
+        _registry_var.set(registry)
+    return registry
 
 
 async def _get_flow(flow_id: str) -> dict:
@@ -125,13 +129,14 @@ async def login(username: str, password: str, server_url: str | None = None) -> 
         password: Langflow password.
         server_url: Server URL (defaults to LANGFLOW_SERVER_URL env var or http://localhost:7860).
     """
-    global _client, _registry  # noqa: PLW0603
-    if _client is not None:
-        await _client.close()
-    _client = LangflowClient(server_url=server_url)
-    _registry = None
-    await _client.login(username, password)
-    return {"status": "authenticated", "server_url": _client.server_url}
+    old_client = _client_var.get()
+    if old_client is not None:
+        await old_client.close()
+    client = LangflowClient(server_url=server_url)
+    _client_var.set(client)
+    _registry_var.set(None)
+    await client.login(username, password)
+    return {"status": "authenticated", "server_url": client.server_url}
 
 
 # ---------------------------------------------------------------------------
@@ -514,7 +519,7 @@ async def configure_component(
         if needs_server_update(template, key):
             # Handle tool_mode specially
             if key == "tool_mode":
-                enabled = value not in ("false", "False", "0", 0, False)
+                enabled = value in (True, "true", "True", "1", 1)
                 code = template.get("code", {}).get("value", "")
                 updated = await client.post(
                     "/custom_component/update",
@@ -740,6 +745,7 @@ async def disconnect_components(
     if removed == 0:
         msg = f"No connections found between '{source_id}' and '{target_id}'"
         raise ValueError(msg)
+    layout_flow(flow)
     await _patch_flow(flow_id, flow)
     return {"removed_count": removed}
 

@@ -23,7 +23,7 @@ def redact_template(template: dict) -> dict:
             if is_sensitive_field(key) and "value" in value and value["value"]:
                 redacted[key] = {**value, "value": "***REDACTED***"}
             else:
-                redacted[key] = value
+                redacted[key] = {**value}
         else:
             redacted[key] = value
     return redacted
