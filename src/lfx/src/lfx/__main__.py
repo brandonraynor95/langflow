@@ -208,6 +208,67 @@ def requirements_command_wrapper(
         typer.echo(content, nl=False)
 
 
+@app.command(name="validate", help="Validate one or more flow JSON files", no_args_is_help=True)
+def validate_command_wrapper(
+    flow_paths: list[str] = typer.Argument(
+        help="Path(s) to Langflow flow JSON file(s) to validate",
+    ),
+    level: int = typer.Option(
+        4,
+        "--level",
+        "-l",
+        min=1,
+        max=4,
+        help=(
+            "Validation depth: "
+            "1=structural JSON, "
+            "2=+component existence, "
+            "3=+edge type compatibility, "
+            "4=+required inputs connected"
+        ),
+    ),
+    skip_components: bool = typer.Option(
+        False,  # noqa: FBT003
+        "--skip-components",
+        help="Skip component existence checks (level 2)",
+    ),
+    skip_edge_types: bool = typer.Option(
+        False,  # noqa: FBT003
+        "--skip-edge-types",
+        help="Skip edge type compatibility checks (level 3)",
+    ),
+    skip_required_inputs: bool = typer.Option(
+        False,  # noqa: FBT003
+        "--skip-required-inputs",
+        help="Skip required-inputs checks (level 4)",
+    ),
+    verbose: bool = typer.Option(
+        False,  # noqa: FBT003
+        "--verbose",
+        "-v",
+        help="Print all issues including warnings for passing flows",
+    ),
+    output_format: str = typer.Option(
+        "text",
+        "--format",
+        "-f",
+        help="Output format: text (default) or json",
+    ),
+) -> None:
+    """Validate Langflow flow JSON files without executing them (lazy-loaded)."""
+    from lfx.cli.validate import validate_command
+
+    validate_command(
+        flow_paths=flow_paths,
+        level=level,
+        skip_components=skip_components,
+        skip_edge_types=skip_edge_types,
+        skip_required_inputs=skip_required_inputs,
+        verbose=verbose,
+        output_format=output_format,
+    )
+
+
 def main():
     """Main entry point for the LFX CLI."""
     app()
