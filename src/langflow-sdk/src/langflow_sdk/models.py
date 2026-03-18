@@ -133,9 +133,55 @@ class RunOutput(BaseModel):
     session_id: str | None = None
     timedelta: float | None = None
 
+    def first_text(self) -> str | None:
+        """Extract the first text value from this output block.
+
+        Tries the standard chat message path (``results.message.text``) then
+        a direct ``results.text`` path across each component output.
+        Returns ``None`` if no text is found.
+        """
+        for component_out in self.outputs:
+            results = component_out.get("results", {})
+            # Standard Langflow chat output: results -> message -> text
+            msg = results.get("message")
+            if isinstance(msg, dict):
+                text = msg.get("text")
+                if text is not None:
+                    return str(text)
+            # Direct text result (some custom components)
+            text = results.get("text")
+            if text is not None:
+                return str(text)
+        return None
+
 
 class RunResponse(BaseModel):
     """The full response from a flow run."""
 
     session_id: str | None = None
     outputs: list[RunOutput] = Field(default_factory=list)
+
+    def first_text_output(self) -> str | None:
+        """Return the first text extracted from any output block, or ``None``.
+
+        Convenience shortcut for the common case of reading a single chat
+        response::
+
+            text = response.first_text_output()
+            assert text is not None
+        """
+        for output in self.outputs:
+            text = output.first_text()
+            if text is not None:
+                return text
+        return None
+
+    def all_text_outputs(self) -> list[str]:
+        """Return all text values across every output block.
+
+        Useful when a flow produces multiple outputs::
+
+            texts = response.all_text_outputs()
+            assert len(texts) == 2
+        """
+        return [text for output in self.outputs if (text := output.first_text()) is not None]
