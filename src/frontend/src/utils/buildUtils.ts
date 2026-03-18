@@ -776,13 +776,11 @@ async function onEvent(
       break;
     case "log": {
       const { component_id, output, name, message, type: logType } = data;
-      useFlowStore
-        .getState()
-        .appendLogToFlowPool(component_id, output, {
-          name,
-          message,
-          type: logType,
-        });
+      useFlowStore.getState().appendLogToFlowPool(component_id, output, {
+        name,
+        message,
+        type: logType,
+      });
       break;
     }
     default:
