@@ -178,11 +178,6 @@ body {
   overflow: visible !important;
 }
 
-/* Lower canvas controls z-index so alert banners appear on top */
-[data-testid="main_canvas_controls"] {
-  z-index: 0 !important;
-}
-
 /* Reset grab cursor on canvas when a Radix dropdown/popover is open */
 body:has([data-radix-popper-content-wrapper]) .react-flow__pane {
   cursor: default !important;
