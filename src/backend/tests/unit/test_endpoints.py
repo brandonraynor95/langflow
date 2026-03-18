@@ -934,9 +934,7 @@ async def test_openai_responses_nonexistent_flow_uuid(client: AsyncClient, creat
     assert "not found" in json_response["error"]["message"].lower()
 
 
-async def test_openai_responses_cannot_access_other_users_flow(
-    client: AsyncClient, simple_api_test, user_two_api_key
-):
+async def test_openai_responses_cannot_access_other_users_flow(client: AsyncClient, simple_api_test, user_two_api_key):
     """Test that a user cannot execute another user's flow via the OpenAI responses endpoint."""
     headers = {"x-api-key": user_two_api_key}
     payload = {
