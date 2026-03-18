@@ -252,7 +252,7 @@ async def _create_prompt_template_vars(flow_id: str, parsed: dict, id_map: dict[
 
 
 @mcp.tool()
-async def create_flow_from_spec(spec: str) -> dict[str, Any]:
+async def create_flow_from_spec(spec: str, *, validate: bool = True) -> dict[str, Any]:
     """Create a complete flow from a compact text spec. Best for building full flows.
 
     Format:
@@ -278,6 +278,7 @@ async def create_flow_from_spec(spec: str) -> dict[str, Any]:
 
     Args:
         spec: The flow spec as a text string.
+        validate: Build the flow's graph to validate components and connections (default: True).
     """
     parsed = parse_flow_spec(spec)
 
@@ -327,6 +328,9 @@ async def create_flow_from_spec(spec: str) -> dict[str, Any]:
                 id_map[edge["target_id"]],
                 edge["target_input"],
             )
+        # Validate by building the graph server-side
+        if validate:
+            await build_flow(flow_id)
     except Exception:
         # Clean up the partially-built flow (best-effort)
         with contextlib.suppress(Exception):
@@ -794,6 +798,20 @@ async def run_flow(
     return await _get_client().post(f"/run/{flow_id}", json_data=request, timeout=300.0)
 
 
+@mcp.tool()
+async def build_flow(flow_id: str) -> dict[str, Any]:
+    """Build a flow's graph to validate components and connections.
+
+    Instantiates all components and validates edges without executing.
+    Use this after creating or modifying a flow to catch errors early.
+
+    Args:
+        flow_id: The flow UUID.
+    """
+    result = await _get_client().post(f"/build/{flow_id}/flow")
+    return {"flow_id": flow_id, "job_id": result.get("job_id", "")}
+
+
 # ---------------------------------------------------------------------------
 # Batch
 # ---------------------------------------------------------------------------
@@ -825,6 +843,7 @@ def _get_tool_map() -> dict[str, Any]:
             "connect_components": connect_components,
             "disconnect_components": disconnect_components,
             "run_flow": run_flow,
+            "build_flow": build_flow,
         }
     return _TOOL_MAP
 
