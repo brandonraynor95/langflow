@@ -326,11 +326,7 @@ def handle_model_input_update(
             value_is_valid = bool(field_value) and field_value[0]["name"] in option_names
 
             # If the value is invalid, reset to the first option if available, otherwise empty.
-            build_config[model_field_name]["value"] = (
-                field_value if value_is_valid
-                else [options[0]] if options
-                else ""
-            )
+            build_config[model_field_name]["value"] = field_value if value_is_valid else [options[0]] if options else ""
             field_value = build_config[model_field_name]["value"]
 
     # Step 2: Hide all provider-specific fields and clear their values by default.
