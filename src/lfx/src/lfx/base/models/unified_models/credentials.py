@@ -195,7 +195,7 @@ def _validate_and_get_enabled_providers(
 
             if value is None:
                 env_value = os.environ.get(var_key)
-                if env_value and env_value.strip():
+                if env_value and env_value.strip() and env_value.strip() != "dummy":
                     value = env_value
                     logger.debug(
                         "Using environment variable %s for provider %s",
