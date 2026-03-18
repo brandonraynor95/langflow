@@ -977,9 +977,7 @@ def test_handle_model_input_update_resolves_watsonx_dropdown():
         },
     }
 
-    with patch(
-        "lfx.base.models.unified_models.get_all_variables_for_provider"
-    ) as mock_get_vars:
+    with patch("lfx.base.models.unified_models.get_all_variables_for_provider") as mock_get_vars:
         mock_get_vars.return_value = {"WATSONX_URL": "https://eu-de.ml.cloud.ibm.com"}
 
         result = handle_model_input_update(
