@@ -166,6 +166,8 @@ def get_language_model_options(
 
     for provider_data in all_models:
         provider = provider_data.get("provider")
+        if provider not in enabled_providers:
+            continue
         models = provider_data.get("models", [])
         icon = provider_data.get("icon", "Bot")
 
@@ -232,24 +234,6 @@ def get_language_model_options(
                 option["metadata"]["project_id_param"] = param_mapping["project_id_param"]
 
             options.append(option)
-
-    # Add disabled providers (providers that exist in metadata but have no enabled models)
-    if user_id:
-        for provider, metadata in model_provider_metadata.items():
-            if provider not in providers_with_models:
-                # This provider has no enabled models, add it as a disabled provider entry
-                options.append(
-                    {
-                        "name": f"__enable_provider_{provider}__",
-                        "icon": metadata.get("icon", "Bot"),
-                        "category": provider,
-                        "provider": provider,
-                        "metadata": {
-                            "is_disabled_provider": True,
-                            "variable_name": metadata.get("variable_name"),
-                        },
-                    }
-                )
 
     return options
 
@@ -331,6 +315,9 @@ def get_embedding_model_options(
 
     for provider_data in all_models:
         provider = provider_data.get("provider")
+        if provider not in enabled_providers:
+            continue
+
         models = provider_data.get("models", [])
         icon = provider_data.get("icon", "Bot")
 
@@ -373,24 +360,6 @@ def get_embedding_model_options(
             }
 
             options.append(option)
-
-    # Add disabled providers (providers that exist in metadata but have no enabled models)
-    if user_id:
-        for provider, metadata in model_provider_metadata.items():
-            if provider not in providers_with_models and provider in EMBEDDING_PROVIDER_CLASS_MAPPING:
-                # This provider has no enabled models and supports embeddings, add it as a disabled provider entry
-                options.append(
-                    {
-                        "name": f"__enable_provider_{provider}__",
-                        "icon": metadata.get("icon", "Bot"),
-                        "category": provider,
-                        "provider": provider,
-                        "metadata": {
-                            "is_disabled_provider": True,
-                            "variable_name": metadata.get("variable_name"),
-                        },
-                    }
-                )
 
     return options
 

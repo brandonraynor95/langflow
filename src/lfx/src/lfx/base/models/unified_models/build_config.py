@@ -292,6 +292,7 @@ def handle_model_input_update(
     """Full update_build_config lifecycle for any component with a ModelInput."""
     from lfx.base.models import unified_models as unified_models_module
 
+    # If get_options_func is not provided, use the default based on cache_key_prefix
     if get_options_func is None:
         get_options_func = unified_models_module.get_language_model_options
 
@@ -311,6 +312,22 @@ def handle_model_input_update(
     provider_mapped_fields = _get_all_provider_mapped_fields()
     if field_name in provider_mapped_fields:
         return build_config
+
+    # When the user changes the model selection, we need to reset/hide fields that may no longer apply
+    if field_name == model_field_name:
+        options = build_config[model_field_name].get("options", [])
+        build_config[model_field_name]["options"] = options
+
+        value_missing = not field_value or field_value[0] not in options
+        if value_missing:
+            # If the current value is not in the options (e.g. user switched to a model that
+            # is no longer available), reset to avoid confusion so the user can pick a valid one.
+            option_names = {opt["name"] for opt in options}
+            value_is_valid = bool(field_value) and field_value[0]["name"] in option_names
+
+            # If the value is invalid, reset to the first option if available, otherwise empty.
+            build_config[model_field_name]["value"] = field_value if value_is_valid else [options[0]] if options else ""
+            field_value = build_config[model_field_name]["value"]
 
     # Step 2: Hide all provider-specific fields and clear their values by default.
     # Clearing values ensures that when Step 3 re-configures for the newly selected
