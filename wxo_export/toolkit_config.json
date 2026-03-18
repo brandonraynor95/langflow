@@ -1,0 +1,379 @@
+{
+  "toolkit_name": "starter_project",
+  "toolkit_type": "mcp",
+  "mcp_url": "http://localhost:7860/api/v1/mcp/project/32b1f197-4565-4ad9-a214-29bc05ae0270/streamable",
+  "tools": [
+    {
+      "name": "basic_prompting",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "d1a37f1b-beac-42d8-9e70-c903ed70d09f",
+      "mcp_enabled": true
+    },
+    {
+      "name": "document_qa",
+      "description": "Integrates PDF reading with a language model to answer document-specific questions. Ideal for small-scale texts, it facilitates direct queries with immediate insights.",
+      "flow_id": "7f3b77f9-41c8-4d8f-8c6e-b2e13b3a0bb8",
+      "mcp_enabled": true
+    },
+    {
+      "name": "document_qa_1",
+      "description": "Integrates PDF reading with a language model to answer document-specific questions. Ideal for small-scale texts, it facilitates direct queries with immediate insights.",
+      "flow_id": "75c8a576-0acb-422b-9346-f4187935a24e",
+      "mcp_enabled": true
+    },
+    {
+      "name": "document_qa_2",
+      "description": "Integrates PDF reading with a language model to answer document-specific questions. Ideal for small-scale texts, it facilitates direct queries with immediate insights.",
+      "flow_id": "d3e30bbd-3828-4816-8177-d188c4285195",
+      "mcp_enabled": true
+    },
+    {
+      "name": "document_qa_3",
+      "description": "Integrates PDF reading with a language model to answer document-specific questions. Ideal for small-scale texts, it facilitates direct queries with immediate insights.",
+      "flow_id": "2232b882-5dcd-4749-b3d0-7a900424b8ce",
+      "mcp_enabled": true
+    },
+    {
+      "name": "document_qa_4",
+      "description": "Integrates PDF reading with a language model to answer document-specific questions. Ideal for small-scale texts, it facilitates direct queries with immediate insights.",
+      "flow_id": "bcfa6954-1690-4b78-8993-ed5b81ef4a64",
+      "mcp_enabled": true
+    },
+    {
+      "name": "document_qa_5",
+      "description": "Integrates PDF reading with a language model to answer document-specific questions. Ideal for small-scale texts, it facilitates direct queries with immediate insights.",
+      "flow_id": "f224d62d-1c78-4c8f-ac52-fc9a62dd93ef",
+      "mcp_enabled": true
+    },
+    {
+      "name": "document_qa_6",
+      "description": "Integrates PDF reading with a language model to answer document-specific questions. Ideal for small-scale texts, it facilitates direct queries with immediate insights.",
+      "flow_id": "81ef4d85-bba9-4840-8291-dd914b27d58b",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow",
+      "description": "Catalyzing Business Growth through Conversational AI.",
+      "flow_id": "605c5813-bb3b-4222-8d3a-626286740746",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_1",
+      "description": "Unleashing Linguistic Creativity.",
+      "flow_id": "a73205a7-68fa-4067-bb2c-b35ebc036912",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_2",
+      "description": "The Power of Language at Your Fingertips.",
+      "flow_id": "65bd5eff-2ba0-4c3d-8547-af2e5f63cb60",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_3",
+      "description": "Unleashing Business Potential through Language Engineering.",
+      "flow_id": "3e0611cf-b062-4133-bd4d-07a7c20363a1",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_4",
+      "description": "Craft Meaningful Interactions, Generate Value.",
+      "flow_id": "6f6104da-4ec6-4756-a897-26aa11fdc2c9",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_5",
+      "description": "Maximize Impact with Intelligent Conversations.",
+      "flow_id": "8a728bbe-941a-4dc3-a94b-2cbf43fd5942",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_6",
+      "description": "Craft Meaningful Interactions, Generate Value.",
+      "flow_id": "13028030-6421-443d-b7a7-ac4d896f58ae",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_7",
+      "description": "Powerful Prompts, Perfectly Positioned.",
+      "flow_id": "930a17be-02ec-43dd-a9e9-21de0113032b",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_8",
+      "description": "Maximize Impact with Intelligent Conversations.",
+      "flow_id": "efe4d9da-bf41-4e02-a395-e999c98a6440",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_9",
+      "description": "Innovation in Interaction, Revolution in Revenue.",
+      "flow_id": "f1d06421-646c-4d6e-a232-ba634c9d7ad2",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_10",
+      "description": "Unfolding Linguistic Possibilities.",
+      "flow_id": "87fb34e0-eb0c-4d42-8cbc-c822f2a9d768",
+      "mcp_enabled": true
+    },
+    {
+      "name": "new_flow_11",
+      "description": "Language Architect at Work!",
+      "flow_id": "14b4549d-712f-407d-bdd9-e0059b4f3563",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_backup",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "03b38509-fbee-47dd-83bf-b0061e030796",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_backup_1",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "aadae3ca-07ca-4ebf-a676-b7c7e3c2d216",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_backup_backup",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "f3b72e8e-05ca-4641-b325-bb7dc21e5762",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_1",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "80f56ea3-cfbd-410e-b2a3-ef58fe687abe",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_2",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "7b808355-286e-4537-ba96-f752921a4f80",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_3",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "e29ba558-ee32-4ea4-a4d4-8d6909ceae20",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_4",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "090ab3d4-e48e-411b-9e4e-686809421b26",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_5",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "d0498a35-d9bf-4112-b845-b6259b70ce93",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_6",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "440cc380-0981-4b2d-a010-4c17f2993e7b",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_7",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "dd146257-4905-4780-8d06-e1866ee00416",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_8",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "99249bad-f2b2-4274-88be-97d30b331571",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_9",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "38a454db-9231-4986-9df4-b3522b8c8753",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_10",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "f0d67eab-e2ac-4fb2-8b12-698a529a2925",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_11",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "84235e54-0b04-4573-bbf5-8512b4f112a0",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_12",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "12925560-4d4d-4d22-917f-bfd31261b37a",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_13",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "6fae82d8-3624-4b3c-9787-6f96c1dd5675",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_14",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "7424e8b3-0b21-42c3-83f2-d469b1b78ed1",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_15",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "2a3324ca-cfed-4765-b871-a7adb8cec9ed",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_16",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "895f0121-3149-42b6-99ed-0de78d754c4d",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_17",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "b3d4b9cb-3a22-4b3e-a00b-fd96ad020ed9",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_18",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "aa091342-ac9d-41d3-b13e-f54a7f2936f3",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_19",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "b9f18b1f-b946-441b-a837-7999e7c52630",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_20",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "79ac1655-a2f2-4df2-a2be-23604b4a2712",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_21",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "2ab30915-4f36-4a30-87d6-cc59837f224d",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_22",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "1ae52a58-ef59-4419-8e59-b3a1092d0f4d",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_23",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "b503e585-b7f1-4ef6-a8ba-fed94e4bd7f4",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_24",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "bd8bd987-5da5-4bd1-b514-760f43371338",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_25",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "af75a656-41bd-4262-9323-99acd89e8353",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_26",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "93dc1ef3-35d3-459a-ac38-ab38c5f97c54",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_27",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "1f2be236-326c-47a6-8593-ecbef7ce457a",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_28",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "1f5dc521-4b7b-4b4c-9217-64819a88d300",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_29",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "f05c0386-a2bb-476d-a1ac-e643046ce7d1",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_30",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "5742111c-a6df-487e-a0ad-f01b8b173a55",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_31",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "21256cb3-6330-4fc6-9396-48e92742f962",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_32",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "9f59eda2-623f-44cb-87e1-6c873e4669d6",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_33",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "d9be9d1c-7bce-4bea-b970-f20acfc58d90",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_34",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "7593ae4b-24fc-45d3-9eae-15c8f91c83fc",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_35",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "76ae1e58-80c3-4be1-a2dc-752cd2ce4cf3",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_36",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "7c5a7677-b8d2-4039-91df-72e6d48f4571",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_37",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "d53e6f4c-eed9-41b4-82f9-9c8a9e4743cc",
+      "mcp_enabled": true
+    },
+    {
+      "name": "basic_prompting_38",
+      "description": "Perform basic prompting with an OpenAI model.",
+      "flow_id": "0cecf44f-43fd-44d3-b0d3-7d18c15330b0",
+      "mcp_enabled": true
+    },
+    {
+      "name": "simple_agent",
+      "description": "A simple but powerful starter agent.",
+      "flow_id": "e687fd66-8c69-4c2d-8f4d-c17c055758cd",
+      "mcp_enabled": true
+    }
+  ]
+}

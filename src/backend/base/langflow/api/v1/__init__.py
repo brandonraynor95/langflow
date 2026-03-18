@@ -22,6 +22,7 @@ from langflow.api.v1.users import router as users_router
 from langflow.api.v1.validate import router as validate_router
 from langflow.api.v1.variable import router as variables_router
 from langflow.api.v1.voice_mode import router as voice_mode_router
+from langflow.api.v1.wxo_integration import router as wxo_router
 
 __all__ = [
     "api_key_router",
@@ -48,4 +49,5 @@ __all__ = [
     "validate_router",
     "variables_router",
     "voice_mode_router",
+    "wxo_router",
 ]
