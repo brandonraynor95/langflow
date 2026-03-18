@@ -119,7 +119,7 @@ def export_command(
 
         if flow_id:
             flow_obj = client.get_flow(UUID(flow_id))
-            normalized = sdk.normalize_flow(flow_obj.model_dump(), **normalize_kwargs)
+            normalized = sdk.normalize_flow(flow_obj.model_dump(mode="json"), **normalize_kwargs)
             dest_dir = Path(output_dir) if output_dir else Path.cwd()
             dest_dir.mkdir(parents=True, exist_ok=True)
             safe_name = _safe_filename(flow_obj.name)
@@ -135,7 +135,7 @@ def export_command(
 
         exported = 0
         for flow_obj in project.flows:
-            normalized = sdk.normalize_flow(flow_obj.model_dump(), **normalize_kwargs)
+            normalized = sdk.normalize_flow(flow_obj.model_dump(mode="json"), **normalize_kwargs)
             safe_name = _safe_filename(flow_obj.name)
             out_path = dest_dir / f"{safe_name}.json"
             out_path.write_text(sdk.flow_to_json(normalized, indent=indent), encoding="utf-8")
