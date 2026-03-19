@@ -74,6 +74,15 @@ def update_projects_components_with_latest_component_versions(project_data, all_
         if old_name not in all_types_dict_flat and new_name in all_types_dict_flat:
             all_types_dict_flat[old_name] = all_types_dict_flat[new_name]
 
+    # Add display_name aliases so node types like "URL" resolve to "URLComponent"
+    display_name_aliases = {}
+    for comp in all_types_dict_flat.values():
+        if isinstance(comp, dict):
+            display_name = comp.get("display_name")
+            if display_name and display_name not in all_types_dict_flat:
+                display_name_aliases[display_name] = comp
+    all_types_dict_flat.update(display_name_aliases)
+
     node_changes_log = defaultdict(list)
     project_data_copy = deepcopy(project_data)
 
@@ -85,6 +94,12 @@ def update_projects_components_with_latest_component_versions(project_data, all_
             latest_node = all_types_dict_flat.get(node_type)
             latest_template = latest_node.get("template")
             node_data["template"]["code"] = latest_template["code"]
+
+            # Sync field_order so the UI renders fields in the correct order
+            latest_field_order = latest_node.get("field_order")
+            if latest_field_order is not None:
+                node_data["field_order"] = latest_field_order
+
             # skip components that are having dynamic values that need to be persisted for templates
 
             if node_type in SKIPPED_COMPONENTS:
