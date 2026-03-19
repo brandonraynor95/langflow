@@ -266,11 +266,17 @@ async def _new_flow(
             else:
                 flow.endpoint_name = f"{flow.endpoint_name}-1"
 
-        db_flow = Flow.model_validate(flow, from_attributes=True)
+        # Exclude the id field from FlowCreate so that Flow.id (UUID, non-optional)
+        # always gets its default_factory uuid4 unless we explicitly override it below.
+        # Passing id=None via model_validate would cause a Pydantic ValidationError
+        # because Flow.id is typed as UUID, not Optional[UUID].
+        db_flow = Flow.model_validate(flow.model_dump(exclude={"id"}))
 
-        # Use specified ID if provided (for PUT upsert)
-        if flow_id is not None:
-            db_flow.id = flow_id
+        # Apply the stable ID: the explicit flow_id param (PUT upsert) takes precedence,
+        # then flow.id (stable import from FlowCreate), then the uuid4 default.
+        effective_id = flow_id if flow_id is not None else flow.id
+        if effective_id is not None:
+            db_flow.id = effective_id
 
         db_flow.updated_at = datetime.now(timezone.utc)
 
@@ -732,7 +738,10 @@ async def create_flows(
     db_flows = []
     for flow in flow_list.flows:
         flow.user_id = current_user.id
-        db_flow = Flow.model_validate(flow, from_attributes=True)
+        # Exclude id from model_validate (same reasoning as _new_flow) and apply separately.
+        db_flow = Flow.model_validate(flow.model_dump(exclude={"id"}))
+        if flow.id is not None:
+            db_flow.id = flow.id
         session.add(db_flow)
         db_flows.append(db_flow)
 
