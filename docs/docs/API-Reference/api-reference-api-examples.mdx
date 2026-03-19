@@ -2,6 +2,17 @@
 title: Get started with the Langflow API
 slug: /api-reference-api-examples
 ---
+import CodeBlock from '@theme/CodeBlock';
+import exampleApiReferenceApiExamplesFormLangflowApiRequests from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/form-langflow-api-requests.sh';
+import exampleApiReferenceApiExamplesSetEnvironmentVariables from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/set-environment-variables.sh';
+import exampleApiReferenceApiExamplesHealthCheck from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/health-check.sh';
+import resultApiReferenceApiExamplesResultHealthCheck from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/result-health-check.json';
+import exampleApiReferenceApiExamplesGetVersion from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/get-version.sh';
+import resultApiReferenceApiExamplesResultGetVersion from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/result-get-version.txt';
+import exampleApiReferenceApiExamplesGetConfiguration from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/get-configuration.sh';
+import resultApiReferenceApiExamplesResultGetConfiguration from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/result-get-configuration.json';
+import exampleApiReferenceApiExamplesGetAllComponents from '!!raw-loader!@site/API-Reference/curl-examples/api-reference-api-examples/get-all-components.sh';
+
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -28,22 +39,7 @@ While individual options vary by endpoint, all Langflow API requests share some 
 
 As an example of a Langflow API request, the following curl command calls the `/v1/run` endpoint, and it passes a runtime override (`tweaks`) to the flow's **Chat Output** component:
 
-```bash
-curl --request POST \
-  --url "$LANGFLOW_SERVER_URL/api/v1/run/$FLOW_ID?stream=false" \
-  --header "Content-Type: application/json" \
-  --header "x-api-key: $LANGFLOW_API_KEY" \
-  --data '{
-  "input_value": "hello world!",
-  "output_type": "chat",
-  "input_type": "chat",
-  "tweaks": {
-    "ChatOutput-6zcZt": {
-      "should_store_message": true
-    }
-  }
-}'
-```
+<CodeBlock language="bash">{exampleApiReferenceApiExamplesFormLangflowApiRequests}</CodeBlock>
 
 ### Base URL
 
@@ -89,30 +85,7 @@ You can use any method you prefer to set environment variables, such as `export`
 Then, reference those environment variables in your API requests.
 For example:
 
-```bash
-# Set environment variables
-export LANGFLOW_API_KEY="sk..."
-export LANGFLOW_SERVER_URL="https://localhost:7860"
-export FLOW_ID="359cd752-07ea-46f2-9d3b-a4407ef618da"
-export PROJECT_ID="1415de42-8f01-4f36-bf34-539f23e47466"
-export LANGFLOW_API_KEY="sk-..."
-
-# Use environment variables in API requests
-curl --request POST \
-  --url "$LANGFLOW_SERVER_URL/api/v1/run/$FLOW_ID$?stream=false" \
-  --header "Content-Type: application/json" \
-  --header "x-api-key: $LANGFLOW_API_KEY" \
-  --data '{
-  "input_value": "hello world!",
-  "output_type": "chat",
-  "input_type": "chat",
-  "tweaks": {
-    "ChatOutput-6zcZt": {
-      "should_store_message": true
-    }
-  }
-}'
-```
+<CodeBlock language="bash">{exampleApiReferenceApiExamplesSetEnvironmentVariables}</CodeBlock>
 
 Commonly used values in Langflow API requests include your [Langflow server URL](#base-url), [Langflow API keys](#authentication), flow IDs, and [project IDs](/api-projects#read-projects).
 
@@ -126,22 +99,12 @@ Once you have your Langflow server URL, try calling these endpoints that return 
 
 Returns the health status of the Langflow database and chat services:
 
-```bash
-curl -X GET \
-  "$LANGFLOW_SERVER_URL/health_check" \
-  -H "accept: application/json"
-```
+<CodeBlock language="bash">{exampleApiReferenceApiExamplesHealthCheck}</CodeBlock>
 
 <details>
 <summary>Result</summary>
 
-```json
-{
-  "status": "ok",
-  "chat": "ok",
-  "db": "ok"
-}
-```
+<CodeBlock language="json">{resultApiReferenceApiExamplesResultHealthCheck}</CodeBlock>
 
 </details>
 
@@ -152,22 +115,12 @@ This endpoint is served by uvicorn before Langflow is fully initialized, so it's
 
 Returns the current Langflow API version:
 
-```bash
-curl -X GET \
-  "$LANGFLOW_SERVER_URL/api/v1/version" \
-  -H "accept: application/json"
-```
+<CodeBlock language="bash">{exampleApiReferenceApiExamplesGetVersion}</CodeBlock>
 
 <details>
 <summary>Result</summary>
 
-```text
-{
-    "version": "1.6.0",
-    "main_version": "1.6.0",
-    "package": "Langflow"
-}
-```
+<CodeBlock language="text">{resultApiReferenceApiExamplesResultGetVersion}</CodeBlock>
 
 </details>
 
@@ -176,38 +129,12 @@ curl -X GET \
 Returns configuration details for your Langflow deployment.
 Requires a [Langflow API key](/api-keys-and-authentication).
 
-```bash
-curl -X GET \
-  "$LANGFLOW_SERVER_URL/api/v1/config" \
-  -H "accept: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY"
-```
+<CodeBlock language="bash">{exampleApiReferenceApiExamplesGetConfiguration}</CodeBlock>
 
 <details>
 <summary>Result</summary>
 
-```json
-{
-  "feature_flags": {
-    "mvp_components": false
-  },
-  "serialization_max_items_length": 1000,
-  "serialization_max_text_length": 6000,
-  "frontend_timeout": 0,
-  "auto_saving": true,
-  "auto_saving_interval": 1000,
-  "health_check_max_retries": 5,
-  "max_file_size_upload": 1024,
-  "webhook_polling_interval": 5000,
-  "public_flow_cleanup_interval": 3600,
-  "public_flow_expiration": 86400,
-  "event_delivery": "streaming",
-  "webhook_auth_enable": false,
-  "voice_mode_available": false,
-  "default_folder_name": "Starter Project",
-  "hide_getting_started_progress": false
-}
-```
+<CodeBlock language="json">{resultApiReferenceApiExamplesResultGetConfiguration}</CodeBlock>
 
 </details>
 
@@ -216,12 +143,7 @@ curl -X GET \
 Returns a dictionary of all Langflow components.
 Requires a [Langflow API key](/api-keys-and-authentication).
 
-```bash
-curl -X GET \
-  "$LANGFLOW_SERVER_URL/api/v1/all" \
-  -H "accept: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY"
-```
+<CodeBlock language="bash">{exampleApiReferenceApiExamplesGetAllComponents}</CodeBlock>
 
 ## Available endpoints
 

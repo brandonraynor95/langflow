@@ -2,6 +2,12 @@
 title: Workflow API (Beta)
 slug: /workflow-api
 ---
+import CodeBlock from '@theme/CodeBlock';
+import exampleWorkflowsApiExampleSynchronousRequest from '!!raw-loader!@site/API-Reference/curl-examples/workflows-api/example-synchronous-request.sh';
+import exampleWorkflowsApiExampleAsynchronousRequest from '!!raw-loader!@site/API-Reference/curl-examples/workflows-api/example-asynchronous-request.sh';
+import exampleWorkflowsApiExampleRequest from '!!raw-loader!@site/API-Reference/curl-examples/workflows-api/example-request.sh';
+import exampleWorkflowsApiExampleRequest2 from '!!raw-loader!@site/API-Reference/curl-examples/workflows-api/example-request-2.sh';
+
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -99,21 +105,7 @@ runWorkflow();
 </TabItem>
 <TabItem value="curl" label="curl">
 
-```bash
-curl -X POST \
-  "$LANGFLOW_SERVER_URL/api/v2/workflows" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY" \
-  -d '{
-    "flow_id": "flow_67ccd2be17f0819081ff3bb2cf6508e60bb6a6b452d3795b",
-    "background": false,
-    "inputs": {
-      "ChatInput-abc.input_type": "chat",
-      "ChatInput-abc.input_value": "what is 2+2",
-      "ChatInput-abc.session_id": "session-123"
-    }
-  }'
-```
+<CodeBlock language="bash">{exampleWorkflowsApiExampleSynchronousRequest}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -196,22 +188,7 @@ runWorkflow();
 </TabItem>
 <TabItem value="curl" label="curl">
 
-```bash
-curl -X POST \
-  "$LANGFLOW_SERVER_URL/api/v2/workflows" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY" \
-  -d '{
-    "flow_id": "flow_67ccd2be17f0819081ff3bb2cf6508e60bb6a6b452d3795b",
-    "background": true,
-    "stream": false,
-    "inputs": {
-      "ChatInput-abc.input_type": "chat",
-      "ChatInput-abc.input_value": "Process this in the background",
-      "ChatInput-abc.session_id": "session-456"
-    }
-  }'
-```
+<CodeBlock language="bash">{exampleWorkflowsApiExampleAsynchronousRequest}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -334,12 +311,7 @@ getWorkflowStatus();
 </TabItem>
 <TabItem value="curl" label="curl">
 
-```bash
-curl -X GET \
-  "$LANGFLOW_SERVER_URL/api/v2/workflows?job_id=job_id_1234567890" \
-  -H "accept: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY"
-```
+<CodeBlock language="bash">{exampleWorkflowsApiExampleRequest}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -452,15 +424,7 @@ stopWorkflow();
 </TabItem>
 <TabItem value="curl" label="curl">
 
-```bash
-curl -X POST \
-  "$LANGFLOW_SERVER_URL/api/v2/workflows/stop" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY" \
-  -d '{
-    "job_id": "job_id_1234567890"
-  }'
-```
+<CodeBlock language="bash">{exampleWorkflowsApiExampleRequest2}</CodeBlock>
 
 </TabItem>
 </Tabs>

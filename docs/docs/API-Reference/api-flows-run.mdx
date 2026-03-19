@@ -2,6 +2,14 @@
 title: Flow trigger endpoints
 slug: /api-flows-run
 ---
+import CodeBlock from '@theme/CodeBlock';
+import exampleApiFlowsRunRunFlow from '!!raw-loader!@site/API-Reference/curl-examples/api-flows-run/run-flow.sh';
+import exampleApiFlowsRunStreamLlmTokenResponses from '!!raw-loader!@site/API-Reference/curl-examples/api-flows-run/stream-llm-token-responses.sh';
+import exampleApiFlowsRunRequestExampleWithAllHeadersAndParameters from '!!raw-loader!@site/API-Reference/curl-examples/api-flows-run/request-example-with-all-headers-and-parameters.sh';
+import exampleApiFlowsRunPassGlobalVariablesInRequestHeaders from '!!raw-loader!@site/API-Reference/curl-examples/api-flows-run/pass-global-variables-in-request-headers.sh';
+import exampleApiFlowsRunWebhookRunFlow from '!!raw-loader!@site/API-Reference/curl-examples/api-flows-run/webhook-run-flow.sh';
+import resultApiFlowsRunResultWebhookRunFlow from '!!raw-loader!@site/API-Reference/curl-examples/api-flows-run/result-webhook-run-flow.json';
+
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -84,19 +92,7 @@ fetch('http://LANGFLOW_SERVER_URL/api/v1/run/FLOW_ID', options)
 </TabItem>
 <TabItem value="curl" label="curl">
 
-```bash
-curl -X POST \
-  "$LANGFLOW_SERVER_URL/api/v1/run/$FLOW_ID" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY" \
-  -d '{
-    "input_value": "Tell me about something interesting!",
-    "session_id": "chat-123",
-    "input_type": "chat",
-    "output_type": "chat",
-    "output_component": ""
-  }'
-```
+<CodeBlock language="bash">{exampleApiFlowsRunRunFlow}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -221,17 +217,7 @@ fetch('http://LANGFLOW_SERVER_URL/api/v1/run/FLOW_ID?stream=true', options)
 </TabItem>
 <TabItem value="curl" label="curl">
 
-```bash
-curl -X POST \
-  "$LANGFLOW_SERVER_URL/api/v1/run/$FLOW_ID?stream=true" \
-  -H "accept: application/json" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY" \
-  -d '{
-    "message": "Tell me something interesting!",
-    "session_id": "chat-123"
-  }'
-```
+<CodeBlock language="bash">{exampleApiFlowsRunStreamLlmTokenResponses}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -378,25 +364,7 @@ fetch('http://LANGFLOW_SERVER_URL/api/v1/run/FLOW_ID?stream=true', options)
 </TabItem>
 <TabItem value="curl" label="curl">
 
-```bash
-curl -X POST \
-  "$LANGFLOW_SERVER_URL/api/v1/run/$FLOW_ID?stream=true" \
-  -H "Content-Type: application/json" \
-  -H "accept: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY" \
-  -d '{
-    "input_value": "Tell me a story",
-    "input_type": "chat",
-    "output_type": "chat",
-    "output_component": "chat_output",
-    "session_id": "chat-123",
-    "tweaks": {
-      "component_id": {
-        "parameter_name": "value"
-      }
-    }
-  }'
-```
+<CodeBlock language="bash">{exampleApiFlowsRunRequestExampleWithAllHeadersAndParameters}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -474,20 +442,7 @@ fetch('http://LANGFLOW_SERVER_URL/api/v1/run/FLOW_ID', options)
 </TabItem>
 <TabItem value="curl" label="curl">
 
-```bash
-curl -X POST \
-  "$LANGFLOW_SERVER_URL/api/v1/run/$FLOW_ID" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY" \
-  -H "X-LANGFLOW-GLOBAL-VAR-OPENAI_API_KEY: sk-..." \
-  -H "X-LANGFLOW-GLOBAL-VAR-USER_ID: user123" \
-  -H "X-LANGFLOW-GLOBAL-VAR-ENVIRONMENT: production" \
-  -d '{
-    "input_value": "Tell me about something interesting!",
-    "input_type": "chat",
-    "output_type": "chat"
-  }'
-```
+<CodeBlock language="bash">{exampleApiFlowsRunPassGlobalVariablesInRequestHeaders}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -504,23 +459,12 @@ After you add a [**Webhook** component](/webhook) to a flow, open the [**API acc
 For more information, see [Trigger flows with webhooks](/webhook).
 :::
 
-```bash
-curl -X POST \
-  "$LANGFLOW_SERVER_URL/api/v1/webhook/$FLOW_ID" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $LANGFLOW_API_KEY" \
-  -d '{"data": "example-data"}'
-```
+<CodeBlock language="bash">{exampleApiFlowsRunWebhookRunFlow}</CodeBlock>
 
 <details>
 <summary>Result</summary>
 
-```json
-{
-  "message": "Task started in the background",
-  "status": "in progress"
-}
-```
+<CodeBlock language="json">{resultApiFlowsRunResultWebhookRunFlow}</CodeBlock>
 
 </details>
 
