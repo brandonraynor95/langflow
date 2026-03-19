@@ -178,9 +178,7 @@ class AstraDBVectorStoreComponent(AstraDBBaseComponent, LCVectorStoreComponent):
                 if isinstance(model_value, list) and model_value:
                     provider = model_value[0].get("provider", "")
                     if provider:
-                        build_config = apply_provider_variable_config_to_build_config(
-                            build_config, provider, user_id=getattr(self, "user_id", None)
-                        )
+                        build_config = apply_provider_variable_config_to_build_config(build_config, provider)
 
             # Ensure the API key field is always visible
             if "api_key" in build_config:
