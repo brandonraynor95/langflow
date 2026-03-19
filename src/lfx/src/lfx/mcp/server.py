@@ -4,7 +4,7 @@ Connects to a running Langflow server via REST API. Flow data is never
 cached — every mutating tool does GET -> modify -> PATCH. The component
 registry is cached on first access.
 
-Tools are organized into 5 groups: auth, flow, component, connection, execution.
+Tools are organized into groups: auth, flow, component, connection, execution, batch.
 """
 
 from __future__ import annotations
@@ -71,11 +71,9 @@ mcp = FastMCP(
         "Typical workflow:\n"
         "  1. login (or set LANGFLOW_API_KEY env var)\n"
         "  2. search_component_types / describe_component_type to discover components\n"
-        "  3. create_flow (or use_starter_project for a pre-built template)\n"
-        "  4. add_component for each node\n"
-        "  5. configure_component to set parameters\n"
-        "  6. connect_components to wire outputs to inputs\n"
-        "  7. run_flow to execute\n"
+        "  3. create_flow_from_spec to define nodes, edges, and config in one text spec\n"
+        "     (or step-by-step: create_flow, add_component, configure_component, connect_components)\n"
+        "  4. run_flow to execute\n"
         "\n"
         "Key concepts:\n"
         "- describe_component_type shows a type's inputs, outputs, fields, and advanced_fields\n"
@@ -257,7 +255,7 @@ async def create_flow_from_spec(spec: str, *, validate: bool = True) -> dict[str
 
     Use describe_component_type to find output/input names for edges.
     Connecting via component_as_tool auto-enables tool mode.
-    Multi-line config values use YAML-style "| " continuation.
+    Multi-line config values use YAML-style "|" continuation.
 
     Args:
         spec: The flow spec as a text string.
@@ -596,7 +594,7 @@ async def get_component_info(
     Args:
         flow_id: The flow UUID.
         component_id: The component ID.
-        field_name: Optional -- return only this field's value before changing it.
+        field_name: Optional -- narrow the response to a single field.
     """
     flow = await _get_flow(flow_id)
     info = fb_get_component(flow, component_id)
@@ -655,7 +653,7 @@ async def search_component_types(
 
     Args:
         query: Search term to filter by name or category (case-insensitive).
-        category: Filter by exact category (e.g. "models", "inputs", "outputs").
+        category: Filter by category name, case-insensitive (e.g. "models", "inputs", "outputs").
         output_type: Filter by what the component produces (e.g. "LanguageModel", "Message", "Tool").
     """
     registry = await _get_registry()
@@ -783,10 +781,10 @@ async def run_flow(
 
 @mcp.tool()
 async def build_flow(flow_id: str) -> dict[str, Any]:
-    """Build a flow's graph to validate components and connections.
+    """Trigger a server-side build that validates components and connections.
 
-    Instantiates all components and validates edges without executing.
-    Use this after creating or modifying a flow to catch errors early.
+    Returns a job_id for the build. Use after creating or modifying a flow
+    to catch errors early.
 
     Args:
         flow_id: The flow UUID.
@@ -894,7 +892,11 @@ async def batch(actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         raw_args = action.get("args", {})
         resolved_args = _resolve_refs(raw_args, results)
 
-        result = await tool_map[tool_name](**resolved_args)
+        try:
+            result = await tool_map[tool_name](**resolved_args)
+        except Exception as exc:
+            msg = f"Action {i} ('{tool_name}') failed: {exc}"
+            raise type(exc)(msg) from exc
         results.append(result if isinstance(result, dict) else {"result": result})
 
     return results

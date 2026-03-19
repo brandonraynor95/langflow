@@ -62,8 +62,8 @@ def flow_info(flow: dict) -> dict:
 def flow_graph_repr(flow: dict) -> str:
     """Build an ASCII DAG representation of a flow's graph.
 
-    Uses grandalf for Sugiyama layout when available, falls back to
-    a simple chain representation otherwise.
+    Uses lfx's ASCII graph renderer (grandalf-based Sugiyama layout),
+    falling back to a simple chain representation if unavailable.
     """
     data = flow.get("data", {})
     nodes = data.get("nodes", [])
@@ -72,12 +72,21 @@ def flow_graph_repr(flow: dict) -> str:
     if not nodes:
         return "(empty)"
 
-    # Build id -> label map
+    # Build id -> label map, disambiguating duplicate types
     id_to_label: dict[str, str] = {}
+    type_count: dict[str, int] = {}
     for node in nodes:
         nd = node.get("data", {})
         nid = nd.get("id", node.get("id", ""))
-        id_to_label[nid] = nd.get("type", "?")
+        node_type = nd.get("type", "?")
+        count = type_count.get(node_type, 0) + 1
+        type_count[node_type] = count
+        id_to_label[nid] = f"{node_type} #{count}" if count > 1 else node_type
+
+    # Go back and suffix the first occurrence too when there are duplicates
+    for nid, label in id_to_label.items():
+        if "#" not in label and type_count.get(label, 0) > 1:
+            id_to_label[nid] = f"{label} #1"
 
     if not edges:
         return ", ".join(sorted(id_to_label.values()))
@@ -94,6 +103,6 @@ def flow_graph_repr(flow: dict) -> str:
         from lfx.graph.graph.ascii import draw_graph
 
         return draw_graph(vertexes, edge_pairs, return_ascii=True) or "(empty)"
-    except Exception:  # noqa: BLE001
-        # Fallback: simple chain representation
+    except ImportError:
+        # grandalf not available; fall back to simple representation
         return ", ".join(f"{s} -> {t}" for s, t in edge_pairs)
