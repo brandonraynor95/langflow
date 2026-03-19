@@ -20,7 +20,6 @@ describe("AssistantLoadingState", () => {
       render(
         <AssistantLoadingState
           progress={createProgress({ message: "Generating response..." })}
-
         />,
       );
       expect(screen.getByText("Generating response...")).toBeInTheDocument();
@@ -30,7 +29,6 @@ describe("AssistantLoadingState", () => {
       const { rerender } = render(
         <AssistantLoadingState
           progress={createProgress({ message: "Generating response..." })}
-
         />,
       );
 
@@ -40,7 +38,6 @@ describe("AssistantLoadingState", () => {
             step: "validating",
             message: "Validating component code...",
           })}
-
         />,
       );
 
@@ -61,7 +58,6 @@ describe("AssistantLoadingState", () => {
             message: "Validated!",
             componentCode: "class X(Component): pass",
           })}
-
         />,
       );
       expect(screen.getByText("Component ready")).toBeInTheDocument();
@@ -71,7 +67,6 @@ describe("AssistantLoadingState", () => {
       render(
         <AssistantLoadingState
           progress={createProgress({ message: undefined })}
-
         />,
       );
       expect(screen.getByText("Working...")).toBeInTheDocument();
@@ -81,7 +76,6 @@ describe("AssistantLoadingState", () => {
       render(
         <AssistantLoadingState
           progress={createProgress({ className: "MyComp" })}
-
         />,
       );
       expect(screen.getByText("MyComp")).toBeInTheDocument();
@@ -93,20 +87,16 @@ describe("AssistantLoadingState", () => {
       render(
         <AssistantLoadingState
           progress={createProgress()}
-
           streamingContent="class MyComp(Component):"
         />,
       );
-      expect(
-        screen.getByText("class MyComp(Component):"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("class MyComp(Component):")).toBeInTheDocument();
     });
 
     it("should not show streaming when no content", () => {
       const { container } = render(
         <AssistantLoadingState
           progress={createProgress()}
-
           streamingContent=""
         />,
       );
@@ -121,7 +111,6 @@ describe("AssistantLoadingState", () => {
             message: "Validating...",
             componentCode: "class X(Component): pass",
           })}
-
           streamingContent="raw markdown output..."
         />,
       );
@@ -141,7 +130,6 @@ describe("AssistantLoadingState", () => {
             message: "Validating...",
             componentCode: "class X(Component): pass",
           })}
-
         />,
       );
       expect(screen.getByText("Code")).toBeInTheDocument();
@@ -155,18 +143,23 @@ describe("AssistantLoadingState", () => {
             message: "Validating...",
             componentCode: "class X(Component): pass",
           })}
-
         />,
       );
 
       expect(
-        screen.getByText("Code").closest("div")?.parentElement?.querySelector("pre"),
+        screen
+          .getByText("Code")
+          .closest("div")
+          ?.parentElement?.querySelector("pre"),
       ).toBeTruthy();
 
       fireEvent.click(screen.getByText("Code").closest("button")!);
 
       expect(
-        screen.getByText("Code").closest("div")?.parentElement?.querySelector("pre"),
+        screen
+          .getByText("Code")
+          .closest("div")
+          ?.parentElement?.querySelector("pre"),
       ).toBeFalsy();
     });
   });
@@ -180,7 +173,6 @@ describe("AssistantLoadingState", () => {
             message: "Validation failed",
             error: "SyntaxError: unexpected indent",
           })}
-
         />,
       );
       expect(
@@ -190,10 +182,7 @@ describe("AssistantLoadingState", () => {
 
     it("should not show error when empty", () => {
       const { container } = render(
-        <AssistantLoadingState
-          progress={createProgress({ error: "" })}
-
-        />,
+        <AssistantLoadingState progress={createProgress({ error: "" })} />,
       );
       expect(
         container.querySelectorAll("[class*='destructive/5']").length,
@@ -206,7 +195,6 @@ describe("AssistantLoadingState", () => {
       render(
         <AssistantLoadingState
           progress={createProgress({ attempt: 1, maxAttempts: 3 })}
-
         />,
       );
       expect(screen.getByText("Attempt 2 of 3")).toBeInTheDocument();
@@ -214,10 +202,7 @@ describe("AssistantLoadingState", () => {
 
     it("should not show on first attempt", () => {
       render(
-        <AssistantLoadingState
-          progress={createProgress({ attempt: 0 })}
-
-        />,
+        <AssistantLoadingState progress={createProgress({ attempt: 0 })} />,
       );
       expect(screen.queryByText(/Attempt/)).not.toBeInTheDocument();
     });
@@ -232,7 +217,6 @@ describe("AssistantLoadingState", () => {
             message: "Validated!",
             componentCode: "class X(Component): pass",
           })}
-
         />,
       );
       expect(
@@ -241,12 +225,7 @@ describe("AssistantLoadingState", () => {
     });
 
     it("should NOT show during generation", () => {
-      render(
-        <AssistantLoadingState
-          progress={createProgress()}
-
-        />,
-      );
+      render(<AssistantLoadingState progress={createProgress()} />);
       expect(
         screen.queryByRole("button", { name: /Continue/i }),
       ).not.toBeInTheDocument();
@@ -261,7 +240,6 @@ describe("AssistantLoadingState", () => {
             message: "Validated!",
             componentCode: "class X(Component): pass",
           })}
-
           onValidationComplete={onComplete}
         />,
       );
@@ -278,7 +256,6 @@ describe("AssistantLoadingState", () => {
             message: "Validated!",
             componentCode: "class X(Component): pass",
           })}
-
           onValidationComplete={onComplete}
         />,
       );

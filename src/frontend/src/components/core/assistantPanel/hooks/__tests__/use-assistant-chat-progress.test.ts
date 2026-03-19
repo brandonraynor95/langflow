@@ -132,7 +132,9 @@ describe("useAssistantChat — progress field propagation", () => {
         await result.current.handleSend("create a component", TEST_MODEL);
       });
 
-      expect(result.current.messages[1].progress?.componentCode).toBeUndefined();
+      expect(
+        result.current.messages[1].progress?.componentCode,
+      ).toBeUndefined();
     });
   });
 
@@ -162,7 +164,8 @@ describe("useAssistantChat — progress field propagation", () => {
     });
 
     it("should persist error from retrying progress event", async () => {
-      const retryError = "AttributeError: type object has no attribute 'inputs'";
+      const retryError =
+        "AttributeError: type object has no attribute 'inputs'";
 
       mockPostAssistStream.mockImplementation(
         async (_request: unknown, callbacks: Record<string, Function>) => {

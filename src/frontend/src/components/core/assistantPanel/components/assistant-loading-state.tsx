@@ -45,8 +45,12 @@ function AssistantLoadingStateComponent({
         ) : (
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         )}
-        <span className={isReady ? "text-accent-emerald-foreground" : "text-foreground"}>
-          {isReady ? "Component ready" : (progress.message || "Working...")}
+        <span
+          className={
+            isReady ? "text-accent-emerald-foreground" : "text-foreground"
+          }
+        >
+          {isReady ? "Component ready" : progress.message || "Working..."}
         </span>
         {progress.className && (
           <span className="ml-auto rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">

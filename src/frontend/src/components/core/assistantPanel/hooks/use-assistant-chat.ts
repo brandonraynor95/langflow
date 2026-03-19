@@ -104,8 +104,7 @@ export function useAssistantChat(): UseAssistantChatReturn {
                           className:
                             event.class_name ?? msg.progress?.className,
                           componentCode:
-                            event.component_code ??
-                            msg.progress?.componentCode,
+                            event.component_code ?? msg.progress?.componentCode,
                         },
                         completedSteps: [...completedSteps],
                       }
