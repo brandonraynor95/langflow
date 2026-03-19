@@ -147,7 +147,7 @@ class MessageTable(MessageBase, table=True):  # type: ignore[call-arg]
         default_factory=list,
         sa_column=Column(JSON),
     )
-    
+
     # Enterprise session metadata - flexible JSON column for client-provided context
     session_metadata: dict | None = Field(
         default=None,
