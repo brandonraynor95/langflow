@@ -1,4 +1,13 @@
-"""Sync and async HTTP clients for the Langflow REST API."""
+"""Sync and async HTTP clients for the Langflow REST API.
+
+Preferred usage via the short aliases::
+
+    from langflow_sdk import Client, AsyncClient
+
+    client = Client("https://langflow.example.com", api_key="...")
+    flows  = client.list_flows()
+    result = client.run_flow("my-endpoint", RunRequest(input_value="Hello"))
+"""
 
 from __future__ import annotations
 
@@ -74,13 +83,13 @@ def _connection_error(base_url: str, exc: Exception) -> LangflowConnectionError:
 class LangflowClient:
     """Synchronous client for the Langflow REST API.
 
-    Example::
+    Prefer the short alias :data:`Client` for new code::
 
-        client = LangflowClient(
-            base_url="https://langflow.example.com",
-            api_key="<your-api-key>",  # pragma: allowlist secret
-        )
-        flows = client.list_flows()
+        from langflow_sdk import Client
+
+        client = Client("https://langflow.example.com", api_key="...")
+        flows  = client.list_flows()
+        result = client.run_flow("my-endpoint", RunRequest(input_value="Hello"))
     """
 
     def __init__(
@@ -268,12 +277,11 @@ class LangflowClient:
 class AsyncLangflowClient:
     """Async client for the Langflow REST API.
 
-    Example::
+    Prefer the short alias :data:`AsyncClient` for new code::
 
-        async with AsyncLangflowClient(
-            base_url="https://langflow.example.com",
-            api_key="<your-api-key>",  # pragma: allowlist secret
-        ) as client:
+        from langflow_sdk import AsyncClient
+
+        async with AsyncClient("https://langflow.example.com", api_key="...") as client:
             flows = await client.list_flows()
     """
 
@@ -442,3 +450,27 @@ class AsyncLangflowClient:
             headers={"Content-Type": "application/octet-stream"},
         )
         return [Flow.model_validate(f) for f in resp.json()]
+
+
+# ---------------------------------------------------------------------------
+# Short aliases  (preferred for new code)
+# ---------------------------------------------------------------------------
+
+#: Short alias for :class:`LangflowClient`.
+#:
+#: Example::
+#:
+#:     from langflow_sdk import Client
+#:     client = Client("https://langflow.example.com", api_key="...")
+#:     flows  = client.list_flows()
+#:     result = client.run_flow("my-endpoint", RunRequest(input_value="Hello"))
+Client = LangflowClient
+
+#: Short alias for :class:`AsyncLangflowClient`.
+#:
+#: Example::
+#:
+#:     from langflow_sdk import AsyncClient
+#:     async with AsyncClient("https://langflow.example.com", api_key="...") as c:
+#:         flows = await c.list_flows()
+AsyncClient = AsyncLangflowClient

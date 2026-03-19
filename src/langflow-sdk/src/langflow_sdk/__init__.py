@@ -1,6 +1,6 @@
 """langflow-sdk -- Python SDK for the Langflow REST API."""
 
-from langflow_sdk.client import AsyncLangflowClient, LangflowClient
+from langflow_sdk.client import AsyncClient, AsyncLangflowClient, Client, LangflowClient
 from langflow_sdk.environments import (
     EnvironmentConfig,
     get_async_client,
@@ -33,7 +33,9 @@ from langflow_sdk.models import (
 from langflow_sdk.serialization import flow_to_json, normalize_flow, normalize_flow_file
 
 __all__ = [
+    "AsyncClient",  # short alias for AsyncLangflowClient (preferred)
     "AsyncLangflowClient",
+    "Client",  # short alias for LangflowClient (preferred)
     "EnvironmentConfig",
     "EnvironmentConfigError",
     "EnvironmentNotFoundError",

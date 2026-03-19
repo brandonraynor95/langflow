@@ -200,8 +200,8 @@ def get_client(
     *,
     config_file: Path | str | None = None,
     timeout: float = 60.0,
-) -> LangflowClient:  # noqa: F821  (resolved at runtime)
-    """Convenience factory: load config and return a ready ``LangflowClient``.
+) -> Client:  # noqa: F821  (resolved at runtime)
+    """Convenience factory: load config and return a ready :class:`Client`.
 
     Parameters
     ----------
@@ -212,11 +212,18 @@ def get_client(
         Optional explicit path to the environments TOML file.
     timeout:
         HTTP request timeout in seconds.
+
+    Example::
+
+        from langflow_sdk import get_client
+
+        client = get_client("staging")
+        flows  = client.list_flows()
     """
-    from langflow_sdk.client import LangflowClient
+    from langflow_sdk.client import Client
 
     env = get_environment(environment, config_file=config_file)
-    return LangflowClient(base_url=env.url, api_key=env.api_key, timeout=timeout)
+    return Client(base_url=env.url, api_key=env.api_key, timeout=timeout)
 
 
 def get_async_client(
@@ -224,9 +231,17 @@ def get_async_client(
     *,
     config_file: Path | str | None = None,
     timeout: float = 60.0,
-) -> AsyncLangflowClient:  # noqa: F821  (resolved at runtime)
-    """Convenience factory: return a ready ``AsyncLangflowClient``."""
-    from langflow_sdk.client import AsyncLangflowClient
+) -> AsyncClient:  # noqa: F821  (resolved at runtime)
+    """Convenience factory: return a ready :class:`AsyncClient`.
+
+    Example::
+
+        from langflow_sdk import get_async_client
+
+        async with get_async_client("staging") as client:
+            flows = await client.list_flows()
+    """
+    from langflow_sdk.client import AsyncClient
 
     env = get_environment(environment, config_file=config_file)
-    return AsyncLangflowClient(base_url=env.url, api_key=env.api_key, timeout=timeout)
+    return AsyncClient(base_url=env.url, api_key=env.api_key, timeout=timeout)

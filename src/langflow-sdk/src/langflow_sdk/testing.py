@@ -42,7 +42,7 @@ except ImportError as exc:
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from langflow_sdk.client import AsyncLangflowClient, LangflowClient
+    from langflow_sdk.client import AsyncClient, Client
     from langflow_sdk.models import RunResponse
 
 
@@ -91,30 +91,30 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def _resolve_url_client(
     request: pytest.FixtureRequest,
-) -> LangflowClient | None:
+) -> Client | None:
     """Return a sync client from --langflow-url / LANGFLOW_URL, or None."""
-    from langflow_sdk.client import LangflowClient
+    from langflow_sdk.client import Client
 
     url: str | None = request.config.getoption("langflow_url") or os.getenv("LANGFLOW_URL")
     if not url:
         return None
     # pragma: allowlist secret
     api_key: str | None = request.config.getoption("langflow_api_key") or os.getenv("LANGFLOW_API_KEY")
-    return LangflowClient(base_url=url, api_key=api_key)
+    return Client(base_url=url, api_key=api_key)
 
 
 def _resolve_async_url_client(
     request: pytest.FixtureRequest,
-) -> AsyncLangflowClient | None:
+) -> AsyncClient | None:
     """Return an async client from --langflow-url / LANGFLOW_URL, or None."""
-    from langflow_sdk.client import AsyncLangflowClient
+    from langflow_sdk.client import AsyncClient
 
     url: str | None = request.config.getoption("langflow_url") or os.getenv("LANGFLOW_URL")
     if not url:
         return None
     # pragma: allowlist secret
     api_key: str | None = request.config.getoption("langflow_api_key") or os.getenv("LANGFLOW_API_KEY")
-    return AsyncLangflowClient(base_url=url, api_key=api_key)
+    return AsyncClient(base_url=url, api_key=api_key)
 
 
 def _env_name(request: pytest.FixtureRequest) -> str | None:
@@ -136,8 +136,8 @@ _SKIP_MSG = (
 
 
 @pytest.fixture(scope="session")
-def langflow_client(request: pytest.FixtureRequest) -> LangflowClient:
-    """Session-scoped fixture that returns a configured :class:`~langflow_sdk.LangflowClient`.
+def langflow_client(request: pytest.FixtureRequest) -> Client:
+    """Session-scoped fixture that returns a configured :class:`~langflow_sdk.Client`.
 
     The fixture skips the test session automatically when no connection
     information is available.  Configure via CLI options or environment
@@ -166,8 +166,8 @@ def langflow_client(request: pytest.FixtureRequest) -> LangflowClient:
 
 
 @pytest.fixture(scope="session")
-def async_langflow_client(request: pytest.FixtureRequest) -> AsyncLangflowClient:
-    """Session-scoped fixture returning a configured :class:`~langflow_sdk.AsyncLangflowClient`.
+def async_langflow_client(request: pytest.FixtureRequest) -> AsyncClient:
+    """Session-scoped fixture returning a configured :class:`~langflow_sdk.AsyncClient`.
 
     Same configuration resolution as :func:`langflow_client`.
     """
@@ -207,7 +207,7 @@ class FlowRunner:
     :class:`~langflow_sdk.RunRequest`.
     """
 
-    def __init__(self, client: LangflowClient) -> None:
+    def __init__(self, client: Client) -> None:
         self._client = client
 
     def __call__(
@@ -245,7 +245,7 @@ class AsyncFlowRunner:
             assert response.first_text_output() is not None
     """
 
-    def __init__(self, client: AsyncLangflowClient) -> None:
+    def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
     async def __call__(
@@ -279,7 +279,7 @@ class AsyncFlowRunner:
 
 
 @pytest.fixture
-def flow_runner(langflow_client: LangflowClient) -> FlowRunner:
+def flow_runner(langflow_client: Client) -> FlowRunner:
     """Fixture that returns a :class:`FlowRunner` for running flows in tests.
 
     Depends on the session-scoped :func:`langflow_client` fixture, so the
@@ -295,7 +295,7 @@ def flow_runner(langflow_client: LangflowClient) -> FlowRunner:
 
 
 @pytest.fixture
-def async_flow_runner(async_langflow_client: AsyncLangflowClient) -> AsyncFlowRunner:
+def async_flow_runner(async_langflow_client: AsyncClient) -> AsyncFlowRunner:
     """Fixture that returns an :class:`AsyncFlowRunner` for async tests.
 
     Example::
