@@ -6,9 +6,9 @@
 
 | Status | Count | Description |
 |--------|-------|-------------|
-| COMPATIBLE | ~330 | Works in cloud as-is |
-| INCOMPATIBLE | 13 | Cannot work in cloud — hidden when cloud toggle is on |
-| MIXED | 8 | Works but has localhost defaults — defaults overridden in cloud mode |
+| COMPATIBLE | ~326 | Works in cloud as-is |
+| INCOMPATIBLE | 16 | Cannot work in cloud — hidden when cloud toggle is on |
+| MIXED | 10 | Works but has localhost defaults — defaults overridden in cloud mode |
 
 ---
 
@@ -29,6 +29,9 @@ These are **hidden entirely** when cloud mode is active.
 | `docling` | Docling (Inline) | `DoclingInlineComponent` | Downloads and runs OCR/VLM models locally; heavy compute |
 | `vectorstores` | Local DB | `LocalDBComponent` | Local Chroma DB with `persist_directory`; explicitly disabled in cloud with error message |
 | `nvidia` | NVIDIA System-Assist | `NvidiaSystemAssistComponent` | Windows-only; requires local GPU driver interaction |
+| `twelvelabs` | Split Video | `SplitVideoComponent` | Uses subprocess ffmpeg/ffprobe; requires local video files and CLI tools |
+| `twelvelabs` | TwelveLabs Pegasus | `TwelveLabsPegasus` | Uses subprocess ffprobe; requires local video file access |
+| `files_and_knowledge` | Knowledge Base | `KnowledgeBaseComponent` | Local chromadb with `persist_directory`; already disabled in Astra cloud |
 
 ### Also incompatible in the unified model dropdowns
 
@@ -49,6 +52,8 @@ These components **remain visible** but their localhost default values are **cle
 | `clickhouse` | ClickHouse | `ClickhouseVectorStoreComponent` | `host` | `localhost` | "Enter ClickHouse Cloud host" |
 | `milvus` | Milvus | `MilvusVectorStoreComponent` | `uri` | `http://localhost:19530` | "Enter Milvus Cloud URI" |
 | `elastic` | Elasticsearch | `ElasticsearchVectorStoreComponent` | `elasticsearch_url` | `http://localhost:9200` | "Enter Elasticsearch Cloud URL or use Cloud ID" |
+| `elastic` | OpenSearch | `OpenSearchVectorStoreComponent` | `opensearch_url` | `http://localhost:9200` | "Enter OpenSearch Cloud URL" |
+| `elastic` | OpenSearch (Multi-Model) | `OpenSearchMultimodalVectorStoreComponent` | `opensearch_url` | `http://localhost:9200` | "Enter OpenSearch Cloud URL" |
 | `litellm` | LiteLLM Proxy | `LiteLLMProxyComponent` | `api_base` | `http://localhost:4000/v1` | "Enter LiteLLM proxy URL" |
 
 ### Also mixed: SaveToFile

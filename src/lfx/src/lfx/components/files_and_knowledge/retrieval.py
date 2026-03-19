@@ -49,6 +49,7 @@ class KnowledgeBaseComponent(Component):
     description = "Search and retrieve data from knowledge."
     icon = "download"
     name = "KnowledgeBase"
+    cloud_compatible = False
 
     inputs = [
         DropdownInput(
