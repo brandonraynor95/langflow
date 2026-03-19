@@ -898,7 +898,12 @@ async def download_multiple_file(
             for flow in normalised_flows:
                 # Serialise with sorted keys and 2-space indent for stable diffs.
                 flow_json = orjson_dumps(flow, sort_keys=True)
-                zip_file.writestr(f"{flow['name']}.json", flow_json)
+                # Sanitize the flow name to avoid path traversal in ZIP entries.
+                raw_name = str(flow.get("name", "flow"))
+                safe_name = re.sub(r"[^A-Za-z0-9_.-]", "_", raw_name).strip(".")
+                if not safe_name:
+                    safe_name = str(flow.get("id", "flow"))
+                zip_file.writestr(f"{safe_name}.json", flow_json)
 
         # Seek to the beginning of the byte stream
         zip_stream.seek(0)
