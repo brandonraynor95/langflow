@@ -43,7 +43,9 @@
 #   LANGFLOW_PROJECT_ID  Project UUID.  Takes precedence over LANGFLOW_PROJECT.
 #   DRY_RUN              Set to "true" to show what would be pushed without
 #                        making any changes.  Default: false
-#   LFX_VERSION          lfx package version constraint.  Default: latest.
+#   LFX_VERSION          lfx PEP 508 version specifier suffix appended directly
+#                        to the package name, e.g. ">=0.4,<1" or "==1.2.3".
+#                        Default: installs latest.
 #
 # EXIT CODES
 #   0  All flows pushed (or dry-run completed) successfully
@@ -71,8 +73,8 @@ LFX_VERSION="${LFX_VERSION:-}"
 
 # ── Install lfx ───────────────────────────────────────────────────────────── #
 
-echo "==> Installing lfx${LFX_VERSION:+==${LFX_VERSION}} ..."
-pip install --quiet "lfx${LFX_VERSION:+==${LFX_VERSION}}" langflow-sdk
+echo "==> Installing lfx${LFX_VERSION:+ ${LFX_VERSION}} ..."
+pip install --quiet "lfx${LFX_VERSION}" langflow-sdk
 
 # ── Build environments file if using Approach B ───────────────────────────── #
 

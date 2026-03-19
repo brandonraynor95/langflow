@@ -1,6 +1,7 @@
 import io
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Annotated, cast
 from urllib.parse import quote
 from uuid import UUID
@@ -622,9 +623,12 @@ async def download_file(
 
         with zipfile.ZipFile(zip_stream, "w") as zip_file:
             for flow in normalised_flows:
+                # Sanitize name: keep only the basename (strips path separators and
+                # collapses ".." components) to prevent Zip Slip / path traversal.
+                safe_name = Path(flow["name"]).name or str(flow.get("id", "flow"))
                 # Serialise with sorted keys and 2-space indent for stable diffs.
                 flow_json = orjson_dumps(flow, sort_keys=True)
-                zip_file.writestr(f"{flow['name']}.json", flow_json.encode("utf-8"))
+                zip_file.writestr(f"{safe_name}.json", flow_json.encode("utf-8"))
 
         zip_stream.seek(0)
 

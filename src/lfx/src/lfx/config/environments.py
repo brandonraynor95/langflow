@@ -49,7 +49,13 @@ from typing import Any
 
 
 class ConfigError(Exception):
-    """Raised when the config file is missing, malformed, or a referenced env var is unset."""
+    """Raised when the config file is missing, malformed, or an environment name cannot be resolved.
+
+    Note: a missing API key env var is *not* a ``ConfigError`` — ``api_key``
+    will simply be ``None`` on the returned :class:`LangflowEnvironment`.
+    Commands that require a key validate it themselves and raise an appropriate
+    error with actionable guidance.
+    """
 
 
 @dataclass
@@ -108,9 +114,10 @@ def _find_config_file(override: Path | None) -> Path | None:
             break
 
     # User-level YAML
-    user_yaml = Path.home() / _LFX_DIR / "environments.yaml"
-    if user_yaml.is_file():
-        return user_yaml
+    for name in _YAML_NAMES:
+        user_yaml = Path.home() / _LFX_DIR / name
+        if user_yaml.is_file():
+            return user_yaml
 
     # Backward-compat: langflow-environments.toml in cwd
     toml_fallback = cwd / _TOML_FALLBACK

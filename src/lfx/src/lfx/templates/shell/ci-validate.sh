@@ -17,7 +17,8 @@
 #                    Default: 4
 #   VALIDATE_FORMAT  Output format: text | json.
 #                    Default: text
-#   LFX_VERSION      lfx package version to install (e.g. ">=0.4,<1").
+#   LFX_VERSION      lfx PEP 508 version specifier suffix appended directly
+#                    to the package name, e.g. ">=0.4,<1" or "==1.2.3".
 #                    Default: installs latest.
 #
 # EXIT CODES
@@ -43,8 +44,8 @@ LFX_VERSION="${LFX_VERSION:-}"
 
 # ── Install lfx ───────────────────────────────────────────────────────────── #
 
-echo "==> Installing lfx${LFX_VERSION:+==${LFX_VERSION}} ..."
-pip install --quiet "lfx${LFX_VERSION:+==${LFX_VERSION}}"
+echo "==> Installing lfx${LFX_VERSION:+ ${LFX_VERSION}} ..."
+pip install --quiet "lfx${LFX_VERSION}"
 
 # ── Validate ──────────────────────────────────────────────────────────────── #
 

@@ -34,7 +34,9 @@
 #   TESTS_DIR        Directory containing test files.  Default: tests/
 #   PYTEST_MARKERS   Markers to pass to -m.  Default: integration
 #   PYTEST_ARGS      Extra arguments forwarded verbatim to pytest.
-#   SDK_VERSION      langflow-sdk version constraint.  Default: latest.
+#   SDK_VERSION      langflow-sdk PEP 508 version specifier suffix appended
+#                    directly to the package name, e.g. ">=0.4,<1" or "==1.2.3".
+#                    Default: installs latest.
 #
 # SKIPPING
 #   When neither LANGFLOW_URL nor LANGFLOW_ENV is set the tests auto-skip
@@ -66,7 +68,7 @@ LANGFLOW_ENVIRONMENTS_FILE="${LANGFLOW_ENVIRONMENTS_FILE:-langflow-environments.
 
 echo "==> Installing langflow-sdk[testing] and pytest ..."
 pip install --quiet \
-  "langflow-sdk${SDK_VERSION:+==${SDK_VERSION}}[testing]" \
+  "langflow-sdk[testing]${SDK_VERSION}" \
   pytest
 
 # ── Build environments file if using Approach B ───────────────────────────── #

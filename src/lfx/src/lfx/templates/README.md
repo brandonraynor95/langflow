@@ -15,7 +15,10 @@ Copy the files you need into your project's CI configuration.
 
 ```bash
 mkdir -p .github/workflows
-cp langflow-validate.yml langflow-test.yml langflow-push.yml .github/workflows/
+cp github-actions/langflow-validate.yml \
+   github-actions/langflow-test.yml \
+   github-actions/langflow-push.yml \
+   .github/workflows/
 ```
 
 Configure these in **Settings → Environments**:
