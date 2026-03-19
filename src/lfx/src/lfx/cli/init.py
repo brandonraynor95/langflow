@@ -214,6 +214,14 @@ def init_command(
         else:
             console.print("[yellow]Warning:[/yellow] GitHub Actions templates not found; skipping.")
 
+    # Generic shell CI scripts (always scaffolded — work with any CI system)
+    shell_src = _TEMPLATES_DIR / "shell"
+    if shell_src.exists():
+        for tmpl in sorted(shell_src.glob("*.sh")):
+            dest = target / "ci" / tmpl.name
+            _copy_template(tmpl, dest, "generic CI script", created, target=target, overwrite=overwrite)
+            dest.chmod(dest.stat().st_mode | 0o111)  # ensure executable bit
+
     # Print the created-files tree
     _render_tree(target, created)
 
