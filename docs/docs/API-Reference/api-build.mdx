@@ -2,7 +2,7 @@
 title: Build endpoints
 slug: /api-build
 ---
-import CodeBlock from '@theme/CodeBlock';
+import CodeSnippet from '@site/src/components/CodeSnippet';
 import exampleApiBuildBuildFlowAndStreamEvents from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-build/build-flow-and-stream-events.sh';
 import resultApiBuildResultBuildFlowAndStreamEvents from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-build/result-build-flow-and-stream-events.json';
 import exampleApiBuildBuildFlowAndStreamEvents2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-build/build-flow-and-stream-events-2.sh';
@@ -11,6 +11,19 @@ import exampleApiBuildBuildFlowAndStreamEvents3 from '!!raw-loader!@site/docs/AP
 import exampleApiBuildSetStartAndStopPoints from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-build/set-start-and-stop-points.sh';
 import exampleApiBuildOverrideFlowParameters from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-build/override-flow-parameters.sh';
 import resultApiBuildResultOverrideFlowParameters from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-build/result-override-flow-parameters.json';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import examplePythonApiBuildBuildFlowAndStreamEvents from '!!raw-loader!@site/docs/API-Reference/python-examples/api-build/build-flow-and-stream-events.py';
+import exampleJavascriptApiBuildBuildFlowAndStreamEvents from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-build/build-flow-and-stream-events.js';
+import examplePythonApiBuildBuildFlowAndStreamEvents2 from '!!raw-loader!@site/docs/API-Reference/python-examples/api-build/build-flow-and-stream-events-2.py';
+import exampleJavascriptApiBuildBuildFlowAndStreamEvents2 from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-build/build-flow-and-stream-events-2.js';
+import examplePythonApiBuildBuildFlowAndStreamEvents3 from '!!raw-loader!@site/docs/API-Reference/python-examples/api-build/build-flow-and-stream-events-3.py';
+import exampleJavascriptApiBuildBuildFlowAndStreamEvents3 from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-build/build-flow-and-stream-events-3.js';
+import examplePythonApiBuildSetStartAndStopPoints from '!!raw-loader!@site/docs/API-Reference/python-examples/api-build/set-start-and-stop-points.py';
+import exampleJavascriptApiBuildSetStartAndStopPoints from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-build/set-start-and-stop-points.js';
+import examplePythonApiBuildOverrideFlowParameters from '!!raw-loader!@site/docs/API-Reference/python-examples/api-build/override-flow-parameters.py';
+import exampleJavascriptApiBuildOverrideFlowParameters from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-build/override-flow-parameters.js';
+
 
 
 :::info
@@ -31,30 +44,78 @@ This endpoint builds and executes a flow, returning a job ID that can be used to
 
 1. Send a POST request to the `/build/$FLOW_ID/flow` endpoint:
 
-    <CodeBlock language="bash">{exampleApiBuildBuildFlowAndStreamEvents}</CodeBlock>
+    <Tabs>
+    <TabItem value="Python" label="Python" default>
+
+    <CodeSnippet source={examplePythonApiBuildBuildFlowAndStreamEvents} language="python" />
+
+    </TabItem>
+    <TabItem value="JavaScript" label="JavaScript">
+
+    <CodeSnippet source={exampleJavascriptApiBuildBuildFlowAndStreamEvents} language="javascript" />
+
+    </TabItem>
+    <TabItem value="curl" label="curl">
+
+    <CodeSnippet source={exampleApiBuildBuildFlowAndStreamEvents} language="bash" />
+
+    </TabItem>
+    </Tabs>
 
     <details>
     <summary>Result</summary>
 
-    <CodeBlock language="json">{resultApiBuildResultBuildFlowAndStreamEvents}</CodeBlock>
+    <CodeSnippet source={resultApiBuildResultBuildFlowAndStreamEvents} language="json" />
 
     </details>
 
 2. After receiving a job ID from the build endpoint, use the `/build/$JOB_ID/events` endpoint to stream the execution results:
 
-    <CodeBlock language="bash">{exampleApiBuildBuildFlowAndStreamEvents2}</CodeBlock>
+    <Tabs>
+    <TabItem value="Python" label="Python" default>
+
+    <CodeSnippet source={examplePythonApiBuildBuildFlowAndStreamEvents2} language="python" />
+
+    </TabItem>
+    <TabItem value="JavaScript" label="JavaScript">
+
+    <CodeSnippet source={exampleJavascriptApiBuildBuildFlowAndStreamEvents2} language="javascript" />
+
+    </TabItem>
+    <TabItem value="curl" label="curl">
+
+    <CodeSnippet source={exampleApiBuildBuildFlowAndStreamEvents2} language="bash" />
+
+    </TabItem>
+    </Tabs>
 
     <details>
     <summary>Result</summary>
 
-    <CodeBlock language="json">{resultApiBuildResultBuildFlowAndStreamEvents2}</CodeBlock>
+    <CodeSnippet source={resultApiBuildResultBuildFlowAndStreamEvents2} language="json" />
 
     </details>
 
 The `/build/$FLOW_ID/events` endpoint has a `stream` query parameter that defaults to `true`.
 To disable streaming and get all events at once, set `?stream=false`.
 
-<CodeBlock language="bash">{exampleApiBuildBuildFlowAndStreamEvents3}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiBuildBuildFlowAndStreamEvents3} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiBuildBuildFlowAndStreamEvents3} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiBuildBuildFlowAndStreamEvents3} language="bash" />
+
+</TabItem>
+</Tabs>
 
 ## Build headers
 
@@ -82,19 +143,51 @@ Setting `stop_component_id` for a component triggers the same behavior as clicki
 
 The following example stops flow execution at an **OpenAI** component:
 
-<CodeBlock language="bash">{exampleApiBuildSetStartAndStopPoints}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiBuildSetStartAndStopPoints} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiBuildSetStartAndStopPoints} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiBuildSetStartAndStopPoints} language="bash" />
+
+</TabItem>
+</Tabs>
 
 ### Override flow parameters
 
 The `/build` endpoint also accepts inputs for `data` directly, instead of using the values stored in the Langflow database.
 This is useful for running flows without having to pass custom values through the visual editor.
 
-<CodeBlock language="bash">{exampleApiBuildOverrideFlowParameters}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiBuildOverrideFlowParameters} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiBuildOverrideFlowParameters} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiBuildOverrideFlowParameters} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiBuildResultOverrideFlowParameters}</CodeBlock>
+<CodeSnippet source={resultApiBuildResultOverrideFlowParameters} language="json" />
 
 </details>
 

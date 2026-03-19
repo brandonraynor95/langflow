@@ -2,7 +2,7 @@
 title: OpenAI Responses API
 slug: /api-openai-responses
 ---
-import CodeBlock from '@theme/CodeBlock';
+import CodeSnippet from '@site/src/components/CodeSnippet';
 import exampleApiOpenaiResponsesExampleRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/example-request.sh';
 import exampleApiOpenaiResponsesExampleStreamingRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/example-streaming-request.sh';
 import resultApiOpenaiResponsesResultExampleStreamingRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/result-example-streaming-request.json';
@@ -16,9 +16,24 @@ import resultApiOpenaiResponsesResultRetrieveToolCallResults from '!!raw-loader!
 import exampleApiOpenaiResponsesPassGlobalVariablesToYourFlowsInHeaders from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/pass-global-variables-to-your-flows-in-headers.sh';
 import exampleApiOpenaiResponsesTokenUsageTracking from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/token-usage-tracking.sh';
 import examplePythonApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/additional-configuration-for-openai-client-libraries.py';
-import exampleTypescriptApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/additional-configuration-for-openai-client-libraries.ts';
+import exampleJavascriptApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/additional-configuration-for-openai-client-libraries.ts';
 import examplePythonApiOpenaiResponsesTokenUsageTracking from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/token-usage-tracking.py';
-import exampleTypescriptApiOpenaiResponsesTokenUsageTracking from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/token-usage-tracking.ts';
+import examplePythonApiOpenaiResponsesExampleRequest from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/example-request.py';
+import exampleJavascriptApiOpenaiResponsesExampleRequest from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/example-request.js';
+import examplePythonApiOpenaiResponsesExampleStreamingRequest from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/example-streaming-request.py';
+import exampleJavascriptApiOpenaiResponsesExampleStreamingRequest from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/example-streaming-request.js';
+import examplePythonApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/continue-conversations-with-response-and-session-ids.py';
+import exampleJavascriptApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/continue-conversations-with-response-and-session-ids.js';
+import examplePythonApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds2 from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/continue-conversations-with-response-and-session-ids-2.py';
+import exampleJavascriptApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds2 from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/continue-conversations-with-response-and-session-ids-2.js';
+import examplePythonApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds3 from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/continue-conversations-with-response-and-session-ids-3.py';
+import exampleJavascriptApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds3 from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/continue-conversations-with-response-and-session-ids-3.js';
+import examplePythonApiOpenaiResponsesRetrieveToolCallResults from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/retrieve-tool-call-results.py';
+import exampleJavascriptApiOpenaiResponsesRetrieveToolCallResults from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/retrieve-tool-call-results.js';
+import examplePythonApiOpenaiResponsesPassGlobalVariablesToYourFlowsInHeaders from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/pass-global-variables-to-your-flows-in-headers.py';
+import exampleJavascriptApiOpenaiResponsesPassGlobalVariablesToYourFlowsInHeaders from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/pass-global-variables-to-your-flows-in-headers.js';
+import exampleJavascriptApiOpenaiResponsesTokenUsageTracking from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/token-usage-tracking.js';
+
 
 
 
@@ -55,12 +70,12 @@ In the following examples, replace the values for `LANGFLOW_SERVER_URL`, `LANGFL
 <Tabs groupId="client">
 <TabItem value="Python" label="OpenAI Python Client" default>
 
-<CodeBlock language="python">{examplePythonApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries}</CodeBlock>
+<CodeSnippet source={examplePythonApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries} language="python" />
 
 </TabItem>
 <TabItem value="JavaScript" label="OpenAI TypeScript Client">
 
-<CodeBlock language="typescript">{exampleTypescriptApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries}</CodeBlock>
+<CodeSnippet source={exampleJavascriptApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries} language="javascript" />
 
 </TabItem>
 </Tabs>
@@ -87,7 +102,23 @@ If you need these in a different format or want a downloadable calendar, let me 
 
 ## Example request
 
-<CodeBlock language="bash">{exampleApiOpenaiResponsesExampleRequest}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiOpenaiResponsesExampleRequest} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiOpenaiResponsesExampleRequest} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiOpenaiResponsesExampleRequest} language="bash" />
+
+</TabItem>
+</Tabs>
 
 ### Headers
 
@@ -200,12 +231,28 @@ Fields set dynamically by Langflow:
 
 When you set `"stream": true` with your request, the API returns a stream where each chunk contains a small piece of the response as it's generated. This provides a real-time experience where users can see the AI's output appear word by word, similar to ChatGPT's typing effect.
 
-<CodeBlock language="bash">{exampleApiOpenaiResponsesExampleStreamingRequest}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiOpenaiResponsesExampleStreamingRequest} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiOpenaiResponsesExampleStreamingRequest} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiOpenaiResponsesExampleStreamingRequest} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiOpenaiResponsesResultExampleStreamingRequest}</CodeBlock>
+<CodeSnippet source={resultApiOpenaiResponsesResultExampleStreamingRequest} language="json" />
 
 </details>
 
@@ -245,29 +292,77 @@ When you make a request, the API returns a response with an `id` field. You can 
 
 First Message:
 
-<CodeBlock language="bash">{exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiOpenaiResponsesResultContinueConversationsWithResponseAndSessionIds}</CodeBlock>
+<CodeSnippet source={resultApiOpenaiResponsesResultContinueConversationsWithResponseAndSessionIds} language="json" />
 
 </details>
 
 Follow-up message:
 
-<CodeBlock language="bash">{exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds2}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds2} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds2} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds2} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiOpenaiResponsesResultContinueConversationsWithResponseAndSessionIds2}</CodeBlock>
+<CodeSnippet source={resultApiOpenaiResponsesResultContinueConversationsWithResponseAndSessionIds2} language="json" />
 
 </details>
 
 Optionally, you can use your own session ID values for the `previous_response_id`:
 
-<CodeBlock language="bash">{exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds3}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds3} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds3} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds3} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
@@ -321,7 +416,23 @@ For example:
 
 To get the raw `results` of each tool execution, add  `include: ["tool_call.results"]` to the request payload:
 
-<CodeBlock language="bash">{exampleApiOpenaiResponsesRetrieveToolCallResults}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiOpenaiResponsesRetrieveToolCallResults} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiOpenaiResponsesRetrieveToolCallResults} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiOpenaiResponsesRetrieveToolCallResults} language="bash" />
+
+</TabItem>
+</Tabs>
 
 The response now includes the tool call's results.
 For example:
@@ -339,11 +450,11 @@ For example:
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiOpenaiResponsesResultRetrieveToolCallResults}</CodeBlock>
+<CodeSnippet source={resultApiOpenaiResponsesResultRetrieveToolCallResults} language="json" />
 
 </details>
 
-Variables passed with X-LANGFLOW-GLOBAL-VAR-{VARIABLE_NAME} are always available to your flow, regardless of whether they exist in the database.
+Variables passed with `X-LANGFLOW-GLOBAL-VAR-{VARIABLE_NAME}` are always available to your flow, regardless of whether they exist in the database.
 
 If your flow components reference variables that aren't provided in headers or your Langflow database, the flow fails by default.
 
@@ -366,17 +477,17 @@ The `usage` field is always present in the response, either with token counts or
 <Tabs groupId="token-usage">
 <TabItem value="Python" label="Python" default>
 
-<CodeBlock language="python">{examplePythonApiOpenaiResponsesTokenUsageTracking}</CodeBlock>
+<CodeSnippet source={examplePythonApiOpenaiResponsesTokenUsageTracking} language="python" />
 
 </TabItem>
-<TabItem value="TypeScript" label="TypeScript">
+<TabItem value="JavaScript" label="JavaScript">
 
-<CodeBlock language="typescript">{exampleTypescriptApiOpenaiResponsesTokenUsageTracking}</CodeBlock>
+<CodeSnippet source={exampleJavascriptApiOpenaiResponsesTokenUsageTracking} language="javascript" />
 
 </TabItem>
 <TabItem value="curl" label="curl">
 
-<CodeBlock language="bash">{exampleApiOpenaiResponsesTokenUsageTracking}</CodeBlock>
+<CodeSnippet source={exampleApiOpenaiResponsesTokenUsageTracking} language="bash" />
 
 <details>
 <summary>Response with token usage</summary>

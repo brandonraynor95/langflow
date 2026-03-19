@@ -2,7 +2,7 @@
 title: Get started with the Langflow API
 slug: /api-reference-api-examples
 ---
-import CodeBlock from '@theme/CodeBlock';
+import CodeSnippet from '@site/src/components/CodeSnippet';
 import exampleApiReferenceApiExamplesFormLangflowApiRequests from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-reference-api-examples/form-langflow-api-requests.sh';
 import exampleApiReferenceApiExamplesSetEnvironmentVariables from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-reference-api-examples/set-environment-variables.sh';
 import exampleApiReferenceApiExamplesHealthCheck from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-reference-api-examples/health-check.sh';
@@ -12,6 +12,17 @@ import resultApiReferenceApiExamplesResultGetVersion from '!!raw-loader!@site/do
 import exampleApiReferenceApiExamplesGetConfiguration from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-reference-api-examples/get-configuration.sh';
 import resultApiReferenceApiExamplesResultGetConfiguration from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-reference-api-examples/result-get-configuration.json';
 import exampleApiReferenceApiExamplesGetAllComponents from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-reference-api-examples/get-all-components.sh';
+import examplePythonApiReferenceApiExamplesFormLangflowApiRequests from '!!raw-loader!@site/docs/API-Reference/python-examples/api-reference-api-examples/form-langflow-api-requests.py';
+import exampleJavascriptApiReferenceApiExamplesFormLangflowApiRequests from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-reference-api-examples/form-langflow-api-requests.js';
+import examplePythonApiReferenceApiExamplesHealthCheck from '!!raw-loader!@site/docs/API-Reference/python-examples/api-reference-api-examples/health-check.py';
+import exampleJavascriptApiReferenceApiExamplesHealthCheck from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-reference-api-examples/health-check.js';
+import examplePythonApiReferenceApiExamplesGetVersion from '!!raw-loader!@site/docs/API-Reference/python-examples/api-reference-api-examples/get-version.py';
+import exampleJavascriptApiReferenceApiExamplesGetVersion from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-reference-api-examples/get-version.js';
+import examplePythonApiReferenceApiExamplesGetConfiguration from '!!raw-loader!@site/docs/API-Reference/python-examples/api-reference-api-examples/get-configuration.py';
+import exampleJavascriptApiReferenceApiExamplesGetConfiguration from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-reference-api-examples/get-configuration.js';
+import examplePythonApiReferenceApiExamplesGetAllComponents from '!!raw-loader!@site/docs/API-Reference/python-examples/api-reference-api-examples/get-all-components.py';
+import exampleJavascriptApiReferenceApiExamplesGetAllComponents from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-reference-api-examples/get-all-components.js';
+
 
 
 import Tabs from '@theme/Tabs';
@@ -39,7 +50,23 @@ While individual options vary by endpoint, all Langflow API requests share some 
 
 As an example of a Langflow API request, the following curl command calls the `/v1/run` endpoint, and it passes a runtime override (`tweaks`) to the flow's **Chat Output** component:
 
-<CodeBlock language="bash">{exampleApiReferenceApiExamplesFormLangflowApiRequests}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiReferenceApiExamplesFormLangflowApiRequests} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiReferenceApiExamplesFormLangflowApiRequests} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiReferenceApiExamplesFormLangflowApiRequests} language="bash" />
+
+</TabItem>
+</Tabs>
 
 ### Base URL
 
@@ -85,7 +112,7 @@ You can use any method you prefer to set environment variables, such as `export`
 Then, reference those environment variables in your API requests.
 For example:
 
-<CodeBlock language="bash">{exampleApiReferenceApiExamplesSetEnvironmentVariables}</CodeBlock>
+<CodeSnippet source={exampleApiReferenceApiExamplesSetEnvironmentVariables} language="bash" />
 
 Commonly used values in Langflow API requests include your [Langflow server URL](#base-url), [Langflow API keys](#authentication), flow IDs, and [project IDs](/api-projects#read-projects).
 
@@ -99,12 +126,28 @@ Once you have your Langflow server URL, try calling these endpoints that return 
 
 Returns the health status of the Langflow database and chat services:
 
-<CodeBlock language="bash">{exampleApiReferenceApiExamplesHealthCheck}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiReferenceApiExamplesHealthCheck} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiReferenceApiExamplesHealthCheck} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiReferenceApiExamplesHealthCheck} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiReferenceApiExamplesResultHealthCheck}</CodeBlock>
+<CodeSnippet source={resultApiReferenceApiExamplesResultHealthCheck} language="json" />
 
 </details>
 
@@ -115,12 +158,28 @@ This endpoint is served by uvicorn before Langflow is fully initialized, so it's
 
 Returns the current Langflow API version:
 
-<CodeBlock language="bash">{exampleApiReferenceApiExamplesGetVersion}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiReferenceApiExamplesGetVersion} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiReferenceApiExamplesGetVersion} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiReferenceApiExamplesGetVersion} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="text">{resultApiReferenceApiExamplesResultGetVersion}</CodeBlock>
+<CodeSnippet source={resultApiReferenceApiExamplesResultGetVersion} language="text" />
 
 </details>
 
@@ -129,12 +188,28 @@ Returns the current Langflow API version:
 Returns configuration details for your Langflow deployment.
 Requires a [Langflow API key](/api-keys-and-authentication).
 
-<CodeBlock language="bash">{exampleApiReferenceApiExamplesGetConfiguration}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiReferenceApiExamplesGetConfiguration} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiReferenceApiExamplesGetConfiguration} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiReferenceApiExamplesGetConfiguration} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiReferenceApiExamplesResultGetConfiguration}</CodeBlock>
+<CodeSnippet source={resultApiReferenceApiExamplesResultGetConfiguration} language="json" />
 
 </details>
 
@@ -143,7 +218,23 @@ Requires a [Langflow API key](/api-keys-and-authentication).
 Returns a dictionary of all Langflow components.
 Requires a [Langflow API key](/api-keys-and-authentication).
 
-<CodeBlock language="bash">{exampleApiReferenceApiExamplesGetAllComponents}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiReferenceApiExamplesGetAllComponents} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiReferenceApiExamplesGetAllComponents} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiReferenceApiExamplesGetAllComponents} language="bash" />
+
+</TabItem>
+</Tabs>
 
 ## Available endpoints
 

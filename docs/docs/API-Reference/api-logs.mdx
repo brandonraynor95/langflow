@@ -2,11 +2,18 @@
 title: Logs endpoints
 slug: /api-logs
 ---
-import CodeBlock from '@theme/CodeBlock';
+import CodeSnippet from '@site/src/components/CodeSnippet';
 import exampleApiLogsStreamLogs from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-logs/stream-logs.sh';
 import resultApiLogsResultStreamLogs from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-logs/result-stream-logs.txt';
 import exampleApiLogsRetrieveLogsWithOptionalParameters from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-logs/retrieve-logs-with-optional-parameters.sh';
 import resultApiLogsResultRetrieveLogsWithOptionalParameters from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-logs/result-retrieve-logs-with-optional-parameters.txt';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import examplePythonApiLogsStreamLogs from '!!raw-loader!@site/docs/API-Reference/python-examples/api-logs/stream-logs.py';
+import exampleJavascriptApiLogsStreamLogs from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-logs/stream-logs.js';
+import examplePythonApiLogsRetrieveLogsWithOptionalParameters from '!!raw-loader!@site/docs/API-Reference/python-examples/api-logs/retrieve-logs-with-optional-parameters.py';
+import exampleJavascriptApiLogsRetrieveLogsWithOptionalParameters from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-logs/retrieve-logs-with-optional-parameters.js';
+
 
 
 Retrieve logs for your Langflow flows and server.
@@ -27,12 +34,28 @@ LANGFLOW_LOG_LEVEL=DEBUG // Can be DEBUG, ERROR, INFO, WARNING, or CRITICAL
 
 Stream logs in real-time using Server Sent Events (SSE):
 
-<CodeBlock language="bash">{exampleApiLogsStreamLogs}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiLogsStreamLogs} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiLogsStreamLogs} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiLogsStreamLogs} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="text">{resultApiLogsResultStreamLogs}</CodeBlock>
+<CodeSnippet source={resultApiLogsResultStreamLogs} language="text" />
 
 </details>
 
@@ -47,11 +70,27 @@ Retrieve logs with optional query parameters:
 The default values for all three parameters is `0`.
 With default values, the endpoint returns the last 10 lines of logs.
 
-<CodeBlock language="bash">{exampleApiLogsRetrieveLogsWithOptionalParameters}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiLogsRetrieveLogsWithOptionalParameters} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiLogsRetrieveLogsWithOptionalParameters} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiLogsRetrieveLogsWithOptionalParameters} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="text">{resultApiLogsResultRetrieveLogsWithOptionalParameters}</CodeBlock>
+<CodeSnippet source={resultApiLogsResultRetrieveLogsWithOptionalParameters} language="text" />
 
 </details>

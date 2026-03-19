@@ -2,7 +2,7 @@
 title: Projects endpoints
 slug: /api-projects
 ---
-import CodeBlock from '@theme/CodeBlock';
+import CodeSnippet from '@site/src/components/CodeSnippet';
 import exampleApiProjectsReadProjects from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-projects/read-projects.sh';
 import resultApiProjectsResultReadProjects from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-projects/result-read-projects.json';
 import exampleApiProjectsCreateProject from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-projects/create-project.sh';
@@ -16,6 +16,25 @@ import exampleApiProjectsDeleteProject from '!!raw-loader!@site/docs/API-Referen
 import resultApiProjectsResultDeleteProject from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-projects/result-delete-project.txt';
 import exampleApiProjectsExportAProject from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-projects/export-a-project.sh';
 import exampleApiProjectsImportAProject from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-projects/import-a-project.sh';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import examplePythonApiProjectsReadProjects from '!!raw-loader!@site/docs/API-Reference/python-examples/api-projects/read-projects.py';
+import exampleJavascriptApiProjectsReadProjects from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-projects/read-projects.js';
+import examplePythonApiProjectsCreateProject from '!!raw-loader!@site/docs/API-Reference/python-examples/api-projects/create-project.py';
+import exampleJavascriptApiProjectsCreateProject from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-projects/create-project.js';
+import examplePythonApiProjectsCreateProject2 from '!!raw-loader!@site/docs/API-Reference/python-examples/api-projects/create-project-2.py';
+import exampleJavascriptApiProjectsCreateProject2 from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-projects/create-project-2.js';
+import examplePythonApiProjectsReadProject from '!!raw-loader!@site/docs/API-Reference/python-examples/api-projects/read-project.py';
+import exampleJavascriptApiProjectsReadProject from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-projects/read-project.js';
+import examplePythonApiProjectsUpdateProject from '!!raw-loader!@site/docs/API-Reference/python-examples/api-projects/update-project.py';
+import exampleJavascriptApiProjectsUpdateProject from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-projects/update-project.js';
+import examplePythonApiProjectsDeleteProject from '!!raw-loader!@site/docs/API-Reference/python-examples/api-projects/delete-project.py';
+import exampleJavascriptApiProjectsDeleteProject from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-projects/delete-project.js';
+import examplePythonApiProjectsExportAProject from '!!raw-loader!@site/docs/API-Reference/python-examples/api-projects/export-a-project.py';
+import exampleJavascriptApiProjectsExportAProject from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-projects/export-a-project.js';
+import examplePythonApiProjectsImportAProject from '!!raw-loader!@site/docs/API-Reference/python-examples/api-projects/import-a-project.py';
+import exampleJavascriptApiProjectsImportAProject from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-projects/import-a-project.js';
+
 
 
 Use the `/projects` endpoint to create, read, update, and delete [Langflow projects](/concepts-flows#projects).
@@ -24,12 +43,28 @@ Use the `/projects` endpoint to create, read, update, and delete [Langflow proje
 
 Get a list of Langflow projects, including project IDs, names, and descriptions.
 
-<CodeBlock language="bash">{exampleApiProjectsReadProjects}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiProjectsReadProjects} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiProjectsReadProjects} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiProjectsReadProjects} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiProjectsResultReadProjects}</CodeBlock>
+<CodeSnippet source={resultApiProjectsResultReadProjects} language="json" />
 
 </details>
 
@@ -37,12 +72,28 @@ Get a list of Langflow projects, including project IDs, names, and descriptions.
 
 Create a new project.
 
-<CodeBlock language="bash">{exampleApiProjectsCreateProject}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiProjectsCreateProject} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiProjectsCreateProject} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiProjectsCreateProject} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiProjectsResultCreateProject}</CodeBlock>
+<CodeSnippet source={resultApiProjectsResultCreateProject} language="json" />
 
 </details>
 
@@ -50,7 +101,23 @@ To add flows and components at project creation, retrieve the `components_list` 
 
 Adding a flow to a project moves the flow from its previous location. The flow isn't copied.
 
-<CodeBlock language="bash">{exampleApiProjectsCreateProject2}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiProjectsCreateProject2} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiProjectsCreateProject2} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiProjectsCreateProject2} language="bash" />
+
+</TabItem>
+</Tabs>
 
 ## Read project
 
@@ -58,12 +125,28 @@ Retrieve details of a specific project.
 
 To find the UUID of your project, call the [read projects](#read-projects) endpoint.
 
-<CodeBlock language="bash">{exampleApiProjectsReadProject}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiProjectsReadProject} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiProjectsReadProject} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiProjectsReadProject} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiProjectsResultReadProject}</CodeBlock>
+<CodeSnippet source={resultApiProjectsResultReadProject} language="json" />
 
 </details>
 
@@ -75,12 +158,28 @@ Each PATCH request updates the project with the values you send.
 Only the fields you include in your request are updated.
 If you send the same values multiple times, the update is still processed, even if the values are unchanged.
 
-<CodeBlock language="bash">{exampleApiProjectsUpdateProject}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiProjectsUpdateProject} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiProjectsUpdateProject} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiProjectsUpdateProject} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="json">{resultApiProjectsResultUpdateProject}</CodeBlock>
+<CodeSnippet source={resultApiProjectsResultUpdateProject} language="json" />
 
 </details>
 
@@ -88,12 +187,28 @@ If you send the same values multiple times, the update is still processed, even 
 
 Delete a specific project.
 
-<CodeBlock language="bash">{exampleApiProjectsDeleteProject}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiProjectsDeleteProject} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiProjectsDeleteProject} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiProjectsDeleteProject} language="bash" />
+
+</TabItem>
+</Tabs>
 
 <details>
 <summary>Result</summary>
 
-<CodeBlock language="text">{resultApiProjectsResultDeleteProject}</CodeBlock>
+<CodeSnippet source={resultApiProjectsResultDeleteProject} language="text" />
 
 </details>
 
@@ -103,10 +218,42 @@ Download all flows from a project as a zip file.
 
 The `--output` flag is optional.
 
-<CodeBlock language="bash">{exampleApiProjectsExportAProject}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiProjectsExportAProject} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiProjectsExportAProject} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiProjectsExportAProject} language="bash" />
+
+</TabItem>
+</Tabs>
 
 ## Import a project
 
 Import a project and its flows by uploading a Langflow project zip file:
 
-<CodeBlock language="bash">{exampleApiProjectsImportAProject}</CodeBlock>
+<Tabs>
+<TabItem value="Python" label="Python" default>
+
+<CodeSnippet source={examplePythonApiProjectsImportAProject} language="python" />
+
+</TabItem>
+<TabItem value="JavaScript" label="JavaScript">
+
+<CodeSnippet source={exampleJavascriptApiProjectsImportAProject} language="javascript" />
+
+</TabItem>
+<TabItem value="curl" label="curl">
+
+<CodeSnippet source={exampleApiProjectsImportAProject} language="bash" />
+
+</TabItem>
+</Tabs>
