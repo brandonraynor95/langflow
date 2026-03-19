@@ -3,10 +3,19 @@ title: Workflow API (Beta)
 slug: /workflow-api
 ---
 import CodeBlock from '@theme/CodeBlock';
-import exampleWorkflowsApiExampleSynchronousRequest from '!!raw-loader!@site/API-Reference/curl-examples/workflows-api/example-synchronous-request.sh';
-import exampleWorkflowsApiExampleAsynchronousRequest from '!!raw-loader!@site/API-Reference/curl-examples/workflows-api/example-asynchronous-request.sh';
-import exampleWorkflowsApiExampleRequest from '!!raw-loader!@site/API-Reference/curl-examples/workflows-api/example-request.sh';
-import exampleWorkflowsApiExampleRequest2 from '!!raw-loader!@site/API-Reference/curl-examples/workflows-api/example-request-2.sh';
+import exampleWorkflowsApiExampleSynchronousRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/workflows-api/example-synchronous-request.sh';
+import exampleWorkflowsApiExampleAsynchronousRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/workflows-api/example-asynchronous-request.sh';
+import exampleWorkflowsApiExampleRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/workflows-api/example-request.sh';
+import exampleWorkflowsApiExampleRequest2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/workflows-api/example-request-2.sh';
+import examplePythonWorkflowsApiExampleSynchronousRequest from '!!raw-loader!@site/docs/API-Reference/python-examples/workflows-api/example-synchronous-request.py';
+import exampleTypescriptWorkflowsApiExampleSynchronousRequest from '!!raw-loader!@site/docs/API-Reference/javascript-examples/workflows-api/example-synchronous-request.ts';
+import examplePythonWorkflowsApiExampleAsynchronousRequest from '!!raw-loader!@site/docs/API-Reference/python-examples/workflows-api/example-asynchronous-request.py';
+import exampleTypescriptWorkflowsApiExampleAsynchronousRequest from '!!raw-loader!@site/docs/API-Reference/javascript-examples/workflows-api/example-asynchronous-request.ts';
+import examplePythonWorkflowsApiExampleRequest from '!!raw-loader!@site/docs/API-Reference/python-examples/workflows-api/example-request.py';
+import exampleTypescriptWorkflowsApiExampleRequest from '!!raw-loader!@site/docs/API-Reference/javascript-examples/workflows-api/example-request.ts';
+import examplePythonWorkflowsApiExampleRequest2 from '!!raw-loader!@site/docs/API-Reference/python-examples/workflows-api/example-request-2.py';
+import exampleTypescriptWorkflowsApiExampleRequest2 from '!!raw-loader!@site/docs/API-Reference/javascript-examples/workflows-api/example-request-2.ts';
+
 
 
 import Tabs from '@theme/Tabs';
@@ -44,63 +53,12 @@ Execute a workflow synchronously and receive complete results immediately:
 <Tabs>
 <TabItem value="Python" label="Python" default>
 
-```python
-import requests
-
-url = f"{LANGFLOW_SERVER_URL}/api/v2/workflows"
-headers = {
-    "Content-Type": "application/json",
-    "x-api-key": LANGFLOW_API_KEY
-}
-
-payload = {
-    "flow_id": "flow_67ccd2be17f0819081ff3bb2cf6508e60bb6a6b452d3795b",
-    "background": False,
-    "inputs": {
-        "ChatInput-abc.input_type": "chat",
-        "ChatInput-abc.input_value": "what is 2+2",
-        "ChatInput-abc.session_id": "session-123"
-    }
-}
-
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())
-```
+<CodeBlock language="python">{examplePythonWorkflowsApiExampleSynchronousRequest}</CodeBlock>
 
 </TabItem>
 <TabItem value="TypeScript" label="TypeScript">
 
-```typescript
-import axios from 'axios';
-
-const url = `${LANGFLOW_SERVER_URL}/api/v2/workflows`;
-
-const payload = {
-  flow_id: "flow_67ccd2be17f0819081ff3bb2cf6508e60bb6a6b452d3795b",
-  background: false,
-  inputs: {
-    "ChatInput-abc.input_type": "chat",
-    "ChatInput-abc.input_value": "what is 2+2",
-    "ChatInput-abc.session_id": "session-123"
-  }
-};
-
-const runWorkflow = async () => {
-  try {
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': LANGFLOW_API_KEY
-      }
-    });
-    console.log(response.data);
-  } catch (error) {
-    console.error('Error triggering workflow:', error);
-  }
-};
-
-runWorkflow();
-```
+<CodeBlock language="typescript">{exampleTypescriptWorkflowsApiExampleSynchronousRequest}</CodeBlock>
 
 </TabItem>
 <TabItem value="curl" label="curl">
@@ -125,65 +83,12 @@ The asynchronous request contains `stream` parameter, but streaming is not yet s
 <Tabs>
 <TabItem value="Python" label="Python" default>
 
-```python
-import requests
-
-url = f"{LANGFLOW_SERVER_URL}/api/v2/workflows"
-headers = {
-    "Content-Type": "application/json",
-    "x-api-key": LANGFLOW_API_KEY
-}
-
-payload = {
-    "flow_id": "flow_67ccd2be17f0819081ff3bb2cf6508e60bb6a6b452d3795b",
-    "background": True,
-    "stream": False,
-    "inputs": {
-        "ChatInput-abc.input_type": "chat",
-        "ChatInput-abc.input_value": "Process this in the background",
-        "ChatInput-abc.session_id": "session-456"
-    }
-}
-
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())  # Returns job_id immediately
-```
+<CodeBlock language="python">{examplePythonWorkflowsApiExampleAsynchronousRequest}</CodeBlock>
 
 </TabItem>
 <TabItem value="TypeScript" label="TypeScript">
 
-```typescript
-import axios from 'axios';
-
-const url = `${LANGFLOW_SERVER_URL}/api/v2/workflows`;
-
-const payload = {
-  flow_id: "flow_67ccd2be17f0819081ff3bb2cf6508e60bb6a6b452d3795b",
-  background: true,
-  stream: false,
-  inputs: {
-    "ChatInput-abc.input_type": "chat",
-    "ChatInput-abc.input_value": "Process this in the background",
-    "ChatInput-abc.session_id": "session-456"
-  }
-};
-
-const runWorkflow = async () => {
-  try {
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': LANGFLOW_API_KEY
-      }
-    });
-    console.log(response.data);  // Returns job_id immediately
-  } catch (error) {
-    console.error('Error triggering workflow:', error);
-  }
-};
-
-runWorkflow();
-```
+<CodeBlock language="typescript">{exampleTypescriptWorkflowsApiExampleAsynchronousRequest}</CodeBlock>
 
 </TabItem>
 <TabItem value="curl" label="curl">
@@ -263,50 +168,12 @@ The response includes an `outputs` field containing component-level results. Eac
 <Tabs>
 <TabItem value="Python" label="Python" default>
 
-```python
-import requests
-
-url = f"{LANGFLOW_SERVER_URL}/api/v2/workflows"
-params = {
-    "job_id": "job_id_1234567890"
-}
-headers = {
-    "accept": "application/json",
-    "x-api-key": LANGFLOW_API_KEY
-}
-
-response = requests.get(url, params=params, headers=headers)
-print(response.json())
-```
+<CodeBlock language="python">{examplePythonWorkflowsApiExampleRequest}</CodeBlock>
 
 </TabItem>
 <TabItem value="TypeScript" label="TypeScript">
 
-```typescript
-import axios from 'axios';
-
-const jobId = 'job_id_1234567890';
-const url = `${LANGFLOW_SERVER_URL}/api/v2/workflows`;
-
-const getWorkflowStatus = async () => {
-  try {
-    const response = await axios.get(url, {
-      params: {
-        job_id: jobId
-      },
-      headers: {
-        'accept': 'application/json',
-        'x-api-key': LANGFLOW_API_KEY
-      }
-    });
-    console.log(response.data);
-  } catch (error) {
-    console.error('Error getting workflow status:', error);
-  }
-};
-
-getWorkflowStatus();
-```
+<CodeBlock language="typescript">{exampleTypescriptWorkflowsApiExampleRequest}</CodeBlock>
 
 </TabItem>
 <TabItem value="curl" label="curl">
@@ -376,50 +243,12 @@ The response includes a `status` field that indicates the current state of the w
 <Tabs>
 <TabItem value="Python" label="Python" default>
 
-```python
-import requests
-
-url = f"{LANGFLOW_SERVER_URL}/api/v2/workflows/stop"
-headers = {
-    "Content-Type": "application/json",
-    "x-api-key": LANGFLOW_API_KEY
-}
-payload = {
-    "job_id": "job_id_1234567890"
-}
-
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())
-```
+<CodeBlock language="python">{examplePythonWorkflowsApiExampleRequest2}</CodeBlock>
 
 </TabItem>
 <TabItem value="TypeScript" label="TypeScript">
 
-```typescript
-import axios from 'axios';
-
-const url = `${LANGFLOW_SERVER_URL}/api/v2/workflows/stop`;
-
-const payload = {
-  job_id: "job_id_1234567890"
-};
-
-const stopWorkflow = async () => {
-  try {
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': LANGFLOW_API_KEY
-      }
-    });
-    console.log(response.data);
-  } catch (error) {
-    console.error('Error stopping workflow:', error);
-  }
-};
-
-stopWorkflow();
-```
+<CodeBlock language="typescript">{exampleTypescriptWorkflowsApiExampleRequest2}</CodeBlock>
 
 </TabItem>
 <TabItem value="curl" label="curl">

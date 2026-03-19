@@ -3,31 +3,31 @@ title: Files endpoints
 slug: /api-files
 ---
 import CodeBlock from '@theme/CodeBlock';
-import exampleApiFilesUploadFileV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/upload-file-v1.sh';
-import resultApiFilesResultUploadFileV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-upload-file-v1.json';
-import exampleApiFilesUploadImageFilesV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/upload-image-files-v1.sh';
-import exampleApiFilesUploadImageFilesV12 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/upload-image-files-v1-2.sh';
-import exampleApiFilesListFilesV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/list-files-v1.sh';
-import resultApiFilesResultListFilesV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-list-files-v1.json';
-import exampleApiFilesDownloadFileV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/download-file-v1.sh';
-import resultApiFilesResultDownloadFileV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-download-file-v1.txt';
-import exampleApiFilesDeleteFileV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/delete-file-v1.sh';
-import resultApiFilesResultDeleteFileV1 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-delete-file-v1.json';
-import exampleApiFilesUploadFileV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/upload-file-v2.sh';
-import resultApiFilesResultUploadFileV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-upload-file-v2.txt';
-import exampleApiFilesUploadFileV22 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/upload-file-v2-2.sh';
-import exampleApiFilesSendFilesToYourFlowsV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/send-files-to-your-flows-v2.sh';
-import exampleApiFilesSendFilesToYourFlowsV22 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/send-files-to-your-flows-v2-2.sh';
-import exampleApiFilesListFilesV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/list-files-v2.sh';
-import resultApiFilesResultListFilesV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-list-files-v2.json';
-import exampleApiFilesDownloadFileV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/download-file-v2.sh';
-import resultApiFilesResultDownloadFileV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-download-file-v2.txt';
-import exampleApiFilesEditFileNameV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/edit-file-name-v2.sh';
-import resultApiFilesResultEditFileNameV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-edit-file-name-v2.json';
-import exampleApiFilesDeleteFileV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/delete-file-v2.sh';
-import resultApiFilesResultDeleteFileV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-delete-file-v2.json';
-import exampleApiFilesDeleteAllFilesV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/delete-all-files-v2.sh';
-import resultApiFilesResultDeleteAllFilesV2 from '!!raw-loader!@site/API-Reference/curl-examples/api-files/result-delete-all-files-v2.json';
+import exampleApiFilesUploadFileV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/upload-file-v1.sh';
+import resultApiFilesResultUploadFileV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-upload-file-v1.json';
+import exampleApiFilesUploadImageFilesV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/upload-image-files-v1.sh';
+import exampleApiFilesUploadImageFilesV12 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/upload-image-files-v1-2.sh';
+import exampleApiFilesListFilesV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/list-files-v1.sh';
+import resultApiFilesResultListFilesV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-list-files-v1.json';
+import exampleApiFilesDownloadFileV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/download-file-v1.sh';
+import resultApiFilesResultDownloadFileV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-download-file-v1.txt';
+import exampleApiFilesDeleteFileV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/delete-file-v1.sh';
+import resultApiFilesResultDeleteFileV1 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-delete-file-v1.json';
+import exampleApiFilesUploadFileV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/upload-file-v2.sh';
+import resultApiFilesResultUploadFileV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-upload-file-v2.txt';
+import exampleApiFilesUploadFileV22 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/upload-file-v2-2.sh';
+import exampleApiFilesSendFilesToYourFlowsV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/send-files-to-your-flows-v2.sh';
+import exampleApiFilesSendFilesToYourFlowsV22 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/send-files-to-your-flows-v2-2.sh';
+import exampleApiFilesListFilesV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/list-files-v2.sh';
+import resultApiFilesResultListFilesV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-list-files-v2.json';
+import exampleApiFilesDownloadFileV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/download-file-v2.sh';
+import resultApiFilesResultDownloadFileV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-download-file-v2.txt';
+import exampleApiFilesEditFileNameV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/edit-file-name-v2.sh';
+import resultApiFilesResultEditFileNameV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-edit-file-name-v2.json';
+import exampleApiFilesDeleteFileV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/delete-file-v2.sh';
+import resultApiFilesResultDeleteFileV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-delete-file-v2.json';
+import exampleApiFilesDeleteAllFilesV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/delete-all-files-v2.sh';
+import resultApiFilesResultDeleteAllFilesV2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-files/result-delete-all-files-v2.json';
 
 
 Use the `/files` endpoints to move files between your local machine and Langflow.

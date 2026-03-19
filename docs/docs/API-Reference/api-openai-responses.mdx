@@ -3,18 +3,23 @@ title: OpenAI Responses API
 slug: /api-openai-responses
 ---
 import CodeBlock from '@theme/CodeBlock';
-import exampleApiOpenaiResponsesExampleRequest from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/example-request.sh';
-import exampleApiOpenaiResponsesExampleStreamingRequest from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/example-streaming-request.sh';
-import resultApiOpenaiResponsesResultExampleStreamingRequest from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/result-example-streaming-request.json';
-import exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/continue-conversations-with-response-and-session-ids.sh';
-import resultApiOpenaiResponsesResultContinueConversationsWithResponseAndSessionIds from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/result-continue-conversations-with-response-and-session-ids.json';
-import exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds2 from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/continue-conversations-with-response-and-session-ids-2.sh';
-import resultApiOpenaiResponsesResultContinueConversationsWithResponseAndSessionIds2 from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/result-continue-conversations-with-response-and-session-ids-2.json';
-import exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds3 from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/continue-conversations-with-response-and-session-ids-3.sh';
-import exampleApiOpenaiResponsesRetrieveToolCallResults from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/retrieve-tool-call-results.sh';
-import resultApiOpenaiResponsesResultRetrieveToolCallResults from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/result-retrieve-tool-call-results.json';
-import exampleApiOpenaiResponsesPassGlobalVariablesToYourFlowsInHeaders from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/pass-global-variables-to-your-flows-in-headers.sh';
-import exampleApiOpenaiResponsesTokenUsageTracking from '!!raw-loader!@site/API-Reference/curl-examples/api-openai-responses/token-usage-tracking.sh';
+import exampleApiOpenaiResponsesExampleRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/example-request.sh';
+import exampleApiOpenaiResponsesExampleStreamingRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/example-streaming-request.sh';
+import resultApiOpenaiResponsesResultExampleStreamingRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/result-example-streaming-request.json';
+import exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/continue-conversations-with-response-and-session-ids.sh';
+import resultApiOpenaiResponsesResultContinueConversationsWithResponseAndSessionIds from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/result-continue-conversations-with-response-and-session-ids.json';
+import exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/continue-conversations-with-response-and-session-ids-2.sh';
+import resultApiOpenaiResponsesResultContinueConversationsWithResponseAndSessionIds2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/result-continue-conversations-with-response-and-session-ids-2.json';
+import exampleApiOpenaiResponsesContinueConversationsWithResponseAndSessionIds3 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/continue-conversations-with-response-and-session-ids-3.sh';
+import exampleApiOpenaiResponsesRetrieveToolCallResults from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/retrieve-tool-call-results.sh';
+import resultApiOpenaiResponsesResultRetrieveToolCallResults from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/result-retrieve-tool-call-results.json';
+import exampleApiOpenaiResponsesPassGlobalVariablesToYourFlowsInHeaders from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/pass-global-variables-to-your-flows-in-headers.sh';
+import exampleApiOpenaiResponsesTokenUsageTracking from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-openai-responses/token-usage-tracking.sh';
+import examplePythonApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/additional-configuration-for-openai-client-libraries.py';
+import exampleTypescriptApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/additional-configuration-for-openai-client-libraries.ts';
+import examplePythonApiOpenaiResponsesTokenUsageTracking from '!!raw-loader!@site/docs/API-Reference/python-examples/api-openai-responses/token-usage-tracking.py';
+import exampleTypescriptApiOpenaiResponsesTokenUsageTracking from '!!raw-loader!@site/docs/API-Reference/javascript-examples/api-openai-responses/token-usage-tracking.ts';
+
 
 
 import Tabs from '@theme/Tabs';
@@ -50,44 +55,12 @@ In the following examples, replace the values for `LANGFLOW_SERVER_URL`, `LANGFL
 <Tabs groupId="client">
 <TabItem value="Python" label="OpenAI Python Client" default>
 
-```python
-from openai import OpenAI
-
-client = OpenAI(
-  base_url="LANGFLOW_SERVER_URL/api/v1/",
-  default_headers={"x-api-key": "LANGFLOW_API_KEY"},
-  api_key="dummy-api-key" # Required by OpenAI SDK but not used by Langflow
-)
-
-response = client.responses.create(
-  model="FLOW_ID",
-  input="There is an event that happens on the second wednesday of every month. What are the event dates in 2026?",
-)
-
-print(response.output_text)
-```
+<CodeBlock language="python">{examplePythonApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries}</CodeBlock>
 
 </TabItem>
 <TabItem value="JavaScript" label="OpenAI TypeScript Client">
 
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "LANGFLOW_SERVER_URL/api/v1/",
-  defaultHeaders: {
-    "x-api-key": "LANGFLOW_API_KEY"
-  },
-  apiKey: "dummy-api-key" // Required by OpenAI SDK but not used by Langflow
-});
-
-const response = await client.responses.create({
-  model: "FLOW_ID",
-  input: "There is an event that happens on the second wednesday of every month. What are the event dates in 2026?"
-});
-
-console.log(response.output_text);
-```
+<CodeBlock language="typescript">{exampleTypescriptApiOpenaiResponsesAdditionalConfigurationForOpenaiClientLibraries}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -393,57 +366,12 @@ The `usage` field is always present in the response, either with token counts or
 <Tabs groupId="token-usage">
 <TabItem value="Python" label="Python" default>
 
-```python
-from openai import OpenAI
-
-client = OpenAI(
-  base_url="LANGFLOW_SERVER_URL/api/v1/",
-  default_headers={"x-api-key": "LANGFLOW_API_KEY"},
-  api_key="dummy-api-key"
-)
-
-response = client.responses.create(
-  model="FLOW_ID",
-  input="Explain quantum computing in simple terms"
-)
-
-# Access token usage if available
-if response.usage:
-    print(f"Prompt tokens: {response.usage.get('prompt_tokens', 0)}")
-    print(f"Completion tokens: {response.usage.get('completion_tokens', 0)}")
-    print(f"Total tokens: {response.usage.get('total_tokens', 0)}")
-else:
-    print("Token usage not available for this flow")
-```
+<CodeBlock language="python">{examplePythonApiOpenaiResponsesTokenUsageTracking}</CodeBlock>
 
 </TabItem>
 <TabItem value="TypeScript" label="TypeScript">
 
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "LANGFLOW_SERVER_URL/api/v1/",
-  defaultHeaders: {
-    "x-api-key": "LANGFLOW_API_KEY"
-  },
-  apiKey: "dummy-api-key"
-});
-
-const response = await client.responses.create({
-  model: "FLOW_ID",
-  input: "Explain quantum computing in simple terms"
-});
-
-// Access token usage if available
-if (response.usage) {
-  console.log(`Prompt tokens: ${response.usage.prompt_tokens || 0}`);
-  console.log(`Completion tokens: ${response.usage.completion_tokens || 0}`);
-  console.log(`Total tokens: ${response.usage.total_tokens || 0}`);
-} else {
-  console.log("Token usage not available for this flow");
-}
-```
+<CodeBlock language="typescript">{exampleTypescriptApiOpenaiResponsesTokenUsageTracking}</CodeBlock>
 
 </TabItem>
 <TabItem value="curl" label="curl">

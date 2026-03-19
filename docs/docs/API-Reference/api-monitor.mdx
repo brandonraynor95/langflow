@@ -3,24 +3,26 @@ title: Monitor endpoints
 slug: /api-monitor
 ---
 import CodeBlock from '@theme/CodeBlock';
-import exampleApiMonitorGetVertexBuilds from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/get-vertex-builds.sh';
-import resultApiMonitorResultGetVertexBuilds from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/result-get-vertex-builds.json';
-import exampleApiMonitorDeleteVertexBuilds from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/delete-vertex-builds.sh';
-import resultApiMonitorResultDeleteVertexBuilds from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/result-delete-vertex-builds.txt';
-import exampleApiMonitorGetMessages from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/get-messages.sh';
-import exampleApiMonitorGetMessages2 from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/get-messages-2.sh';
-import resultApiMonitorResultGetMessages2 from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/result-get-messages-2.json';
-import exampleApiMonitorDeleteMessages from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/delete-messages.sh';
-import resultApiMonitorResultDeleteMessages from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/result-delete-messages.txt';
-import exampleApiMonitorUpdateMessage from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/update-message.sh';
-import resultApiMonitorResultUpdateMessage from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/result-update-message.json';
-import exampleApiMonitorUpdateSessionId from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/update-session-id.sh';
-import resultApiMonitorResultUpdateSessionId from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/result-update-session-id.json';
-import exampleApiMonitorDeleteMessagesBySession from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/delete-messages-by-session.sh';
-import resultApiMonitorResultDeleteMessagesBySession from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/result-delete-messages-by-session.txt';
-import exampleApiMonitorExampleRequest from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/example-request.sh';
-import exampleApiMonitorGetTransactions from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/get-transactions.sh';
-import resultApiMonitorResultGetTransactions from '!!raw-loader!@site/API-Reference/curl-examples/api-monitor/result-get-transactions.json';
+import exampleApiMonitorGetVertexBuilds from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/get-vertex-builds.sh';
+import resultApiMonitorResultGetVertexBuilds from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/result-get-vertex-builds.json';
+import exampleApiMonitorDeleteVertexBuilds from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/delete-vertex-builds.sh';
+import resultApiMonitorResultDeleteVertexBuilds from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/result-delete-vertex-builds.txt';
+import exampleApiMonitorGetMessages from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/get-messages.sh';
+import exampleApiMonitorGetMessages2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/get-messages-2.sh';
+import resultApiMonitorResultGetMessages2 from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/result-get-messages-2.json';
+import exampleApiMonitorDeleteMessages from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/delete-messages.sh';
+import resultApiMonitorResultDeleteMessages from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/result-delete-messages.txt';
+import exampleApiMonitorUpdateMessage from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/update-message.sh';
+import resultApiMonitorResultUpdateMessage from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/result-update-message.json';
+import exampleApiMonitorUpdateSessionId from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/update-session-id.sh';
+import resultApiMonitorResultUpdateSessionId from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/result-update-session-id.json';
+import exampleApiMonitorDeleteMessagesBySession from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/delete-messages-by-session.sh';
+import resultApiMonitorResultDeleteMessagesBySession from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/result-delete-messages-by-session.txt';
+import exampleApiMonitorExampleRequest from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/example-request.sh';
+import exampleApiMonitorGetTransactions from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/get-transactions.sh';
+import resultApiMonitorResultGetTransactions from '!!raw-loader!@site/docs/API-Reference/curl-examples/api-monitor/result-get-transactions.json';
+import examplePythonApiMonitorExampleRequest from '!!raw-loader!@site/docs/API-Reference/python-examples/api-monitor/example-request.py';
+
 
 
 import Tabs from '@theme/Tabs';
@@ -166,25 +168,7 @@ Use `GET /monitor/traces` and filter by `flow_id`:
 <Tabs>
 <TabItem value="python" label="Python">
 
-```python
-import os
-
-import requests
-
-base_url = os.getenv("LANGFLOW_SERVER_URL", "http://localhost:7860")
-api_key = os.getenv("LANGFLOW_API_KEY")
-flow_id = "YOUR_FLOW_ID"
-
-response = requests.get(
-    f"{base_url}/api/v1/monitor/traces",
-    params={"flow_id": flow_id, "page": 1, "size": 50},
-    headers={"x-api-key": api_key, "accept": "application/json"},
-    timeout=10,
-)
-response.raise_for_status()
-traces = response.json()
-print(traces)
-```
+<CodeBlock language="python">{examplePythonApiMonitorExampleRequest}</CodeBlock>
 
 </TabItem>
 <TabItem value="typescript" label="TypeScript">
