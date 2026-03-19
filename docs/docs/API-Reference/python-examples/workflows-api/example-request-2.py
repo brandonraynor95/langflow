@@ -1,8 +1,19 @@
+import os
+
 import requests
 
-url = f"{LANGFLOW_SERVER_URL}/api/v2/workflows/stop"
-headers = {"Content-Type": "application/json", "x-api-key": LANGFLOW_API_KEY}
-payload = {"job_id": "job_id_1234567890"}
+url = f"{os.getenv('LANGFLOW_SERVER_URL', '')}/api/v2/workflows/stop"
 
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())
+headers = {
+    "Content-Type": f"application/json",
+    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
+}
+
+payload = {
+  "job_id": "job_id_1234567890"
+}
+
+response = requests.request("POST", url, headers=headers, json=payload)
+response.raise_for_status()
+
+print(response.text)

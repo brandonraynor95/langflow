@@ -1,8 +1,15 @@
+import os
+
 import requests
 
-url = f"{LANGFLOW_SERVER_URL}/api/v2/workflows"
-params = {"job_id": "job_id_1234567890"}
-headers = {"accept": "application/json", "x-api-key": LANGFLOW_API_KEY}
+url = f"{os.getenv('LANGFLOW_SERVER_URL', '')}/api/v2/workflows?job_id=job_id_1234567890"
 
-response = requests.get(url, params=params, headers=headers)
-print(response.json())
+headers = {
+    "accept": f"application/json",
+    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
+}
+
+response = requests.request("GET", url, headers=headers)
+response.raise_for_status()
+
+print(response.text)

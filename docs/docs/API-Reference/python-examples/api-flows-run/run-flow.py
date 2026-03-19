@@ -1,22 +1,23 @@
+import os
+
 import requests
 
-url = "http://LANGFLOW_SERVER_URL/api/v1/run/FLOW_ID"
+url = f"{os.getenv('LANGFLOW_SERVER_URL', '')}/api/v1/run/{os.getenv('FLOW_ID', '')}"
 
-# Request payload
-payload = {
-    "input_value": "Tell me about something interesting!",
-    "session_id": "chat-123",
-    "input_type": "chat",
-    "output_type": "chat",
-    "output_component": "",
+headers = {
+    "Content-Type": f"application/json",
+    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
 }
 
-# Request headers
-headers = {"Content-Type": "application/json", "x-api-key": "LANGFLOW_API_KEY"}
+payload = {
+  "input_value": "Tell me about something interesting!",
+  "session_id": "chat-123",
+  "input_type": "chat",
+  "output_type": "chat",
+  "output_component": ""
+}
 
-try:
-    response = requests.post(url, json=payload, headers=headers)
-    response.raise_for_status()
-    print(response.json())
-except requests.exceptions.RequestException as e:
-    print(f"Error making API request: {e}")
+response = requests.request("POST", url, headers=headers, json=payload)
+response.raise_for_status()
+
+print(response.text)
