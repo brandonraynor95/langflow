@@ -15,6 +15,7 @@ import io
 import json
 import zipfile
 from http import HTTPStatus
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
 import httpx
@@ -38,6 +39,7 @@ from langflow_sdk.models import (
     RunResponse,
     StreamChunk,
 )
+from langflow_sdk.serialization import flow_to_json, normalize_flow
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
@@ -357,6 +359,95 @@ class LangflowClient:
         )
         return [Flow.model_validate(f) for f in resp.json()]
 
+    # ------------------------------------------------------------------
+    # File I/O helpers
+    # ------------------------------------------------------------------
+
+    def push(self, path: str | Path) -> tuple[Flow, bool]:
+        """Upload or update a flow from a local JSON file.
+
+        The ``id`` field embedded in the file is used for upsert
+        (create-or-update via ``PUT /api/v1/flows/{id}``).
+        Returns ``(flow, created)`` where ``created`` is ``True`` when the
+        flow was newly created and ``False`` when it was updated::
+
+            flow, created = client.push("flows/my-flow.json")
+        """
+        path = Path(path)
+        data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        flow_id = data.get("id")
+        if not flow_id:
+            msg = f"Flow file {str(path)!r} does not contain an 'id' field; cannot upsert"
+            raise ValueError(msg)
+        flow_create = FlowCreate.model_validate({k: v for k, v in data.items() if k != "id"})
+        return self.upsert_flow(flow_id, flow_create)
+
+    def pull(
+        self,
+        flow_id: UUID | str,
+        *,
+        output: str | Path | None = None,
+    ) -> dict[str, Any]:
+        """Download a flow and return it as a normalized dict.
+
+        Strips volatile fields (``updated_at``, ``user_id``, …), clears
+        secrets, and sorts keys for stable diffs.  When *output* is given the
+        normalized JSON is also written to that file path::
+
+            data = client.pull("my-flow-id")
+            client.pull("my-flow-id", output="flows/my-flow.json")
+        """
+        flow = self.get_flow(flow_id)
+        normalized = normalize_flow(flow.model_dump(mode="json"))
+        if output is not None:
+            out = Path(output)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(flow_to_json(normalized), encoding="utf-8")
+        return normalized
+
+    def push_project(self, directory: str | Path) -> list[tuple[Flow, bool]]:
+        """Push all ``*.json`` flow files in *directory* to the server.
+
+        Each file is upserted using the ``id`` field it contains.
+        Returns a list of ``(flow, created)`` pairs in the order files were
+        processed::
+
+            results = client.push_project("flows/my-project/")
+            for flow, created in results:
+                print("created" if created else "updated", flow.name)
+        """
+        directory = Path(directory)
+        return [self.push(p) for p in sorted(directory.glob("*.json"))]
+
+    def pull_project(
+        self,
+        project_id: UUID | str,
+        *,
+        output_dir: str | Path,
+    ) -> dict[str, Path]:
+        """Download all flows in a project and write them to *output_dir*.
+
+        Each flow is normalized (volatile fields stripped, keys sorted) before
+        being written as ``<flow-name>.json``.  *output_dir* is created if it
+        does not exist.  Returns a mapping of ``{flow_name: file_path}``::
+
+            written = client.pull_project("project-id", output_dir="flows/")
+            for name, path in written.items():
+                print(name, "→", path)
+        """
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        raw_flows = self.download_project(project_id)  # {filename: bytes}
+        written: dict[str, Path] = {}
+        for filename, content in raw_flows.items():
+            data: dict[str, Any] = json.loads(content.decode("utf-8"))
+            normalized = normalize_flow(data)
+            name = str(normalized.get("name") or Path(filename).stem)
+            dest = out / f"{name}.json"
+            dest.write_text(flow_to_json(normalized), encoding="utf-8")
+            written[name] = dest
+        return written
+
 
 # ---------------------------------------------------------------------------
 # Async client
@@ -622,6 +713,85 @@ class AsyncLangflowClient:
             headers={"Content-Type": "application/octet-stream"},
         )
         return [Flow.model_validate(f) for f in resp.json()]
+
+    # ------------------------------------------------------------------
+    # File I/O helpers
+    # ------------------------------------------------------------------
+
+    async def push(self, path: str | Path) -> tuple[Flow, bool]:
+        """Upload or update a flow from a local JSON file.
+
+        The ``id`` field embedded in the file is used for upsert.
+        Returns ``(flow, created)``::
+
+            flow, created = await client.push("flows/my-flow.json")
+        """
+        path = Path(path)
+        data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        flow_id = data.get("id")
+        if not flow_id:
+            msg = f"Flow file {str(path)!r} does not contain an 'id' field; cannot upsert"
+            raise ValueError(msg)
+        flow_create = FlowCreate.model_validate({k: v for k, v in data.items() if k != "id"})
+        return await self.upsert_flow(flow_id, flow_create)
+
+    async def pull(
+        self,
+        flow_id: UUID | str,
+        *,
+        output: str | Path | None = None,
+    ) -> dict[str, Any]:
+        """Download a flow and return it as a normalized dict.
+
+        Strips volatile fields, clears secrets, and sorts keys.
+        When *output* is given the JSON is also written to that path::
+
+            data = await client.pull("my-flow-id")
+            await client.pull("my-flow-id", output="flows/my-flow.json")
+        """
+        flow = await self.get_flow(flow_id)
+        normalized = normalize_flow(flow.model_dump(mode="json"))
+        if output is not None:
+            out = Path(output)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(flow_to_json(normalized), encoding="utf-8")
+        return normalized
+
+    async def push_project(self, directory: str | Path) -> list[tuple[Flow, bool]]:
+        """Push all ``*.json`` flow files in *directory* to the server.
+
+        Returns a list of ``(flow, created)`` pairs::
+
+            results = await client.push_project("flows/my-project/")
+        """
+        directory = Path(directory)
+        return [await self.push(p) for p in sorted(directory.glob("*.json"))]
+
+    async def pull_project(
+        self,
+        project_id: UUID | str,
+        *,
+        output_dir: str | Path,
+    ) -> dict[str, Path]:
+        """Download all flows in a project and write them to *output_dir*.
+
+        Each flow is normalized before being written as ``<flow-name>.json``.
+        Returns ``{flow_name: file_path}``::
+
+            written = await client.pull_project("project-id", output_dir="flows/")
+        """
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        raw_flows = await self.download_project(project_id)
+        written: dict[str, Path] = {}
+        for filename, content in raw_flows.items():
+            data: dict[str, Any] = json.loads(content.decode("utf-8"))
+            normalized = normalize_flow(data)
+            name = str(normalized.get("name") or Path(filename).stem)
+            dest = out / f"{name}.json"
+            dest.write_text(flow_to_json(normalized), encoding="utf-8")
+            written[name] = dest
+        return written
 
 
 # ---------------------------------------------------------------------------
