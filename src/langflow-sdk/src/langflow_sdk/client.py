@@ -12,6 +12,7 @@ Preferred usage via the short aliases::
 from __future__ import annotations
 
 import io
+import json
 import zipfile
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, Self
@@ -35,13 +36,26 @@ from langflow_sdk.models import (
     ProjectWithFlows,
     RunRequest,
     RunResponse,
+    StreamChunk,
 )
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
     from uuid import UUID
 
 _DEFAULT_TIMEOUT = 60.0
 _HTTP_201_CREATED = HTTPStatus.CREATED.value
+
+
+def _raise_for_status_code(status: int, detail: str) -> None:
+    """Raise a typed SDK exception for the given HTTP status code and detail."""
+    if status in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
+        raise LangflowAuthError(status, detail)
+    if status == HTTPStatus.NOT_FOUND:
+        raise LangflowNotFoundError(status, detail)
+    if status == HTTPStatus.UNPROCESSABLE_ENTITY:
+        raise LangflowValidationError(status, detail)
+    raise LangflowHTTPError(status, detail)
 
 
 def _raise_for_status(response: httpx.Response) -> None:
@@ -52,15 +66,7 @@ def _raise_for_status(response: httpx.Response) -> None:
         detail = response.json().get("detail", response.text)
     except Exception:  # noqa: BLE001
         detail = response.text
-
-    status = response.status_code
-    if status in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
-        raise LangflowAuthError(status, detail)
-    if status == HTTPStatus.NOT_FOUND:
-        raise LangflowNotFoundError(status, detail)
-    if status == HTTPStatus.UNPROCESSABLE_ENTITY:
-        raise LangflowValidationError(status, detail)
-    raise LangflowHTTPError(status, detail)
+    _raise_for_status_code(response.status_code, detail)
 
 
 def _build_headers(api_key: str | None) -> dict[str, str]:
@@ -217,6 +223,89 @@ class LangflowClient:
             json=request.model_dump(mode="json", exclude_none=True),
         )
         return RunResponse.model_validate(resp.json())
+
+    def run(
+        self,
+        flow_id_or_endpoint: UUID | str,
+        input_value: str = "",
+        *,
+        input_type: str = "chat",
+        output_type: str = "chat",
+        tweaks: dict[str, Any] | None = None,
+    ) -> RunResponse:
+        """Run a flow and return the full response.
+
+        Convenience wrapper around :meth:`run_flow` that accepts plain keyword
+        arguments instead of a :class:`RunRequest`::
+
+            result = client.run("my-flow", input_value="Hello")
+            print(result.first_text_output())
+        """
+        return self.run_flow(
+            flow_id_or_endpoint,
+            RunRequest(
+                input_value=input_value,
+                input_type=input_type,
+                output_type=output_type,
+                tweaks=tweaks,
+            ),
+        )
+
+    def stream(
+        self,
+        flow_id_or_endpoint: UUID | str,
+        input_value: str = "",
+        *,
+        input_type: str = "chat",
+        output_type: str = "chat",
+        tweaks: dict[str, Any] | None = None,
+    ) -> Iterator[StreamChunk]:
+        """Stream a flow run, yielding :class:`StreamChunk` objects as they arrive.
+
+        Uses server-sent events (SSE) to receive incremental output::
+
+            for chunk in client.stream("my-flow", input_value="Hello"):
+                if chunk.is_token:
+                    print(chunk.text, end="", flush=True)
+                elif chunk.is_end:
+                    response = chunk.final_response()
+        """
+        payload = RunRequest(
+            input_value=input_value,
+            input_type=input_type,
+            output_type=output_type,
+            tweaks=tweaks,
+            stream=True,
+        ).model_dump(mode="json", exclude_none=True)
+        return self._iter_stream(f"/api/v1/run/{flow_id_or_endpoint}", payload)
+
+    def _iter_stream(self, path: str, payload: dict[str, Any]) -> Iterator[StreamChunk]:
+        """Open a streaming POST request and yield parsed event chunks."""
+        try:
+            with self._http.stream("POST", path, json=payload) as response:
+                if not response.is_success:
+                    body = response.read()
+                    try:
+                        parsed = json.loads(body)
+                        detail = (
+                            parsed.get("detail", body.decode(errors="replace"))
+                            if isinstance(parsed, dict)
+                            else body.decode(errors="replace")
+                        )
+                    except Exception:  # noqa: BLE001
+                        detail = body.decode(errors="replace")
+                    _raise_for_status_code(response.status_code, detail)
+                for line in response.iter_lines():
+                    raw = line.strip()
+                    if not raw:
+                        continue
+                    try:
+                        obj = json.loads(raw)
+                        yield StreamChunk(event=obj["event"], data=obj.get("data", {}))
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+        except httpx.ConnectError as exc:
+            raise _connection_error(self._base_url, exc) from exc
 
     # ------------------------------------------------------------------
     # Projects (Folders)
@@ -406,6 +495,89 @@ class AsyncLangflowClient:
             json=request.model_dump(mode="json", exclude_none=True),
         )
         return RunResponse.model_validate(resp.json())
+
+    async def run(
+        self,
+        flow_id_or_endpoint: UUID | str,
+        input_value: str = "",
+        *,
+        input_type: str = "chat",
+        output_type: str = "chat",
+        tweaks: dict[str, Any] | None = None,
+    ) -> RunResponse:
+        """Run a flow and return the full response.
+
+        Convenience wrapper around :meth:`run_flow` that accepts plain keyword
+        arguments instead of a :class:`RunRequest`::
+
+            result = await client.run("my-flow", input_value="Hello")
+            print(result.first_text_output())
+        """
+        return await self.run_flow(
+            flow_id_or_endpoint,
+            RunRequest(
+                input_value=input_value,
+                input_type=input_type,
+                output_type=output_type,
+                tweaks=tweaks,
+            ),
+        )
+
+    def stream(
+        self,
+        flow_id_or_endpoint: UUID | str,
+        input_value: str = "",
+        *,
+        input_type: str = "chat",
+        output_type: str = "chat",
+        tweaks: dict[str, Any] | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        """Stream a flow run, yielding :class:`StreamChunk` objects as they arrive.
+
+        Uses server-sent events (SSE) to receive incremental output::
+
+            async for chunk in client.stream("my-flow", input_value="Hello"):
+                if chunk.is_token:
+                    print(chunk.text, end="", flush=True)
+                elif chunk.is_end:
+                    response = chunk.final_response()
+        """
+        payload = RunRequest(
+            input_value=input_value,
+            input_type=input_type,
+            output_type=output_type,
+            tweaks=tweaks,
+            stream=True,
+        ).model_dump(mode="json", exclude_none=True)
+        return self._aiter_stream(f"/api/v1/run/{flow_id_or_endpoint}", payload)
+
+    async def _aiter_stream(self, path: str, payload: dict[str, Any]) -> AsyncIterator[StreamChunk]:
+        """Open a streaming POST request and async-yield parsed event chunks."""
+        try:
+            async with self._http.stream("POST", path, json=payload) as response:
+                if not response.is_success:
+                    body = await response.aread()
+                    try:
+                        parsed = json.loads(body)
+                        detail = (
+                            parsed.get("detail", body.decode(errors="replace"))
+                            if isinstance(parsed, dict)
+                            else body.decode(errors="replace")
+                        )
+                    except Exception:  # noqa: BLE001
+                        detail = body.decode(errors="replace")
+                    _raise_for_status_code(response.status_code, detail)
+                async for line in response.aiter_lines():
+                    raw = line.strip()
+                    if not raw:
+                        continue
+                    try:
+                        obj = json.loads(raw)
+                        yield StreamChunk(event=obj["event"], data=obj.get("data", {}))
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+        except httpx.ConnectError as exc:
+            raise _connection_error(self._base_url, exc) from exc
 
     # ------------------------------------------------------------------
     # Projects
