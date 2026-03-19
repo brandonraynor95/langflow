@@ -543,7 +543,7 @@ async def test_download_file(
         saved_flows = []
         for flow in flow_list.flows:
             flow.user_id = active_user.id
-            db_flow = Flow.model_validate(flow, from_attributes=True)
+            db_flow = Flow.model_validate(flow.model_dump(exclude={"id"}))
             _session.add(db_flow)
             saved_flows.append(db_flow)
         await _session.commit()

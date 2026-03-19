@@ -1620,7 +1620,7 @@ async def test_download_file_starter_project(client: AsyncClient, logged_in_head
                 folder_id=starter_project_id,
                 user_id=active_user.id,
             )
-            flow = Flow.model_validate(flow_create, from_attributes=True)
+            flow = Flow.model_validate(flow_create.model_dump(exclude={"id"}))
             session.add(flow)
             flows_created.append(flow)
 
@@ -1632,7 +1632,7 @@ async def test_download_file_starter_project(client: AsyncClient, logged_in_head
             folder_id=starter_project_id,
             user_id=active_user.id,
         )
-        flow_note = Flow.model_validate(flow_create_note, from_attributes=True)
+        flow_note = Flow.model_validate(flow_create_note.model_dump(exclude={"id"}))
         session.add(flow_note)
         flows_created.append(flow_note)
 
