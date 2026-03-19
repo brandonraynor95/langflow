@@ -183,15 +183,10 @@ class TestAgentComponent(ComponentTestBaseWithoutClient):
         assert watsonx_url_input.show is False
         assert project_id_input.show is False
 
-    async def test_update_build_config_shows_watsonx_fields(self, component_class, default_kwargs):
+    @patch("lfx.components.models_and_agents.agent.get_language_model_options")
+    async def test_update_build_config_shows_watsonx_fields(self, mock_opts, component_class, default_kwargs):
         """Test that update_build_config shows WatsonX fields when IBM WatsonX is selected."""
         from lfx.schema.dotdict import dotdict
-
-        component = await self.component_setup(component_class, default_kwargs)
-
-        # Get the frontend node to get the build_config
-        frontend_node = component.to_frontend_node()
-        build_config = frontend_node["data"]["node"]["template"]
 
         # Simulate selecting an IBM WatsonX model
         watsonx_model_value = [
@@ -206,6 +201,13 @@ class TestAgentComponent(ComponentTestBaseWithoutClient):
                 },
             }
         ]
+        mock_opts.return_value = watsonx_model_value
+
+        component = await self.component_setup(component_class, default_kwargs)
+
+        # Get the frontend node to get the build_config
+        frontend_node = component.to_frontend_node()
+        build_config = frontend_node["data"]["node"]["template"]
 
         # Call update_build_config with WatsonX model selected
         updated_config = await component.update_build_config(
@@ -218,15 +220,12 @@ class TestAgentComponent(ComponentTestBaseWithoutClient):
         assert updated_config["base_url_ibm_watsonx"]["required"] is False
         assert updated_config["project_id"]["required"] is False
 
-    async def test_update_build_config_hides_watsonx_fields_for_other_providers(self, component_class, default_kwargs):
+    @patch("lfx.components.models_and_agents.agent.get_language_model_options")
+    async def test_update_build_config_hides_watsonx_fields_for_other_providers(
+        self, mock_opts, component_class, default_kwargs
+    ):
         """Test that update_build_config hides WatsonX fields when other providers are selected."""
         from lfx.schema.dotdict import dotdict
-
-        component = await self.component_setup(component_class, default_kwargs)
-
-        # Get the frontend node to get the build_config
-        frontend_node = component.to_frontend_node()
-        build_config = frontend_node["data"]["node"]["template"]
 
         # Simulate selecting an OpenAI model
         openai_model_value = [
@@ -241,6 +240,13 @@ class TestAgentComponent(ComponentTestBaseWithoutClient):
                 },
             }
         ]
+        mock_opts.return_value = openai_model_value
+
+        component = await self.component_setup(component_class, default_kwargs)
+
+        # Get the frontend node to get the build_config
+        frontend_node = component.to_frontend_node()
+        build_config = frontend_node["data"]["node"]["template"]
 
         # Call update_build_config with OpenAI model selected
         updated_config = await component.update_build_config(
