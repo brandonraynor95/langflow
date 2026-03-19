@@ -607,8 +607,7 @@ class TestBatch:
 
 class TestRunFlow:
     async def test_run_simple_flow(self, mcp_client, created_api_key):
-        """Build a ChatInput -> ChatOutput flow and run it."""
-        # run_flow requires an API key
+        """Build a ChatInput -> ChatOutput flow and run it via streaming."""
         mcp_client.api_key = created_api_key.api_key
         created = await mcp_server_module.create_flow("RunTest")
         c1 = await mcp_server_module.add_component(created["id"], "ChatInput")
@@ -617,3 +616,27 @@ class TestRunFlow:
         result = await mcp_server_module.run_flow(created["id"], input_value="Hello from test")
         assert isinstance(result, dict)
         assert "outputs" in result
+
+    async def test_stream_post_yields_events(self, mcp_client, created_api_key):
+        """Verify stream_post yields SSE events from Langflow's streaming endpoint."""
+        mcp_client.api_key = created_api_key.api_key
+        created = await mcp_server_module.create_flow("StreamTest")
+        c1 = await mcp_server_module.add_component(created["id"], "ChatInput")
+        c2 = await mcp_server_module.add_component(created["id"], "ChatOutput")
+        await mcp_server_module.connect_components(created["id"], c1["id"], "message", c2["id"], "input_value")
+
+        request = {
+            "input_value": "Hello streaming",
+            "input_type": "chat",
+            "output_type": "chat",
+            "tweaks": {},
+        }
+        events = []
+        async for event in mcp_client.stream_post(f"/run/{created['id']}?stream=true", json_data=request):
+            events.append(event)
+            if event.get("event") == "end":
+                break
+
+        assert len(events) > 0
+        event_types = {e.get("event") for e in events}
+        assert "end" in event_types
