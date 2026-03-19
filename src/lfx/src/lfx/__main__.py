@@ -465,6 +465,16 @@ def validate_command_wrapper(
         "--skip-required-inputs",
         help="Skip required-inputs checks (level 4)",
     ),
+    skip_version_check: bool = typer.Option(
+        False,
+        "--skip-version-check",
+        help="Skip version-mismatch / outdated-component warnings",
+    ),
+    skip_credentials: bool = typer.Option(
+        False,
+        "--skip-credentials",
+        help="Skip missing-credentials warnings for password/secret fields",
+    ),
     strict: bool = typer.Option(
         False,
         "--strict",
@@ -492,6 +502,8 @@ def validate_command_wrapper(
         skip_components=skip_components,
         skip_edge_types=skip_edge_types,
         skip_required_inputs=skip_required_inputs,
+        skip_version_check=skip_version_check,
+        skip_credentials=skip_credentials,
         strict=strict,
         verbose=verbose,
         output_format=output_format,

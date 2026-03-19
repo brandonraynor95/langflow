@@ -6,7 +6,8 @@ Validation levels (each level implies all levels below it):
         The file parses as valid JSON and contains the expected top-level keys
         (``id``, ``name``, ``data``, ``data.nodes``, ``data.edges``).
         Also checks for orphaned nodes (no edges at all) and unused nodes
-        (not reachable from any output node).
+        (not reachable from any output node), and warns about version mismatches
+        (nodes built with a different Langflow version than the one installed).
 
     Level 2 - components
         Every node's ``data.type`` references a component type that exists in
@@ -18,7 +19,8 @@ Validation levels (each level implies all levels below it):
 
     Level 4 - required inputs
         Every required input field on every component has a value or an
-        incoming edge connected to it.
+        incoming edge connected to it.  Also checks that password/secret fields
+        have a value or a matching environment variable set.
 
 Use ``--level`` to select how deep to go, or ``--skip-*`` flags to opt out of
 individual checks while still running the others.
@@ -29,6 +31,7 @@ Pass ``--strict`` to treat warnings as errors (exit code 1).
 from __future__ import annotations
 
 import json
+import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -388,6 +391,150 @@ def _check_edge_type_compatibility(flow: dict[str, Any], result: ValidationResul
 
 
 # ---------------------------------------------------------------------------
+# Extended check helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_lf_version() -> str | None:
+    """Return the installed Langflow version string, or *None* if not installed.
+
+    Tries the four known package names in order of preference so the check
+    works with released builds, nightly builds, and editable installs.
+    """
+    from importlib.metadata import PackageNotFoundError, version
+
+    for pkg in ("langflow-base", "langflow", "langflow-base-nightly", "langflow-nightly"):
+        try:
+            return version(pkg)
+        except PackageNotFoundError:
+            continue
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Extended check 1 - version mismatch / outdated components
+# ---------------------------------------------------------------------------
+
+
+def _check_version_mismatch(flow: dict[str, Any], result: ValidationResult) -> None:
+    """Warn when nodes were built with a different Langflow version.
+
+    Each unique ``lf_version`` embedded in the node metadata that differs from
+    the currently installed Langflow version triggers a single warning covering
+    all affected nodes.  If Langflow is not installed the check is skipped
+    silently (lfx can run standalone).
+
+    This covers both "outdated components" (node built with an older release)
+    and "version mismatch" (node built with any different release).
+    """
+    installed = _get_lf_version()
+    if installed is None:
+        return  # Langflow not installed; skip silently
+
+    nodes: list[dict[str, Any]] = [n for n in flow.get("data", {}).get("nodes", []) if isinstance(n, dict)]
+
+    # Collect node IDs grouped by the version they were built with
+    version_to_nodes: dict[str, list[str]] = {}
+    for node in nodes:
+        lf_version: str | None = node.get("data", {}).get("node", {}).get("lf_version")
+        if lf_version and lf_version != installed:
+            version_to_nodes.setdefault(lf_version, []).append(_node_display_name(node) or node.get("id") or "?")
+
+    _max_sample = 3
+    for built_version, node_names in sorted(version_to_nodes.items()):
+        count = len(node_names)
+        sample = ", ".join(node_names[:_max_sample]) + (" …" if count > _max_sample else "")
+        result.issues.append(
+            ValidationIssue(
+                level=_LEVEL_STRUCTURAL,
+                severity="warning",
+                node_id=None,
+                node_name=None,
+                message=(
+                    f"{count} component(s) built with Langflow {built_version} "
+                    f"(installed: {installed}) — re-export recommended. "
+                    f"Affected: {sample}"
+                ),
+            )
+        )
+
+
+# ---------------------------------------------------------------------------
+# Extended check 2 - missing credentials
+# ---------------------------------------------------------------------------
+
+
+def _check_missing_credentials(flow: dict[str, Any], result: ValidationResult) -> None:
+    """Warn when password/secret fields have no value and no matching env var.
+
+    A template field is considered a *credential field* when it has
+    ``"password": true`` (or ``"display_password": true``).  If no value is
+    stored in the flow JSON *and* no corresponding environment variable is set
+    *and* the field has no incoming edge, a warning is emitted so the user
+    knows to provide the secret before running the flow.
+
+    The environment variable name is derived by uppercasing the field name and
+    replacing hyphens with underscores (e.g. ``openai_api_key`` →
+    ``OPENAI_API_KEY``).
+    """
+    data = flow.get("data", {})
+    edges = data.get("edges", [])
+
+    # Build the set of (node_id, field_name) pairs that receive an edge
+    connected_inputs: set[tuple[str, str]] = set()
+    for edge in edges:
+        if not isinstance(edge, dict):
+            continue
+        tgt_id = edge.get("target")
+        tgt_handle = edge.get("data", {}).get("targetHandle", {}) or {}
+        field_name = tgt_handle.get("fieldName")
+        if tgt_id and field_name:
+            connected_inputs.add((tgt_id, field_name))
+
+    for node in data.get("nodes", []):
+        if not isinstance(node, dict):
+            continue
+        node_id = node.get("id")
+        node_data = node.get("data", {})
+        template: dict[str, Any] = node_data.get("node", {}).get("template", {})
+
+        for field_name, field_def in template.items():
+            if field_name.startswith("_") or not isinstance(field_def, dict):
+                continue
+
+            is_credential = field_def.get("password", False) or field_def.get("display_password", False)
+            if not is_credential:
+                continue
+
+            show = field_def.get("show", True)
+            if not show:
+                continue
+
+            # Already satisfied? Check value, incoming edge, or env var.
+            has_value = bool(field_def.get("value"))
+            has_edge = (node_id, field_name) in connected_inputs
+            if has_value or has_edge:
+                continue
+
+            env_key = field_name.upper().replace("-", "_")
+            if os.environ.get(env_key):
+                continue
+
+            result.issues.append(
+                ValidationIssue(
+                    level=_LEVEL_REQUIRED_INPUTS,
+                    severity="warning",
+                    node_id=node_id,
+                    node_name=_node_display_name(node),
+                    message=(
+                        f"Credential field '{field_name}' has no value "
+                        f"(set ${env_key} or configure via global variables)"
+                    ),
+                )
+            )
+
+
+# ---------------------------------------------------------------------------
 # Level 4 - required inputs connected
 # ---------------------------------------------------------------------------
 
@@ -451,6 +598,8 @@ def validate_flow_file(
     skip_components: bool = False,
     skip_edge_types: bool = False,
     skip_required_inputs: bool = False,
+    skip_version_check: bool = False,
+    skip_credentials: bool = False,
 ) -> ValidationResult:
     result = ValidationResult(path=path)
 
@@ -485,6 +634,9 @@ def validate_flow_file(
     if can_continue:
         _check_orphaned_nodes(flow, result)
         _check_unused_nodes(flow, result)
+        # Extended: version mismatch / outdated components
+        if not skip_version_check:
+            _check_version_mismatch(flow, result)
     if not can_continue or level < _LEVEL_COMPONENTS:
         return result
 
@@ -500,9 +652,11 @@ def validate_flow_file(
     if level < _LEVEL_REQUIRED_INPUTS:
         return result
 
-    # Level 4 - required inputs
+    # Level 4 - required inputs + extended: missing credentials
     if not skip_required_inputs:
         _check_required_inputs(flow, result)
+    if not skip_credentials:
+        _check_missing_credentials(flow, result)
 
     return result
 
@@ -563,6 +717,8 @@ def validate_command(
     skip_components: bool,
     skip_edge_types: bool,
     skip_required_inputs: bool,
+    skip_version_check: bool,
+    skip_credentials: bool,
     strict: bool,
     verbose: bool,
     output_format: str,
@@ -580,6 +736,8 @@ def validate_command(
             skip_components=skip_components,
             skip_edge_types=skip_edge_types,
             skip_required_inputs=skip_required_inputs,
+            skip_version_check=skip_version_check,
+            skip_credentials=skip_credentials,
         )
         for p in paths
     ]

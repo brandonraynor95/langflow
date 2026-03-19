@@ -1,4 +1,4 @@
-"""Unit tests for lfx validate — structural checks, directory scanning, strict mode.
+"""Unit tests for lfx validate — structural, extended checks, directory scanning, strict mode.
 
 All tests run entirely in-process (no running Langflow instance or component
 registry required).  Level-2 component checks are skipped via skip_components=True
@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from lfx.cli.validate import (
     ValidationResult,
+    _check_missing_credentials,
     _check_orphaned_nodes,
     _check_unused_nodes,
+    _check_version_mismatch,
     _expand_paths,
     validate_command,
     validate_flow_file,
@@ -426,6 +429,8 @@ class TestStrictMode:
                 skip_components=True,
                 skip_edge_types=True,
                 skip_required_inputs=True,
+                skip_version_check=True,
+                skip_credentials=True,
                 strict=True,
                 verbose=False,
                 output_format="text",
@@ -442,6 +447,8 @@ class TestStrictMode:
             skip_components=True,
             skip_edge_types=True,
             skip_required_inputs=True,
+            skip_version_check=True,
+            skip_credentials=True,
             strict=True,
             verbose=False,
             output_format="text",
@@ -465,6 +472,8 @@ class TestStrictMode:
                 skip_components=True,
                 skip_edge_types=True,
                 skip_required_inputs=True,
+                skip_version_check=True,
+                skip_credentials=True,
                 strict=True,
                 verbose=False,
                 output_format="json",
@@ -490,6 +499,8 @@ class TestJsonOutput:
             skip_components=True,
             skip_edge_types=True,
             skip_required_inputs=True,
+            skip_version_check=True,
+            skip_credentials=True,
             strict=False,
             verbose=False,
             output_format="json",
@@ -513,6 +524,8 @@ class TestJsonOutput:
                 skip_components=True,
                 skip_edge_types=True,
                 skip_required_inputs=True,
+                skip_version_check=True,
+                skip_credentials=True,
                 strict=False,
                 verbose=False,
                 output_format="json",
@@ -539,6 +552,8 @@ class TestExitCodes:
             skip_components=True,
             skip_edge_types=True,
             skip_required_inputs=True,
+            skip_version_check=True,
+            skip_credentials=True,
             strict=False,
             verbose=False,
             output_format="text",
@@ -556,6 +571,8 @@ class TestExitCodes:
                 skip_components=True,
                 skip_edge_types=True,
                 skip_required_inputs=True,
+                skip_version_check=True,
+                skip_credentials=True,
                 strict=False,
                 verbose=False,
                 output_format="text",
@@ -572,6 +589,8 @@ class TestExitCodes:
                 skip_components=True,
                 skip_edge_types=True,
                 skip_required_inputs=True,
+                skip_version_check=True,
+                skip_credentials=True,
                 strict=False,
                 verbose=False,
                 output_format="text",
@@ -590,7 +609,291 @@ class TestExitCodes:
                 skip_components=True,
                 skip_edge_types=True,
                 skip_required_inputs=True,
+                skip_version_check=True,
+                skip_credentials=True,
                 strict=False,
+                verbose=False,
+                output_format="text",
+            )
+        assert exc_info.value.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# Extended check: version mismatch / outdated components
+# ---------------------------------------------------------------------------
+
+_NODE_WITH_VERSION = {
+    "id": "node-v",
+    "data": {
+        "id": "node-v",
+        "type": "ChatInput",
+        "node": {
+            "display_name": "Chat Input",
+            "lf_version": "1.8.0",
+            "template": {},
+        },
+    },
+}
+
+
+class TestVersionMismatch:
+    def _make_result(self) -> ValidationResult:
+        return ValidationResult(path=Path("test.json"))
+
+    def test_no_lf_version_field_produces_no_warning(self):
+        """Nodes without lf_version metadata are ignored."""
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [_NODE], "edges": []}}
+        result = self._make_result()
+        with patch("lfx.cli.validate._get_lf_version", return_value="1.9.0"):
+            _check_version_mismatch(flow, result)
+        assert not result.warnings
+
+    def test_matching_version_produces_no_warning(self):
+        """lf_version equal to installed version → no warning."""
+        node = {
+            **_NODE_WITH_VERSION,
+            "data": {
+                **_NODE_WITH_VERSION["data"],
+                "node": {**_NODE_WITH_VERSION["data"]["node"], "lf_version": "1.9.0"},
+            },
+        }
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        result = self._make_result()
+        with patch("lfx.cli.validate._get_lf_version", return_value="1.9.0"):
+            _check_version_mismatch(flow, result)
+        assert not result.warnings
+
+    def test_mismatched_version_produces_warning(self):
+        """lf_version != installed → one warning mentioning both versions."""
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [_NODE_WITH_VERSION], "edges": []}}
+        result = self._make_result()
+        with patch("lfx.cli.validate._get_lf_version", return_value="1.9.0"):
+            _check_version_mismatch(flow, result)
+        assert len(result.warnings) == 1
+        msg = result.warnings[0].message
+        assert "1.8.0" in msg
+        assert "1.9.0" in msg
+
+    def test_multiple_different_versions_produce_one_warning_each(self):
+        """Two distinct old versions → two separate warnings."""
+        node_b = {
+            "id": "node-b",
+            "data": {
+                "id": "node-b",
+                "type": "ChatOutput",
+                "node": {"display_name": "Chat Output", "lf_version": "1.7.0", "template": {}},
+            },
+        }
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [_NODE_WITH_VERSION, node_b], "edges": []}}
+        result = self._make_result()
+        with patch("lfx.cli.validate._get_lf_version", return_value="1.9.0"):
+            _check_version_mismatch(flow, result)
+        assert len(result.warnings) == 2
+
+    def test_langflow_not_installed_skips_check(self):
+        """If Langflow is not installed, version check is skipped silently."""
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [_NODE_WITH_VERSION], "edges": []}}
+        result = self._make_result()
+        with patch("lfx.cli.validate._get_lf_version", return_value=None):
+            _check_version_mismatch(flow, result)
+        assert not result.warnings
+
+    def test_skip_version_check_flag_suppresses_warning(self, tmp_path):
+        """--skip-version-check prevents version warnings from appearing."""
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [_NODE_WITH_VERSION], "edges": []}}
+        p = _write_flow(tmp_path, "flow.json", flow)
+        with patch("lfx.cli.validate._get_lf_version", return_value="1.9.0"):
+            result = validate_flow_file(p, level=1, skip_components=True, skip_version_check=True)
+        assert not result.warnings
+
+    def test_version_warning_strict_mode_causes_exit_1(self, tmp_path):
+        """Version mismatch warning + --strict → exit 1."""
+        import typer
+
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [_NODE_WITH_VERSION], "edges": []}}
+        p = _write_flow(tmp_path, "flow.json", flow)
+        with (
+            patch("lfx.cli.validate._get_lf_version", return_value="1.9.0"),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            validate_command(
+                flow_paths=[str(p)],
+                level=1,
+                skip_components=True,
+                skip_edge_types=True,
+                skip_required_inputs=True,
+                skip_version_check=False,
+                skip_credentials=True,
+                strict=True,
+                verbose=False,
+                output_format="text",
+            )
+        assert exc_info.value.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# Extended check: missing credentials
+# ---------------------------------------------------------------------------
+
+
+def _node_with_password_field(value: str | None = None, *, show: bool = True) -> dict:
+    return {
+        "id": "node-cred",
+        "data": {
+            "id": "node-cred",
+            "type": "OpenAIModel",
+            "node": {
+                "display_name": "OpenAI",
+                "template": {
+                    "openai_api_key": {
+                        "password": True,
+                        "show": show,
+                        "required": False,
+                        "value": value,
+                    }
+                },
+            },
+        },
+    }
+
+
+class TestMissingCredentials:
+    def _make_result(self) -> ValidationResult:
+        return ValidationResult(path=Path("test.json"))
+
+    def test_password_field_with_value_no_warning(self):
+        """Password field that already has a value → no warning."""
+        node = _node_with_password_field(value="sk-test")
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        result = self._make_result()
+        _check_missing_credentials(flow, result)
+        assert not result.warnings
+
+    def test_password_field_no_value_no_env_warns(self, monkeypatch):
+        """Password field with no value and no env var → warning."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        node = _node_with_password_field(value=None)
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        result = self._make_result()
+        _check_missing_credentials(flow, result)
+        assert len(result.warnings) == 1
+        assert "openai_api_key" in result.warnings[0].message
+        assert "OPENAI_API_KEY" in result.warnings[0].message
+
+    def test_password_field_env_var_set_no_warning(self, monkeypatch):
+        """Env var matching field name → no warning."""
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-from-env")
+        node = _node_with_password_field(value=None)
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        result = self._make_result()
+        _check_missing_credentials(flow, result)
+        assert not result.warnings
+
+    def test_hidden_password_field_skipped(self, monkeypatch):
+        """Password fields with show=False are not surfaced."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        node = _node_with_password_field(value=None, show=False)
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        result = self._make_result()
+        _check_missing_credentials(flow, result)
+        assert not result.warnings
+
+    def test_password_field_with_incoming_edge_no_warning(self):
+        """Password field covered by an incoming edge → no warning."""
+        node = _node_with_password_field(value=None)
+        edge = {
+            "source": "other-node",
+            "target": "node-cred",
+            "data": {
+                "targetHandle": {"fieldName": "openai_api_key", "type": "str"},
+                "sourceHandle": {"output_types": ["str"]},
+            },
+        }
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": [edge]}}
+        result = self._make_result()
+        _check_missing_credentials(flow, result)
+        assert not result.warnings
+
+    def test_non_password_field_not_checked(self, monkeypatch):
+        """Regular (non-password) fields are ignored even when empty."""
+        monkeypatch.delenv("MY_PARAM", raising=False)
+        node = {
+            "id": "node-text",
+            "data": {
+                "id": "node-text",
+                "type": "TextInput",
+                "node": {
+                    "display_name": "Text",
+                    "template": {
+                        "my_param": {
+                            "password": False,
+                            "show": True,
+                            "required": False,
+                            "value": None,
+                        }
+                    },
+                },
+            },
+        }
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        result = self._make_result()
+        _check_missing_credentials(flow, result)
+        assert not result.warnings
+
+    def test_display_password_field_also_triggers_warning(self, monkeypatch):
+        """Fields with display_password=True are also treated as credentials."""
+        monkeypatch.delenv("SECRET_TOKEN", raising=False)
+        node = {
+            "id": "node-dp",
+            "data": {
+                "id": "node-dp",
+                "type": "CustomComp",
+                "node": {
+                    "display_name": "Custom",
+                    "template": {
+                        "secret_token": {
+                            "display_password": True,
+                            "show": True,
+                            "required": False,
+                            "value": None,
+                        }
+                    },
+                },
+            },
+        }
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        result = self._make_result()
+        _check_missing_credentials(flow, result)
+        assert len(result.warnings) == 1
+
+    def test_skip_credentials_flag_suppresses_warning(self, tmp_path, monkeypatch):
+        """--skip-credentials prevents missing-credential warnings."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        node = _node_with_password_field(value=None)
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        p = _write_flow(tmp_path, "flow.json", flow)
+        result = validate_flow_file(p, level=4, skip_components=True, skip_edge_types=True, skip_credentials=True)
+        cred_warnings = [w for w in result.warnings if "openai_api_key" in w.message]
+        assert not cred_warnings
+
+    def test_credential_warning_strict_causes_exit_1(self, tmp_path, monkeypatch):
+        """Missing credential warning + --strict → exit 1."""
+        import typer
+
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        node = _node_with_password_field(value=None)
+        flow = {**_MINIMAL_VALID, "data": {"nodes": [node], "edges": []}}
+        p = _write_flow(tmp_path, "flow.json", flow)
+        with pytest.raises(typer.Exit) as exc_info:
+            validate_command(
+                flow_paths=[str(p)],
+                level=4,
+                skip_components=True,
+                skip_edge_types=True,
+                skip_required_inputs=True,
+                skip_version_check=True,
+                skip_credentials=False,
+                strict=True,
                 verbose=False,
                 output_format="text",
             )
