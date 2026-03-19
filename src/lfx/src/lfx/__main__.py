@@ -467,6 +467,41 @@ def push_command_wrapper(
     )
 
 
+@app.command(name="login", help="Validate credentials against a remote Langflow instance")
+def login_command_wrapper(
+    env: str | None = typer.Option(
+        None,
+        "--env",
+        "-e",
+        help="Environment name from .lfx/environments.yaml. Uses [defaults] if omitted.",
+    ),
+    environments_file: str | None = typer.Option(
+        None,
+        "--environments-file",
+        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
+    ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Langflow instance URL (inline override — skips config file lookup).",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the Langflow instance (used with --target or to override config).",
+    ),
+) -> None:
+    """Test connectivity and authentication for a Langflow environment (lazy-loaded)."""
+    from lfx.cli.login import login_command
+
+    login_command(
+        env=env,
+        environments_file=environments_file,
+        target=target,
+        api_key=api_key,
+    )
+
+
 @app.command(name="pull", help="Pull flows from a remote Langflow instance to local files")
 def pull_command_wrapper(
     env: str | None = typer.Option(
