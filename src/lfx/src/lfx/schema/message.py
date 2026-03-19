@@ -74,6 +74,7 @@ class Message(Data):
     category: Literal["message", "error", "warning", "info"] | None = "message"
     content_blocks: list[ContentBlock] = Field(default_factory=list)
     duration: int | None = None
+    session_metadata: dict | None = None
 
     @field_validator("flow_id", mode="before")
     @classmethod

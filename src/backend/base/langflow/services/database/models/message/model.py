@@ -126,6 +126,7 @@ class MessageBase(SQLModel):
             properties=properties,
             category=message.category,
             content_blocks=content_blocks,
+            session_metadata=message.session_metadata if hasattr(message, "session_metadata") else None,
         )
 
 
