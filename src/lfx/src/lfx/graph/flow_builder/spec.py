@@ -118,6 +118,9 @@ def parse_flow_spec(text: str) -> dict:
                 result["name"] = line[5:].strip()
             elif line.startswith("description:"):
                 result["description"] = line[12:].strip()
+            else:
+                msg = f"Unrecognized line: '{line}'. Expected 'name:', 'description:', or a section header."
+                raise ValueError(msg)
             continue
 
         _expected_split_parts = 2
@@ -125,30 +128,35 @@ def parse_flow_spec(text: str) -> dict:
         if section == "nodes":
             # "A: ChatInput"
             parts = line.split(":", 1)
-            if len(parts) == _expected_split_parts:
-                result["nodes"].append(
-                    {
-                        "id": parts[0].strip(),
-                        "type": parts[1].strip(),
-                    }
-                )
+            if len(parts) != _expected_split_parts:
+                msg = f"Invalid node definition: '{line}'. Expected format: 'ID: ComponentType'"
+                raise ValueError(msg)
+            result["nodes"].append(
+                {
+                    "id": parts[0].strip(),
+                    "type": parts[1].strip(),
+                }
+            )
 
         elif section == "edges":
             # "A.message -> B.input_value"
             if " -> " not in line:
-                continue
+                msg = f"Invalid edge definition: '{line}'. Expected format: 'Node.output -> Node.input'"
+                raise ValueError(msg)
             left, right = line.split(" -> ", 1)
             src_parts = left.strip().split(".", 1)
             tgt_parts = right.strip().split(".", 1)
-            if len(src_parts) == _expected_split_parts and len(tgt_parts) == _expected_split_parts:
-                result["edges"].append(
-                    {
-                        "source_id": src_parts[0],
-                        "source_output": src_parts[1],
-                        "target_id": tgt_parts[0],
-                        "target_input": tgt_parts[1],
-                    }
-                )
+            if len(src_parts) != _expected_split_parts or len(tgt_parts) != _expected_split_parts:
+                msg = f"Invalid edge definition: '{line}'. Both sides must be 'Node.port'"
+                raise ValueError(msg)
+            result["edges"].append(
+                {
+                    "source_id": src_parts[0],
+                    "source_output": src_parts[1],
+                    "target_id": tgt_parts[0],
+                    "target_input": tgt_parts[1],
+                }
+            )
 
         elif section == "config":
             # Determine indentation of this line
@@ -174,6 +182,9 @@ def parse_flow_spec(text: str) -> dict:
                     elif value:
                         current_config_lines.append(value)
                     continue
+                if not current_config_key:
+                    msg = f"Invalid config entry: '{line}'. Expected format: 'Node.field: value'"
+                    raise ValueError(msg)
 
             # Continuation of multi-line value
             if current_config_key:
