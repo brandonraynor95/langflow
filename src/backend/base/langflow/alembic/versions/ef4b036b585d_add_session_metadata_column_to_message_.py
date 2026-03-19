@@ -1,5 +1,7 @@
 """Add session_metadata column to message table
 
+Phase: EXPAND
+
 Adds a flexible JSON column to store enterprise session context including
 tenant_id, user_id, region, policies, retention profiles, and data flags.
 This enables client-driven metadata injection for enterprise session management.
