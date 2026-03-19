@@ -51,6 +51,9 @@ dependencies = [
 [project.scripts]
 lfx = "lfx.__main__:main"
 
+[project.entry-points.pytest11]
+lfx = "lfx.testing"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -69,7 +72,9 @@ markers = [
     "unit: Unit tests",
     "integration: Integration tests",
     "slow: Slow-running tests",
-    "asyncio: Async tests"
+    "asyncio: Async tests",
+    "lfx_env_file(path): path to a .env file loaded before this test's flow execution",
+    "lfx_timeout(seconds): timeout in seconds for this test's flow execution"
 ]
 
 [dependency-groups]
