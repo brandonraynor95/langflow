@@ -26,32 +26,34 @@ console = Console()
 # Templates embedded as strings (environments config and test stubs)
 # ---------------------------------------------------------------------------
 
-_ENVIRONMENTS_TOML = """\
-# langflow-environments.toml
+_ENVIRONMENTS_YAML = """\
+# .lfx/environments.yaml
 #
 # Configure your Langflow instances here.
+# Safe to commit — API keys are NEVER stored in this file.
 # The api_key_env value is the NAME of an environment variable that holds
-# your API key -- the actual key is never written to this file.
+# the actual API key; set that variable in your shell or CI secrets.
 #
 # Quick start:
 #   1. Open Langflow → Settings → API Keys → Create a new key
 #   2. export LANGFLOW_LOCAL_API_KEY=<your key>
 #   3. lfx export --env local --flow-id <uuid> --output-dir flows/
 
-[environments.local]
-url = "http://localhost:7860"
-api_key_env = "LANGFLOW_LOCAL_API_KEY"  # pragma: allowlist secret
+environments:
+  local:
+    url: http://localhost:7860
+    api_key_env: LANGFLOW_LOCAL_API_KEY
 
-[environments.staging]
-url = "https://staging.langflow.example.com"
-api_key_env = "LANGFLOW_STAGING_API_KEY"  # pragma: allowlist secret
+  staging:
+    url: https://staging.langflow.example.com
+    api_key_env: LANGFLOW_STAGING_API_KEY
 
-[environments.production]
-url = "https://langflow.example.com"
-api_key_env = "LANGFLOW_PROD_API_KEY"  # pragma: allowlist secret
+  production:
+    url: https://langflow.example.com
+    api_key_env: LANGFLOW_PROD_API_KEY
 
-[defaults]
-environment = "local"
+defaults:
+  environment: local
 """
 
 _TEST_FLOWS_PY = '''\
@@ -90,7 +92,8 @@ def test_flow_output_quality(flow_runner):
 '''
 
 _GITIGNORE = """\
-# Langflow local credentials -- never commit API keys
+# Langflow credentials -- never commit API keys
+# (langflow-environments.toml may contain literal keys; .lfx/environments.yaml is safe to commit)
 langflow-environments.toml
 """
 
@@ -183,15 +186,15 @@ def init_command(
     _write(target / "tests" / "__init__.py", "", "", **kw)
     _write(target / "tests" / "test_flows.py", _TEST_FLOWS_PY, "flow_runner example tests", **kw)
 
-    # langflow-environments.toml
+    # .lfx/environments.yaml
     _write(
-        target / "langflow-environments.toml",
-        _ENVIRONMENTS_TOML,
-        "edit with your instance URLs + API key env vars",
+        target / ".lfx" / "environments.yaml",
+        _ENVIRONMENTS_YAML,
+        "edit with your instance URLs + API key env var names (safe to commit)",
         **kw,
     )
 
-    # .gitignore
+    # .gitignore — keep langflow-environments.toml ignored for backward compat
     gitignore = target / ".gitignore"
     if gitignore.exists():
         existing_content = gitignore.read_text(encoding="utf-8")
@@ -199,7 +202,7 @@ def init_command(
             gitignore.write_text(existing_content.rstrip() + "\n\n" + _GITIGNORE, encoding="utf-8")
             created.append((".gitignore", "appended credentials ignore rule"))
     else:
-        _write(gitignore, _GITIGNORE, "ignores credentials file", **kw)
+        _write(gitignore, _GITIGNORE, "ignores legacy credentials file", **kw)
 
     # GitHub Actions CI workflows
     if github_actions:
@@ -217,10 +220,10 @@ def init_command(
     # Next-steps guide
     console.print()
     console.print("[bold green]✓ Project scaffolded.[/bold green]  Next steps:\n")
-    console.print("  1. Edit [bold]langflow-environments.toml[/bold] with your instance URL")
+    console.print("  1. Edit [bold].lfx/environments.yaml[/bold] with your instance URL")
     console.print("  2. [bold]export LANGFLOW_LOCAL_API_KEY=<key>[/bold]   (Settings → API Keys)")
     console.print("  3. [bold]lfx export --env local --flow-id <uuid> --output-dir flows/[/bold]")
     console.print("  4. [bold]lfx status --env local[/bold]")
     console.print("  5. [bold]lfx push --dir flows/ --env local[/bold]")
-    console.print("  6. [bold]pytest tests/ --langflow-env local[/bold]")
+    console.print("  6. [bold]pytest tests/ --lfx-env-file .env[/bold]")
     console.print()

@@ -63,15 +63,15 @@ class FlowStatus:
 
 
 def _load_sdk() -> tuple[object, object, object]:
-    """Return (normalize_flow, flow_to_json, get_client) from langflow_sdk."""
+    """Return (normalize_flow, flow_to_json, Client) from langflow_sdk."""
     try:
-        from langflow_sdk.environments import get_client
+        from langflow_sdk import Client
         from langflow_sdk.serialization import flow_to_json, normalize_flow
     except ImportError as exc:
         msg = "langflow-sdk is required for lfx status. Install with: pip install langflow-sdk"
         raise typer.BadParameter(msg) from exc
     else:
-        return normalize_flow, flow_to_json, get_client
+        return normalize_flow, flow_to_json, Client
 
 
 def _flow_hash(flow_dict: dict, normalize_flow: object, flow_to_json: object) -> str:
@@ -156,21 +156,35 @@ def status_command(
     env: str | None,
     environments_file: str | None,
     *,
+    target: str | None = None,
+    api_key: str | None = None,
     show_remote_only: bool,
 ) -> None:
     """Compare local flow files against the remote instance and render a status table."""
-    normalize_flow, flow_to_json, get_client = _load_sdk()
     from langflow_sdk.exceptions import LangflowNotFoundError
 
-    env_file_path = Path(environments_file) if environments_file else None
+    normalize_flow, flow_to_json, client_cls = _load_sdk()
+
+    from lfx.config import ConfigError, resolve_environment
+
     try:
-        client = get_client(env, config_file=env_file_path)
-    except Exception as exc:
-        label = env or "default"
-        console.print(f"[red]Error:[/red] Could not connect to environment {label!r}: {exc}")
+        env_cfg = resolve_environment(
+            env,
+            target=target,
+            api_key=api_key,
+            environments_file=environments_file,
+        )
+    except ConfigError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(1) from exc
 
-    env_label = env or "default"
+    try:
+        client = client_cls(base_url=env_cfg.url, api_key=env_cfg.api_key)
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] Could not create client for {env_cfg.url!r}: {exc}")
+        raise typer.Exit(1) from exc
+
+    env_label = env_cfg.name
     local_files = _collect_files(dir_path, flow_paths)
 
     if not local_files and not show_remote_only:

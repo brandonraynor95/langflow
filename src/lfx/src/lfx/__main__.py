@@ -243,7 +243,7 @@ def status_command_wrapper(
         None,
         "--env",
         "-e",
-        help="Environment name from langflow-environments.toml. Uses [defaults] if omitted.",
+        help="Environment name from .lfx/environments.yaml. Uses [defaults] if omitted.",
     ),
     dir_path: str | None = typer.Option(
         None,
@@ -254,7 +254,17 @@ def status_command_wrapper(
     environments_file: str | None = typer.Option(
         None,
         "--environments-file",
-        help="Path to langflow-environments.toml (overrides default lookup).",
+        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
+    ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Langflow instance URL (inline override — skips config file lookup).",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the Langflow instance (used with --target or to override config).",
     ),
     show_remote_only: bool = typer.Option(
         False,
@@ -270,6 +280,8 @@ def status_command_wrapper(
         flow_paths=flow_paths or [],
         env=env,
         environments_file=environments_file,
+        target=target,
+        api_key=api_key,
         show_remote_only=show_remote_only,
     )
 
@@ -296,7 +308,7 @@ def export_command_wrapper(
         None,
         "--env",
         "-e",
-        help="Environment name from langflow-environments.toml (required for remote mode).",
+        help="Environment name from .lfx/environments.yaml (required for remote mode unless --target is used).",
     ),
     flow_id: str | None = typer.Option(
         None,
@@ -311,7 +323,17 @@ def export_command_wrapper(
     environments_file: str | None = typer.Option(
         None,
         "--environments-file",
-        help="Path to langflow-environments.toml (overrides default lookup).",
+        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
+    ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Langflow instance URL (inline override — skips config file lookup).",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the Langflow instance (used with --target or to override config).",
     ),
     in_place: bool = typer.Option(
         False,
@@ -356,6 +378,8 @@ def export_command_wrapper(
         flow_id=flow_id,
         project_id=project_id,
         environments_file=environments_file,
+        target=target,
+        api_key=api_key,
         in_place=in_place,
         strip_volatile=strip_volatile,
         strip_secrets=strip_secrets,
@@ -371,11 +395,11 @@ def push_command_wrapper(
         default=None,
         help="Path(s) to flow JSON file(s) to push. Use --dir for a whole directory.",
     ),
-    env: str = typer.Option(
-        ...,
+    env: str | None = typer.Option(
+        None,
         "--env",
         "-e",
-        help="Environment name from langflow-environments.toml.",
+        help="Environment name from .lfx/environments.yaml. Use --target for inline configuration.",
     ),
     dir_path: str | None = typer.Option(
         None,
@@ -397,7 +421,17 @@ def push_command_wrapper(
     environments_file: str | None = typer.Option(
         None,
         "--environments-file",
-        help="Path to langflow-environments.toml (overrides default lookup).",
+        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
+    ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Langflow instance URL (inline override — skips config file lookup).",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the Langflow instance (used with --target or to override config).",
     ),
     dry_run: bool = typer.Option(
         False,
@@ -425,6 +459,8 @@ def push_command_wrapper(
         project=project,
         project_id=project_id,
         environments_file=environments_file,
+        target=target,
+        api_key=api_key,
         dry_run=dry_run,
         normalize=normalize,
         strip_secrets=strip_secrets,

@@ -89,6 +89,8 @@ def export_command(
     flow_id: str | None,
     project_id: str | None,
     environments_file: str | None,
+    target: str | None = None,
+    api_key: str | None = None,
     in_place: bool,
     strip_volatile: bool,
     strip_secrets: bool,
@@ -110,12 +112,24 @@ def export_command(
     # Remote mode: pull from a live Langflow instance
     # ------------------------------------------------------------------
     if flow_id or project_id:
-        if not env:
-            console.print("[red]Error:[/red] --env is required for remote export.")
+        if not env and not target:
+            console.print("[red]Error:[/red] --env or --target is required for remote export.")
             raise typer.Exit(1)
 
-        env_file_path = Path(environments_file) if environments_file else None
-        client = sdk.get_client(env, config_file=env_file_path)
+        from lfx.config import ConfigError, resolve_environment
+
+        try:
+            env_cfg = resolve_environment(
+                env,
+                target=target,
+                api_key=api_key,
+                environments_file=environments_file,
+            )
+        except ConfigError as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            raise typer.Exit(1) from exc
+
+        client = sdk.Client(base_url=env_cfg.url, api_key=env_cfg.api_key)
 
         if flow_id:
             flow_obj = client.get_flow(UUID(flow_id))

@@ -234,19 +234,33 @@ def _render_results(results: list[PushResult], *, dry_run: bool) -> None:
 def push_command(
     flow_paths: list[str],
     *,
-    env: str,
+    env: str | None,
     dir_path: str | None,
     project: str | None,
     project_id: str | None,
     environments_file: str | None,
+    target: str | None = None,
+    api_key: str | None = None,
     dry_run: bool,
     normalize: bool,
     strip_secrets: bool,
 ) -> None:
     sdk = _load_sdk()
 
-    env_file_path = Path(environments_file) if environments_file else None
-    client = sdk.get_client(env, config_file=env_file_path)
+    from lfx.config import ConfigError, resolve_environment
+
+    try:
+        env_cfg = resolve_environment(
+            env,
+            target=target,
+            api_key=api_key,
+            environments_file=environments_file,
+        )
+    except ConfigError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    client = sdk.Client(base_url=env_cfg.url, api_key=env_cfg.api_key)
 
     paths = _collect_flow_files(flow_paths, dir_path)
     if not paths:
