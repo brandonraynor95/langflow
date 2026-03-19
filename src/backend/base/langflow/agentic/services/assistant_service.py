@@ -206,9 +206,9 @@ async def execute_flow_with_validation_streaming(
                 # Use streaming executor to get token events
                 async for event_type, event_data in flow_generator:
                     if event_type == "token":
-                        # Only stream tokens for Q&A, not for component generation
-                        if not is_component_request:
-                            yield format_token_event(event_data)
+                        # Stream tokens for both Q&A and component generation
+                        # For components, the frontend shows live code preview
+                        yield format_token_event(event_data)
                     elif event_type == "end":
                         # Flow completed, store result
                         result = event_data
@@ -309,6 +309,8 @@ async def execute_flow_with_validation_streaming(
                     attempt,
                     max_retries,
                     message=f"Component '{validation.class_name}' validated successfully!",
+                    class_name=validation.class_name,
+                    component_code=code,
                 )
                 await asyncio.sleep(VALIDATION_UI_DELAY_SECONDS)
 

@@ -51,7 +51,8 @@ export function AssistantMessageItem({
   const [validationAnimationComplete, setValidationAnimationComplete] =
     useState(false);
 
-  // Timeout fallback: if message is complete but animation hasn't finished, force completion
+  // Timeout fallback: if message is complete but user hasn't clicked Continue,
+  // force transition after 30s to prevent indefinitely stuck loading states
   useEffect(() => {
     if (
       message.status === "complete" &&
@@ -60,7 +61,7 @@ export function AssistantMessageItem({
     ) {
       const timer = setTimeout(() => {
         setValidationAnimationComplete(true);
-      }, 5000);
+      }, 30000);
       return () => clearTimeout(timer);
     }
   }, [
@@ -116,7 +117,7 @@ export function AssistantMessageItem({
         <AssistantLoadingState
           key={message.id}
           progress={message.progress}
-          completedSteps={message.completedSteps || []}
+          streamingContent={message.content}
           onValidationComplete={() => setValidationAnimationComplete(true)}
         />
       );

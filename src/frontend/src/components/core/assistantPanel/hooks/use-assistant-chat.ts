@@ -99,8 +99,13 @@ export function useAssistantChat(): UseAssistantChatReturn {
                           maxAttempts: event.max_attempts,
                           message: event.message,
                           error: event.error,
-                          className: event.class_name,
-                          componentCode: event.component_code,
+                          // Preserve componentCode and className from previous
+                          // progress if the new event doesn't include them
+                          className:
+                            event.class_name ?? msg.progress?.className,
+                          componentCode:
+                            event.component_code ??
+                            msg.progress?.componentCode,
                         },
                         completedSteps: [...completedSteps],
                       }
