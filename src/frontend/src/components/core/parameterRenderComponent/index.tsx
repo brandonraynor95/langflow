@@ -71,10 +71,14 @@ export function ParameterRenderComponent({
     templateData.name
   ).toLowerCase();
 
+  // Check for cloud default overrides on the current field
+  const cloudOverride =
+    cloudOnly && nodeClass?.metadata?.cloud_default_overrides?.[name];
+
   const renderComponent = (): React.ReactElement<InputProps> => {
     const baseInputProps: InputProps = {
       id,
-      value: templateValue,
+      value: cloudOverride ? cloudOverride.value : templateValue,
       editNode,
       handleOnNewValue: handleOnNewValue as handleOnNewValueType,
       disabled,
@@ -83,7 +87,8 @@ export function ParameterRenderComponent({
       nodeId,
       helperText: templateData?.helper_text,
       readonly: templateData.readonly,
-      placeholder: placeholder || templateData?.placeholder,
+      placeholder:
+        cloudOverride?.placeholder || placeholder || templateData?.placeholder,
       isToolMode,
       nodeInformationMetadata,
       hasRefreshButton: templateData.refresh_button,
