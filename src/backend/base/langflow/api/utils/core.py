@@ -99,6 +99,112 @@ def remove_api_keys(flow: dict):
     return flow
 
 
+# ---------------------------------------------------------------------------
+# Export normalisation
+# ---------------------------------------------------------------------------
+
+# Top-level fields that vary between instances / users without changing logic.
+_VOLATILE_TOP_LEVEL: frozenset[str] = frozenset(
+    {"updated_at", "created_at", "user_id", "folder_id", "access_type", "gradient"}
+)
+
+# Node-level fields that track UI interaction state (position, drag, selection).
+_VOLATILE_NODE_FIELDS: frozenset[str] = frozenset({"positionAbsolute", "dragging", "selected"})
+
+
+def _split_code_to_lines(flow: dict) -> None:
+    """In-place: split code template field values from strings to line arrays.
+
+    Converts ``template.<field>.value`` from a single string to a
+    ``list[str]`` (one element per line) when the field type is ``"code"``.
+    This gives git line-level diffs instead of a single opaque blob.
+    """
+    for node in flow.get("data", {}).get("nodes", []):
+        template = node.get("data", {}).get("node", {}).get("template", {})
+        if not isinstance(template, dict):
+            continue
+        for field_data in template.values():
+            if not isinstance(field_data, dict):
+                continue
+            if field_data.get("type") == "code":
+                value = field_data.get("value")
+                if isinstance(value, str):
+                    # split("\n") — not splitlines() — so that the trailing newline
+                    # is preserved as a final empty string, keeping the round-trip
+                    # lossless: "\n".join(s.split("\n")) == s for any string s.
+                    field_data["value"] = value.split("\n")
+
+
+def _join_code_from_lines(flow: dict) -> None:
+    """In-place: rejoin code template line arrays back to strings.
+
+    Inverse of :func:`_split_code_to_lines`.  Safe to call on flows that
+    already use the string format — ``isinstance`` guard means it's a no-op.
+    """
+    for node in flow.get("data", {}).get("nodes", []):
+        template = node.get("data", {}).get("node", {}).get("template", {})
+        if not isinstance(template, dict):
+            continue
+        for field_data in template.values():
+            if not isinstance(field_data, dict):
+                continue
+            if field_data.get("type") == "code":
+                value = field_data.get("value")
+                if isinstance(value, list):
+                    field_data["value"] = "\n".join(value)
+
+
+def normalize_flow_for_export(flow: dict) -> dict:
+    """Return a git-friendly, deterministic copy of a flow dict.
+
+    Applied to every flow before it is written into a download ZIP.
+
+    Transformations
+    ---------------
+    * Strips volatile top-level fields (``updated_at``, ``created_at``,
+      ``user_id``, ``folder_id``, ``access_type``, ``gradient``) — these
+      change between instances / users without affecting flow logic.
+    * Strips node UI-state fields (``positionAbsolute``, ``dragging``,
+      ``selected``) — these change on every canvas interaction.
+    * Converts ``template.<field>.value`` strings to ``list[str]`` for
+      ``type == "code"`` fields, enabling line-level git diffs.
+
+    Key sorting is handled at serialisation time via
+    ``orjson_dumps(sort_keys=True)``.
+    """
+    import copy
+
+    flow = copy.deepcopy(flow)
+
+    # Strip volatile top-level metadata
+    for key in _VOLATILE_TOP_LEVEL:
+        flow.pop(key, None)
+
+    # Strip node UI state
+    for node in flow.get("data", {}).get("nodes", []):
+        for key in _VOLATILE_NODE_FIELDS:
+            node.pop(key, None)
+
+    # Code → line arrays
+    _split_code_to_lines(flow)
+
+    return flow
+
+
+def normalize_code_for_import(flow: dict) -> dict:
+    """Rejoin code-as-lines back to strings for backward-compatible import.
+
+    Accepts both the list format produced by :func:`normalize_flow_for_export`
+    and the legacy single-string format, so this function is safe to call
+    unconditionally on every uploaded flow.
+    """
+    import copy
+
+    flow = copy.deepcopy(flow)
+    _join_code_from_lines(flow)
+    return flow
+
+
 def build_input_keys_response(langchain_object, artifacts):
     """Build the input keys response."""
     input_keys_response = {

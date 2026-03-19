@@ -33,6 +33,8 @@ from langflow.api.utils.core import (
     get_suggestion_message,
     get_top_level_vertices,
     has_api_terms,
+    normalize_code_for_import,
+    normalize_flow_for_export,
     parse_exception,
     parse_value,
     raise_error_if_astra_cloud_env,
@@ -73,6 +75,8 @@ __all__ = [
     "get_top_level_vertices",
     # Functions
     "has_api_terms",
+    "normalize_code_for_import",
+    "normalize_flow_for_export",
     "parse_exception",
     "parse_value",
     "raise_error_if_astra_cloud_env",

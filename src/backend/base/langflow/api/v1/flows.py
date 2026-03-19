@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import json
 import re
 import zipfile
 from datetime import datetime, timezone
@@ -21,11 +20,20 @@ from lfx.log import logger
 from sqlmodel import and_, col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from langflow.api.utils import CurrentActiveUser, DbSession, cascade_delete_flow, remove_api_keys, validate_is_component
+from langflow.api.utils import (
+    CurrentActiveUser,
+    DbSession,
+    cascade_delete_flow,
+    normalize_code_for_import,
+    normalize_flow_for_export,
+    remove_api_keys,
+    validate_is_component,
+)
 from langflow.api.v1.schemas import FlowListCreate
 from langflow.helpers.user import get_user_by_flow_id_or_endpoint_name
 from langflow.initial_setup.constants import STARTER_FOLDER_NAME
 from langflow.services.auth.utils import get_current_active_user
+from langflow.services.database.models.base import orjson_dumps
 from langflow.services.database.models.flow.model import (
     AccessTypeEnum,
     Flow,
@@ -748,7 +756,13 @@ async def upload_file(
     contents = await file.read()
     data = orjson.loads(contents)
 
-    flow_list = FlowListCreate(**data) if "flows" in data else FlowListCreate(flows=[FlowCreate(**data)])
+    # Normalise code fields: if exported with code-as-lines format, rejoin to
+    # strings before creating the Pydantic models so the DB always stores strings.
+    if "flows" in data:
+        data = {**data, "flows": [normalize_code_for_import(f) for f in data["flows"]]}
+        flow_list = FlowListCreate(**data)
+    else:
+        flow_list = FlowListCreate(flows=[FlowCreate(**normalize_code_for_import(data))])
 
     # TODO: Full-version import is planned as a follow-up feature.
     # When implemented, extract raw flow dicts here to read embedded "version"
@@ -828,19 +842,19 @@ async def download_multiple_file(
     if not flows:
         raise HTTPException(status_code=404, detail="No flows found.")
 
-    flows_without_api_keys = [remove_api_keys(flow.model_dump()) for flow in flows]
+    # Strip API keys then normalise for git-friendly export (sorted keys,
+    # volatile fields removed, code fields as line arrays).
+    normalised_flows = [normalize_flow_for_export(remove_api_keys(flow.model_dump())) for flow in flows]
 
-    if len(flows_without_api_keys) > 1:
+    if len(normalised_flows) > 1:
         # Create a byte stream to hold the ZIP file
         zip_stream = io.BytesIO()
 
         # Create a ZIP file
         with zipfile.ZipFile(zip_stream, "w") as zip_file:
-            for flow in flows_without_api_keys:
-                # Convert the flow object to JSON
-                flow_json = json.dumps(jsonable_encoder(flow))
-
-                # Write the JSON to the ZIP file
+            for flow in normalised_flows:
+                # Serialise with sorted keys and 2-space indent for stable diffs.
+                flow_json = orjson_dumps(flow, sort_keys=True)
                 zip_file.writestr(f"{flow['name']}.json", flow_json)
 
         # Seek to the beginning of the byte stream
@@ -855,7 +869,7 @@ async def download_multiple_file(
             media_type="application/x-zip-compressed",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    return flows_without_api_keys[0]
+    return normalised_flows[0]
 
 
 all_starter_folder_flows_response: Response | None = None

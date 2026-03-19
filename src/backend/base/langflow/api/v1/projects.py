@@ -1,5 +1,4 @@
 import io
-import json
 import zipfile
 from datetime import datetime, timezone
 from typing import Annotated, cast
@@ -8,7 +7,6 @@ from uuid import UUID
 
 import orjson
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Response, UploadFile, status
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlmodel import apaginate
@@ -18,7 +16,15 @@ from sqlalchemy import or_, update
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
-from langflow.api.utils import CurrentActiveUser, DbSession, cascade_delete_flow, custom_params, remove_api_keys
+from langflow.api.utils import (
+    CurrentActiveUser,
+    DbSession,
+    cascade_delete_flow,
+    custom_params,
+    normalize_code_for_import,
+    normalize_flow_for_export,
+    remove_api_keys,
+)
 from langflow.api.utils.mcp.config_utils import validate_mcp_server_for_project
 from langflow.api.v1.auth_helpers import handle_auth_settings_update
 from langflow.api.v1.flows import create_flows
@@ -35,6 +41,7 @@ from langflow.initial_setup.constants import ASSISTANT_FOLDER_NAME, STARTER_FOLD
 from langflow.services.auth.mcp_encryption import encrypt_auth_settings
 from langflow.services.database.models.api_key.crud import create_api_key
 from langflow.services.database.models.api_key.model import ApiKeyCreate
+from langflow.services.database.models.base import orjson_dumps
 from langflow.services.database.models.flow.model import Flow, FlowCreate, FlowRead
 from langflow.services.database.models.folder.constants import DEFAULT_FOLDER_NAME
 from langflow.services.database.models.folder.model import (
@@ -608,12 +615,15 @@ async def download_file(
         if not flows:
             raise HTTPException(status_code=404, detail="No flows found in project")
 
-        flows_without_api_keys = [remove_api_keys(flow.model_dump()) for flow in flows]
+        # Strip API keys then normalise for git-friendly export (sorted keys,
+        # volatile fields removed, code fields as line arrays).
+        normalised_flows = [normalize_flow_for_export(remove_api_keys(flow.model_dump())) for flow in flows]
         zip_stream = io.BytesIO()
 
         with zipfile.ZipFile(zip_stream, "w") as zip_file:
-            for flow in flows_without_api_keys:
-                flow_json = json.dumps(jsonable_encoder(flow))
+            for flow in normalised_flows:
+                # Serialise with sorted keys and 2-space indent for stable diffs.
+                flow_json = orjson_dumps(flow, sort_keys=True)
                 zip_file.writestr(f"{flow['name']}.json", flow_json.encode("utf-8"))
 
         zip_stream.seek(0)
@@ -678,7 +688,9 @@ async def upload_file(
     del data["folder_description"]
 
     if "flows" in data:
-        flow_list = FlowListCreate(flows=[FlowCreate(**flow) for flow in data["flows"]])
+        # Normalise code fields: if exported with code-as-lines format, rejoin to
+        # strings before creating Pydantic models so the DB always stores strings.
+        flow_list = FlowListCreate(flows=[FlowCreate(**normalize_code_for_import(flow)) for flow in data["flows"]])
     else:
         raise HTTPException(status_code=400, detail="No flows found in the data")
     # Now we set the user_id for all flows
