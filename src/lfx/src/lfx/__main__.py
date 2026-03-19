@@ -467,6 +467,79 @@ def push_command_wrapper(
     )
 
 
+@app.command(name="pull", help="Pull flows from a remote Langflow instance to local files")
+def pull_command_wrapper(
+    env: str | None = typer.Option(
+        None,
+        "--env",
+        "-e",
+        help="Environment name from .lfx/environments.yaml. Uses [defaults] if omitted.",
+    ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output-dir",
+        "-d",
+        help="Directory to write pulled flows into (default: flows/).",
+    ),
+    flow_id: str | None = typer.Option(
+        None,
+        "--flow-id",
+        help="Pull a single flow by UUID.",
+    ),
+    project: str | None = typer.Option(
+        None,
+        "--project",
+        "-p",
+        help="Pull all flows in a named project.",
+    ),
+    project_id: str | None = typer.Option(
+        None,
+        "--project-id",
+        help="Pull all flows in a project by UUID.",
+    ),
+    environments_file: str | None = typer.Option(
+        None,
+        "--environments-file",
+        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
+    ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Langflow instance URL (inline override — skips config file lookup).",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the Langflow instance (used with --target or to override config).",
+    ),
+    strip_secrets: bool = typer.Option(
+        True,
+        "--strip-secrets/--keep-secrets",
+        help="Clear password/load_from_db field values (default: strip).",
+    ),
+    indent: int = typer.Option(
+        2,
+        "--indent",
+        help="JSON indentation level.",
+    ),
+) -> None:
+    """Pull and normalize flows from a remote Langflow instance (lazy-loaded)."""
+    from lfx.cli.pull import pull_command
+
+    pull_command(
+        env=env,
+        output_dir=output_dir,
+        flow_id=flow_id,
+        project=project,
+        project_id=project_id,
+        environments_file=environments_file,
+        target=target,
+        api_key=api_key,
+        strip_secrets=strip_secrets,
+        indent=indent,
+    )
+
+
 @app.command(name="validate", help="Validate one or more flow JSON files", no_args_is_help=True)
 def validate_command_wrapper(
     flow_paths: list[str] = typer.Argument(

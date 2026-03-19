@@ -51,6 +51,7 @@ class PushResult:
     flow_name: str
     status: str  # "created" | "updated" | "error" | "dry-run"
     error: str | None = None
+    flow_url: str | None = None
 
     @property
     def ok(self) -> bool:
@@ -121,14 +122,17 @@ def _upsert_single(
     *,
     dry_run: bool,
     flow_name: str,
+    base_url: str,
 ) -> PushResult:
+    flow_url = f"{base_url.rstrip('/')}/flow/{flow_id}"
+
     if dry_run:
-        return PushResult(path=path, flow_id=flow_id, flow_name=flow_name, status="dry-run")
+        return PushResult(path=path, flow_id=flow_id, flow_name=flow_name, status="dry-run", flow_url=flow_url)
 
     try:
         _, created = client.upsert_flow(flow_id, flow_create)
         status = "created" if created else "updated"
-        return PushResult(path=path, flow_id=flow_id, flow_name=flow_name, status=status)
+        return PushResult(path=path, flow_id=flow_id, flow_name=flow_name, status=status, flow_url=flow_url)
     except sdk.LangflowHTTPError as exc:
         return PushResult(
             path=path,
@@ -136,6 +140,7 @@ def _upsert_single(
             flow_name=flow_name,
             status="error",
             error=str(exc),
+            flow_url=flow_url,
         )
 
 
@@ -194,6 +199,7 @@ def _render_results(results: list[PushResult], *, dry_run: bool) -> None:
     table.add_column("Name")
     table.add_column("ID")
     table.add_column("Status")
+    table.add_column("URL")
 
     status_colors = {
         "created": "green",
@@ -205,11 +211,13 @@ def _render_results(results: list[PushResult], *, dry_run: bool) -> None:
     for r in results:
         color = status_colors.get(r.status, "white")
         label = r.status.upper() + (f": {r.error}" if r.error else "")
+        url_cell = f"[blue]{r.flow_url}[/blue]" if r.flow_url and r.ok else (r.flow_url or "")
         table.add_row(
             str(r.path),
             r.flow_name,
             str(r.flow_id),
             f"[{color}]{label}[/{color}]",
+            url_cell,
         )
 
     ok_console.print()
@@ -299,6 +307,7 @@ def push_command(
             flow_create,
             dry_run=dry_run,
             flow_name=flow_name,
+            base_url=env_cfg.url,
         )
         results.append(result)
 
@@ -306,7 +315,8 @@ def push_command(
             console.print(f"[yellow]DRY-RUN[/yellow] Would push {flow_name!r} ({flow_id})")
         elif result.ok:
             action = "Created" if result.status == "created" else "Updated"
-            console.print(f"[green]{action}[/green] {flow_name!r} ({flow_id})")
+            url_hint = f"  [dim]{result.flow_url}[/dim]" if result.flow_url else ""
+            console.print(f"[green]{action}[/green] {flow_name!r} ({flow_id}){url_hint}")
         else:
             console.print(f"[red]Failed[/red]  {flow_name!r} ({flow_id}): {result.error}")
 

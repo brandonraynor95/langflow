@@ -331,7 +331,14 @@ class TestUpsertSingle:
         client = MagicMock()
         sdk = _make_sdk_mock(client)
         result = _upsert_single(
-            client, sdk, tmp_path / "f.json", _FLOW_ID, self._flow_create_mock(), dry_run=True, flow_name="T"
+            client,
+            sdk,
+            tmp_path / "f.json",
+            _FLOW_ID,
+            self._flow_create_mock(),
+            dry_run=True,
+            flow_name="T",
+            base_url="http://test",
         )
         assert result.status == "dry-run"
         assert result.ok is True
@@ -343,7 +350,14 @@ class TestUpsertSingle:
         client = _make_client_mock(create=True)
         sdk = _make_sdk_mock(client)
         result = _upsert_single(
-            client, sdk, tmp_path / "f.json", _FLOW_ID, self._flow_create_mock(), dry_run=False, flow_name="T"
+            client,
+            sdk,
+            tmp_path / "f.json",
+            _FLOW_ID,
+            self._flow_create_mock(),
+            dry_run=False,
+            flow_name="T",
+            base_url="http://test",
         )
         assert result.status == "created"
         assert result.ok is True
@@ -354,7 +368,14 @@ class TestUpsertSingle:
         client = _make_client_mock(create=False)
         sdk = _make_sdk_mock(client)
         result = _upsert_single(
-            client, sdk, tmp_path / "f.json", _FLOW_ID, self._flow_create_mock(), dry_run=False, flow_name="T"
+            client,
+            sdk,
+            tmp_path / "f.json",
+            _FLOW_ID,
+            self._flow_create_mock(),
+            dry_run=False,
+            flow_name="T",
+            base_url="http://test",
         )
         assert result.status == "updated"
         assert result.ok is True
@@ -366,7 +387,14 @@ class TestUpsertSingle:
         client.upsert_flow.side_effect = _FakeLangflowHTTPError(500, "server error")
         sdk = _make_sdk_mock(client)
         result = _upsert_single(
-            client, sdk, tmp_path / "f.json", _FLOW_ID, self._flow_create_mock(), dry_run=False, flow_name="T"
+            client,
+            sdk,
+            tmp_path / "f.json",
+            _FLOW_ID,
+            self._flow_create_mock(),
+            dry_run=False,
+            flow_name="T",
+            base_url="http://test",
         )
         assert result.status == "error"
         assert result.error is not None
@@ -378,7 +406,9 @@ class TestUpsertSingle:
         client = _make_client_mock(create=True)
         sdk = _make_sdk_mock(client)
         fc = self._flow_create_mock()
-        _upsert_single(client, sdk, tmp_path / "f.json", _FLOW_ID, fc, dry_run=False, flow_name="T")
+        _upsert_single(
+            client, sdk, tmp_path / "f.json", _FLOW_ID, fc, dry_run=False, flow_name="T", base_url="http://test"
+        )
         client.upsert_flow.assert_called_once_with(_FLOW_ID, fc)
 
 
