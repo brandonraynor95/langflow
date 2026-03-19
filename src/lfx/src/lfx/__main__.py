@@ -465,6 +465,11 @@ def validate_command_wrapper(
         "--skip-required-inputs",
         help="Skip required-inputs checks (level 4)",
     ),
+    strict: bool = typer.Option(
+        False,
+        "--strict",
+        help="Treat warnings as errors (exit 1 if any warnings are found)",
+    ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
@@ -487,6 +492,7 @@ def validate_command_wrapper(
         skip_components=skip_components,
         skip_edge_types=skip_edge_types,
         skip_required_inputs=skip_required_inputs,
+        strict=strict,
         verbose=verbose,
         output_format=output_format,
     )

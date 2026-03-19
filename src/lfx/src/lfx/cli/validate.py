@@ -5,6 +5,8 @@ Validation levels (each level implies all levels below it):
     Level 1 - structural
         The file parses as valid JSON and contains the expected top-level keys
         (``id``, ``name``, ``data``, ``data.nodes``, ``data.edges``).
+        Also checks for orphaned nodes (no edges at all) and unused nodes
+        (not reachable from any output node).
 
     Level 2 - components
         Every node's ``data.type`` references a component type that exists in
@@ -20,6 +22,8 @@ Validation levels (each level implies all levels below it):
 
 Use ``--level`` to select how deep to go, or ``--skip-*`` flags to opt out of
 individual checks while still running the others.
+
+Pass ``--strict`` to treat warnings as errors (exit code 1).
 """
 
 from __future__ import annotations
@@ -181,6 +185,104 @@ def _check_structural(flow: dict[str, Any], result: ValidationResult) -> bool:
 
 def _node_display_name(node: dict[str, Any]) -> str | None:
     return node.get("data", {}).get("node", {}).get("display_name") or node.get("data", {}).get("id") or node.get("id")
+
+
+# ---------------------------------------------------------------------------
+# Level 1 (continued) - orphaned and unused node checks
+# ---------------------------------------------------------------------------
+
+
+def _check_orphaned_nodes(flow: dict[str, Any], result: ValidationResult) -> None:
+    """Warn about nodes that have no edges connecting them to the rest of the graph.
+
+    A node is *orphaned* when it appears in no edge (neither as source nor as
+    target).  Single-node flows are exempt.
+    """
+    data = flow.get("data", {})
+    nodes: list[dict[str, Any]] = [n for n in data.get("nodes", []) if isinstance(n, dict) and "id" in n]
+    edges: list[dict[str, Any]] = [e for e in data.get("edges", []) if isinstance(e, dict)]
+
+    if len(nodes) <= 1:
+        return  # single-node flows are always "connected"
+
+    connected_ids: set[str] = set()
+    for edge in edges:
+        if edge.get("source"):
+            connected_ids.add(edge["source"])
+        if edge.get("target"):
+            connected_ids.add(edge["target"])
+
+    for node in nodes:
+        node_id = node["id"]
+        if node_id not in connected_ids:
+            result.issues.append(
+                ValidationIssue(
+                    level=_LEVEL_STRUCTURAL,
+                    severity="warning",
+                    node_id=node_id,
+                    node_name=_node_display_name(node),
+                    message="Orphaned node: not connected to any other node",
+                )
+            )
+
+
+def _check_unused_nodes(flow: dict[str, Any], result: ValidationResult) -> None:
+    """Warn about nodes whose outputs never reach an output node.
+
+    Walks the graph backwards from every node whose ``data.type`` ends with
+    ``"Output"`` (e.g. ``ChatOutput``, ``TextOutput``).  Any node that is not
+    reachable from an output node is considered unused.
+
+    Single-node flows and flows with no output nodes are skipped.
+    """
+    data = flow.get("data", {})
+    nodes: list[dict[str, Any]] = [n for n in data.get("nodes", []) if isinstance(n, dict) and "id" in n]
+    edges: list[dict[str, Any]] = [e for e in data.get("edges", []) if isinstance(e, dict)]
+
+    if len(nodes) <= 1:
+        return
+
+    # Build reverse adjacency: for each node, which nodes feed INTO it
+    # (i.e. target -> {sources})
+    predecessors: dict[str, set[str]] = {n["id"]: set() for n in nodes}
+    for edge in edges:
+        src = edge.get("source")
+        tgt = edge.get("target")
+        if src and tgt and tgt in predecessors:
+            predecessors[tgt].add(src)
+
+    # Identify output nodes by type suffix
+    output_node_ids: set[str] = set()
+    for node in nodes:
+        component_type: str = node.get("data", {}).get("type", "") or ""
+        if component_type.endswith("Output"):
+            output_node_ids.add(node["id"])
+
+    if not output_node_ids:
+        return  # can't determine "useful" without knowing output nodes
+
+    # BFS backwards from all output nodes to find every contributing node
+    reachable: set[str] = set()
+    queue: list[str] = list(output_node_ids)
+    while queue:
+        current = queue.pop()
+        if current in reachable:
+            continue
+        reachable.add(current)
+        queue.extend(predecessors.get(current, set()) - reachable)
+
+    nodes_by_id = {n["id"]: n for n in nodes}
+    for node_id, node in nodes_by_id.items():
+        if node_id not in reachable:
+            result.issues.append(
+                ValidationIssue(
+                    level=_LEVEL_STRUCTURAL,
+                    severity="warning",
+                    node_id=node_id,
+                    node_name=_node_display_name(node),
+                    message="Unused node: does not contribute to any output",
+                )
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -378,8 +480,11 @@ def validate_flow_file(
         )
         return result
 
-    # Level 1 - structural
+    # Level 1 - structural (JSON shape + orphaned/unused node checks)
     can_continue = _check_structural(flow, result)
+    if can_continue:
+        _check_orphaned_nodes(flow, result)
+        _check_unused_nodes(flow, result)
     if not can_continue or level < _LEVEL_COMPONENTS:
         return result
 
@@ -407,19 +512,48 @@ def validate_flow_file(
 # ---------------------------------------------------------------------------
 
 
-def _render_results(results: list[ValidationResult], *, verbose: bool) -> None:
+def _render_results(results: list[ValidationResult], *, verbose: bool, strict: bool = False) -> None:
     for result in results:
         label = f"[bold]{result.path}[/bold]"
-        if result.ok:
+        passes = result.ok and not (strict and result.warnings)
+        if passes:
             ok_console.print(f"[green]\u2713[/green] {label}")
         else:
             console.print(f"[red]\u2717[/red] {label}")
 
-        if verbose or not result.ok:
+        show_issues = verbose or not passes
+        if show_issues:
             for issue in result.issues:
-                color = "red" if issue.severity == "error" else "yellow"
+                # In strict mode warnings are shown as errors
+                effective_severity = "error" if (strict and issue.severity == "warning") else issue.severity
+                color = "red" if effective_severity == "error" else "yellow"
                 loc = f" [{issue.node_name or issue.node_id}]" if (issue.node_id or issue.node_name) else ""
-                console.print(f"  [{color}][L{issue.level} {issue.severity.upper()}][/{color}]{loc} {issue.message}")
+                console.print(
+                    f"  [{color}][L{issue.level} {effective_severity.upper()}][/{color}]{loc} {issue.message}"
+                )
+
+
+def _expand_paths(raw_paths: list[str]) -> list[Path]:
+    """Expand each entry to a list of .json files.
+
+    * If the path is a directory, collect every ``*.json`` file recursively.
+    * If the path is a file, return it as-is.
+    * If the path does not exist, print an error and exit 2.
+    """
+    paths: list[Path] = []
+    for raw in raw_paths:
+        p = Path(raw)
+        if not p.exists():
+            console.print(f"[red]Error:[/red] Path not found: {p}")
+            raise typer.Exit(2)
+        if p.is_dir():
+            found = sorted(p.rglob("*.json"))
+            if not found:
+                console.print(f"[yellow]Warning:[/yellow] No .json files found in {p}")
+            paths.extend(found)
+        else:
+            paths.append(p)
+    return paths
 
 
 def validate_command(
@@ -429,16 +563,15 @@ def validate_command(
     skip_components: bool,
     skip_edge_types: bool,
     skip_required_inputs: bool,
+    strict: bool,
     verbose: bool,
     output_format: str,
 ) -> None:
-    paths: list[Path] = []
-    for raw in flow_paths:
-        p = Path(raw)
-        if not p.exists():
-            console.print(f"[red]Error:[/red] File not found: {p}")
-            raise typer.Exit(2)
-        paths.append(p)
+    paths = _expand_paths(flow_paths)
+
+    if not paths:
+        console.print("[yellow]No flow files to validate.[/yellow]")
+        raise typer.Exit(0)
 
     results = [
         validate_flow_file(
@@ -457,7 +590,7 @@ def validate_command(
         out = [
             {
                 "path": str(r.path),
-                "ok": r.ok,
+                "ok": r.ok if not strict else (not r.errors and not r.warnings),
                 "issues": [
                     {
                         "level": i.level,
@@ -473,7 +606,8 @@ def validate_command(
         ]
         sys.stdout.write(_json.dumps(out, indent=2) + "\n")
     else:
-        _render_results(results, verbose=verbose)
+        _render_results(results, verbose=verbose, strict=strict)
 
-    if any(not r.ok for r in results):
+    failed = any((not r.ok) or (strict and r.warnings) for r in results)
+    if failed:
         raise typer.Exit(1)
