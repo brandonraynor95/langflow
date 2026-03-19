@@ -89,6 +89,11 @@ def _probe_connection(client: Any, sdk: Any) -> tuple[bool, str, int]:
     except sdk.LangflowHTTPError as exc:
         return False, f"http:{exc}", 0
     except Exception as exc:  # noqa: BLE001
+        # A Pydantic ValidationError means the HTTP request completed and was
+        # authenticated (auth is fine) but the SDK's schema doesn't match the
+        # local Langflow version exactly.  Treat this as a successful probe.
+        if "ValidationError" in type(exc).__qualname__:
+            return True, "OK", 0
         return False, f"error:{exc}", 0
 
 
