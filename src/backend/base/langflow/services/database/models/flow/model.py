@@ -214,6 +214,11 @@ class Flow(FlowBase, table=True):  # type: ignore[call-arg]
 
 
 class FlowCreate(FlowBase):
+    # Optional stable ID.  When present on upload, the flow is upserted
+    # (created with that ID, or updated if the ID already belongs to the
+    # current user).  Flows without an id get a generated UUID — backward
+    # compatible with all existing import paths.
+    id: UUID | None = None
     user_id: UUID | None = None
     folder_id: UUID | None = None
     fs_path: str | None = None

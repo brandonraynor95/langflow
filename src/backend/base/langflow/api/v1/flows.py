@@ -548,7 +548,7 @@ async def update_flow(
     return flow_read
 
 
-@router.put("/{flow_id}", response_model=FlowRead, include_in_schema=False)
+@router.put("/{flow_id}", response_model=FlowRead)
 async def upsert_flow(
     *,
     session: DbSession,
@@ -774,9 +774,43 @@ async def upload_file(
             flow.user_id = current_user.id
             if folder_id:
                 flow.folder_id = folder_id
-            flow_read = await _new_flow(
-                session=session, flow=flow, user_id=current_user.id, storage_service=storage_service
-            )
+
+            if flow.id is not None:
+                # The JSON carries a stable ID — use upsert semantics so that
+                # re-uploading the same flow updates rather than duplicates it.
+                existing = (await session.exec(select(Flow).where(Flow.id == flow.id))).first()
+
+                if existing is not None and existing.user_id == current_user.id:
+                    # UPDATE: flow belongs to this user — overwrite in place.
+                    flow_read = await _update_existing_flow(
+                        session=session,
+                        existing_flow=existing,
+                        flow=flow,
+                        current_user=current_user,
+                        storage_service=storage_service,
+                    )
+                elif existing is not None:
+                    # ID is claimed by a different user — mint a fresh UUID so
+                    # the import still succeeds without stomping another user's flow.
+                    flow.id = None
+                    flow_read = await _new_flow(
+                        session=session, flow=flow, user_id=current_user.id, storage_service=storage_service
+                    )
+                else:
+                    # CREATE with the stable ID from the file.
+                    flow_read = await _new_flow(
+                        session=session,
+                        flow=flow,
+                        user_id=current_user.id,
+                        storage_service=storage_service,
+                        flow_id=flow.id,
+                    )
+            else:
+                # No ID in the file — generate a fresh UUID (legacy behaviour).
+                flow_read = await _new_flow(
+                    session=session, flow=flow, user_id=current_user.id, storage_service=storage_service
+                )
+
             flow_reads.append(flow_read)
     except Exception as e:
         if "UNIQUE constraint failed" in str(e):
