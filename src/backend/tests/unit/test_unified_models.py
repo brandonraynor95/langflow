@@ -225,7 +225,7 @@ def _make_openai_embedding_model(name="text-embedding-3-small"):
             "embedding_class": "OpenAIEmbeddings",
             "param_mapping": {
                 "model": "model",
-                "api_key": "api_key",
+                "api_key": "api_key",  # pragma: allowlist secret
                 "api_base": "base_url",
                 "dimensions": "dimensions",
                 "chunk_size": "chunk_size",
@@ -349,7 +349,7 @@ def test_get_embeddings_openai_basic(mock_get_class, mock_get_api_key):
     mock_get_class.assert_called_once_with("OpenAIEmbeddings")
     kwargs = mock_embedding_class.call_args.kwargs
     assert kwargs["model"] == "text-embedding-3-small"
-    assert kwargs["api_key"] == "sk-test"
+    assert kwargs["api_key"] == "sk-test"  # pragma: allowlist secret
 
 
 @patch("lfx.base.models.unified_models.get_api_key_for_provider")
@@ -362,7 +362,7 @@ def test_get_embeddings_optional_params_only_added_when_mapped(mock_get_class, m
 
     get_embeddings(
         [_make_openai_embedding_model()],
-        api_key="sk-test",
+        api_key="sk-test",  # pragma: allowlist secret
         chunk_size=500,
         max_retries=5,
     )
@@ -389,13 +389,13 @@ def test_get_embeddings_google_timeout_wrapped_in_dict(mock_get_class, mock_get_
             "embedding_class": "GoogleGenerativeAIEmbeddings",
             "param_mapping": {
                 "model": "model",
-                "api_key": "google_api_key",
+                "api_key": "google_api_key",  # pragma: allowlist secret
                 "request_timeout": "request_options",
             },
         },
     }
 
-    get_embeddings([google_model], api_key="google-key", request_timeout=30.0)
+    get_embeddings([google_model], api_key="google-key", request_timeout=30.0)  # pragma: allowlist secret
 
     kwargs = mock_embedding_class.call_args.kwargs
     assert kwargs.get("request_options") == {"timeout": 30.0}
@@ -465,7 +465,7 @@ def test_get_embeddings_watsonx_url_and_project_id(mock_get_vars, mock_get_class
             "embedding_class": "WatsonxEmbeddings",
             "param_mapping": {
                 "model_id": "model_id",
-                "api_key": "apikey",
+                "api_key": "apikey",  # pragma: allowlist secret
                 "url": "url",
                 "project_id": "project_id",
             },
@@ -474,7 +474,7 @@ def test_get_embeddings_watsonx_url_and_project_id(mock_get_vars, mock_get_class
 
     get_embeddings(
         [watsonx_model],
-        api_key="ibm-key",
+        api_key="ibm-key",  # pragma: allowlist secret
         watsonx_url="https://us-south.ml.cloud.ibm.com",
         watsonx_project_id="proj-123",
     )
@@ -501,7 +501,7 @@ def test_get_embeddings_watsonx_truncate_and_input_text(mock_get_vars, mock_get_
             "embedding_class": "WatsonxEmbeddings",
             "param_mapping": {
                 "model_id": "model_id",
-                "api_key": "apikey",
+                "api_key": "apikey",  # pragma: allowlist secret
                 "url": "url",
                 "project_id": "project_id",
             },
@@ -510,7 +510,7 @@ def test_get_embeddings_watsonx_truncate_and_input_text(mock_get_vars, mock_get_
 
     get_embeddings(
         [watsonx_model],
-        api_key="ibm-key",
+        api_key="ibm-key",  # pragma: allowlist secret
         watsonx_url="https://us-south.ml.cloud.ibm.com",
         watsonx_project_id="proj-123",
         watsonx_truncate_input_tokens=200,
@@ -546,7 +546,7 @@ def test_get_embeddings_watsonx_no_params_when_not_provided(mock_get_vars, mock_
             "embedding_class": "WatsonxEmbeddings",
             "param_mapping": {
                 "model_id": "model_id",
-                "api_key": "apikey",
+                "api_key": "apikey",  # pragma: allowlist secret
                 "url": "url",
                 "project_id": "project_id",
             },
@@ -555,7 +555,7 @@ def test_get_embeddings_watsonx_no_params_when_not_provided(mock_get_vars, mock_
 
     get_embeddings(
         [watsonx_model],
-        api_key="ibm-key",
+        api_key="ibm-key",  # pragma: allowlist secret
         watsonx_url="https://us-south.ml.cloud.ibm.com",
         watsonx_project_id="proj-123",
     )
@@ -585,7 +585,7 @@ def test_get_embeddings_watsonx_error_wraps_message(mock_get_vars, mock_get_clas
     }
 
     with pytest.raises(ValueError, match="IBM WatsonX requires additional configuration"):
-        get_embeddings([watsonx_model], api_key="ibm-key")
+        get_embeddings([watsonx_model], api_key="ibm-key")  # pragma: allowlist secret
 
 
 # ---------------------------------------------------------------------------
@@ -639,7 +639,7 @@ def test_handle_model_input_update_calls_apply_provider_config_when_model_select
         mock_apply.side_effect = lambda cfg, provider, **kw: cfg  # noqa: ARG005
 
         def get_options(user_id=None):  # noqa: ARG001
-            return []
+            return selected_model
 
         handle_model_input_update(
             component, build_config, field_value=selected_model, field_name="model", get_options_func=get_options
@@ -667,7 +667,7 @@ def test_handle_model_input_update_watsonx_embedding_shows_special_fields():
             field_value=selected_model,
             field_name="model",
             cache_key_prefix="embedding_model_options",
-            get_options_func=lambda user_id=None: [],  # noqa: ARG005
+            get_options_func=lambda user_id=None: selected_model,  # noqa: ARG005
         )
 
     assert result["truncate_input_tokens"]["show"] is True
@@ -693,7 +693,7 @@ def test_handle_model_input_update_non_watsonx_embedding_hides_special_fields():
             field_value=selected_model,
             field_name="model",
             cache_key_prefix="embedding_model_options",
-            get_options_func=lambda user_id=None: [],  # noqa: ARG005
+            get_options_func=lambda user_id=None: selected_model,  # noqa: ARG005
         )
 
     assert result["truncate_input_tokens"]["show"] is False
@@ -720,7 +720,7 @@ def test_handle_model_input_update_language_model_prefix_skips_embedding_fields(
             field_value=selected_model,
             field_name="model",
             cache_key_prefix="language_model_options",
-            get_options_func=lambda user_id=None: [],  # noqa: ARG005
+            get_options_func=lambda user_id=None: selected_model,  # noqa: ARG005
         )
 
     # The embedding-specific block should not run for language_model_options
@@ -763,7 +763,7 @@ def test_handle_model_input_update_custom_model_field_name():
             field_value=selected_model,
             field_name="embedding_model",
             cache_key_prefix="embedding_model_options",
-            get_options_func=lambda user_id=None: [],  # noqa: ARG005
+            get_options_func=lambda user_id=None: selected_model,  # noqa: ARG005
             model_field_name="embedding_model",
         )
 
@@ -922,7 +922,7 @@ def test_resolve_dropdown_provider_values_falls_back_to_first_option(mock_get_va
 @patch("lfx.base.models.unified_models.get_all_variables_for_provider")
 def test_resolve_dropdown_skips_non_dropdown_fields(mock_get_vars):
     """Non-DropdownInput fields should not be touched by _resolve_dropdown_provider_values."""
-    mock_get_vars.return_value = {"WATSONX_APIKEY": "secret-key"}
+    mock_get_vars.return_value = {"WATSONX_APIKEY": "secret-key"}  # pragma: allowlist secret
 
     build_config = {
         "api_key": {
@@ -985,7 +985,7 @@ def test_handle_model_input_update_resolves_watsonx_dropdown():
             build_config,
             field_value=selected_model,
             field_name="model",
-            get_options_func=lambda user_id=None: [],  # noqa: ARG005
+            get_options_func=lambda user_id=None: selected_model,  # noqa: ARG005
         )
 
     # The dropdown should be resolved to the configured URL, not "WATSONX_URL"

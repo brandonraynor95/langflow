@@ -18,13 +18,13 @@ class TestToolCallingAgentUpdateBuildConfig:
     def _get_build_config(self, component):
         return component.to_frontend_node()["data"]["node"]["template"]
 
-    @patch("lfx.base.models.unified_models.get_language_model_options")
+    @patch("lfx.components.langchain_utilities.tool_calling.get_language_model_options")
     def test_shows_watsonx_fields_when_watsonx_selected(self, mock_opts):
         """Selecting IBM WatsonX should show base_url_ibm_watsonx and project_id."""
-        mock_opts.return_value = []
+        watsonx_model = [{"name": "ibm/granite-13b-chat-v2", "provider": "IBM WatsonX", "metadata": {}}]
+        mock_opts.return_value = watsonx_model
         component = self._make_component()
         build_config = self._get_build_config(component)
-        watsonx_model = [{"name": "ibm/granite-13b-chat-v2", "provider": "IBM WatsonX", "metadata": {}}]
 
         updated = component.update_build_config(build_config, watsonx_model, field_name="model")
 
@@ -33,13 +33,13 @@ class TestToolCallingAgentUpdateBuildConfig:
         assert updated["project_id"]["show"] is True
         assert "ollama_base_url" not in updated
 
-    @patch("lfx.base.models.unified_models.get_language_model_options")
+    @patch("lfx.components.langchain_utilities.tool_calling.get_language_model_options")
     def test_hides_watsonx_fields_when_openai_selected(self, mock_opts):
         """Selecting OpenAI should hide all provider-specific fields."""
-        mock_opts.return_value = []
+        openai_model = [{"name": "gpt-4o", "provider": "OpenAI", "metadata": {}}]
+        mock_opts.return_value = openai_model
         component = self._make_component()
         build_config = self._get_build_config(component)
-        openai_model = [{"name": "gpt-4o", "provider": "OpenAI", "metadata": {}}]
 
         updated = component.update_build_config(build_config, openai_model, field_name="model")
 
@@ -47,7 +47,7 @@ class TestToolCallingAgentUpdateBuildConfig:
         assert updated["project_id"]["show"] is False
         assert "ollama_base_url" not in updated
 
-    @patch("lfx.base.models.unified_models.get_language_model_options")
+    @patch("lfx.components.langchain_utilities.tool_calling.get_language_model_options")
     def test_hides_all_provider_fields_with_no_model_selected(self, mock_opts):
         """With no model selected, all provider-specific fields should be hidden."""
         mock_opts.return_value = []
