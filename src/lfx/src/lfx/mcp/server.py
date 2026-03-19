@@ -14,7 +14,7 @@ import contextvars
 import re
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 
 from lfx.graph.flow_builder import (
     add_component as fb_add_component,
@@ -760,8 +760,11 @@ async def run_flow(
     input_type: str = "chat",
     output_type: str = "chat",
     tweaks: dict[str, Any] | None = None,
+    ctx: Context | None = None,
 ) -> dict[str, Any]:
     """Run a flow and return the output.
+
+    Streams progress events (tokens, messages) when the client supports it.
 
     Args:
         flow_id: The flow UUID.
@@ -769,6 +772,7 @@ async def run_flow(
         input_type: Input type (default: "chat").
         output_type: Output type (default: "chat").
         tweaks: Override component params at runtime: {component_id: {param: value}}.
+        ctx: MCP context for progress reporting (injected automatically).
     """
     request = {
         "input_value": input_value,
@@ -776,7 +780,28 @@ async def run_flow(
         "output_type": output_type,
         "tweaks": tweaks or {},
     }
-    return await _get_client().post(f"/run/{flow_id}", json_data=request, timeout=300.0)
+    client = _get_client()
+
+    result: dict[str, Any] = {}
+    token_count = 0
+    async for event in client.stream_post(f"/run/{flow_id}?stream=true", json_data=request):
+        event_type = event.get("event", "")
+        data = event.get("data", {})
+
+        if event_type == "token" and ctx is not None:
+            token_count += 1
+            chunk = data.get("chunk", "")
+            await ctx.report_progress(token_count, message=chunk)
+
+        elif event_type == "end":
+            result = data.get("result", data)
+            break
+
+        elif event_type == "error":
+            msg = data.get("error", "Flow execution failed")
+            raise RuntimeError(msg)
+
+    return result or await client.post(f"/run/{flow_id}", json_data=request, timeout=300.0)
 
 
 @mcp.tool()
