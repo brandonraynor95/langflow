@@ -177,6 +177,9 @@ const config = {
         "success-foreground": "var(--success-foreground)",
         "accent-pink-foreground": "hsl(var(--accent-pink-foreground))",
         "accent-purple-foreground": "hsl(var(--accent-purple-foreground))",
+        "accent-purple-muted": "hsl(var(--accent-purple-muted))",
+        "accent-purple-muted-foreground":
+          "hsl(var(--accent-purple-muted-foreground))",
         "accent-red-foreground": "hsl(var(--accent-red-foreground))",
         filter: {
           foreground: "var(--filter-foreground)",

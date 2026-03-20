@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
+import DeploymentStepperModal from "./components/DeploymentStepperModal";
 import DeploymentsEmptyState from "./components/DeploymentsEmptyState";
 import DeploymentsLoadingSkeleton from "./components/DeploymentsLoadingSkeleton";
 import DeploymentsTable from "./components/DeploymentsTable";
@@ -11,6 +12,7 @@ export default function DeploymentsPage() {
   const [activeSubTab, setActiveSubTab] =
     useState<DeploymentSubTab>("deployments");
   const [isLoading, setIsLoading] = useState(true);
+  const [stepperOpen, setStepperOpen] = useState(false);
 
   // Simulate loading with mock data
   useEffect(() => {
@@ -26,9 +28,7 @@ export default function DeploymentsPage() {
       <div className="flex items-center justify-between">
         <SubTabToggle activeTab={activeSubTab} onTabChange={setActiveSubTab} />
         <Button
-          onClick={() => {
-            // TODO: Open new deployment modal
-          }}
+          onClick={() => setStepperOpen(true)}
           data-testid="new-deployment-btn"
         >
           <ForwardedIconComponent name="Plus" className="h-4 w-4" />
@@ -41,9 +41,7 @@ export default function DeploymentsPage() {
           <DeploymentsLoadingSkeleton />
         ) : isEmpty ? (
           <DeploymentsEmptyState
-            onCreateDeployment={() => {
-              // TODO: Open new deployment modal
-            }}
+            onCreateDeployment={() => setStepperOpen(true)}
           />
         ) : (
           <DeploymentsTable deployments={deployments} />
@@ -54,6 +52,8 @@ export default function DeploymentsPage() {
           Deployment Providers coming soon
         </div>
       )}
+
+      <DeploymentStepperModal open={stepperOpen} setOpen={setStepperOpen} />
     </div>
   );
 }

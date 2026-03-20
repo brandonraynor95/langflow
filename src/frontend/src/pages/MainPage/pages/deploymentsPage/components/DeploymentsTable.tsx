@@ -36,7 +36,7 @@ function TypeBadge({ type }: { type: DeploymentType }) {
   return (
     <Badge
       variant="secondaryStatic"
-      size="sq"
+      size="tag"
       className={cn("border-l-2", config.color)}
     >
       {type === "agent" ? "Agent" : "MCP"}
@@ -48,7 +48,7 @@ function StatusBadge({ status }: { status: Deployment["status"] }) {
   return (
     <Badge
       variant="secondaryStatic"
-      size="sq"
+      size="tag"
       className={
         status === "production"
           ? "bg-accent-blue-muted text-accent-blue-muted-foreground"
