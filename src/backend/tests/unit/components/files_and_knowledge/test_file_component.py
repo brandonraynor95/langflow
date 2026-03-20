@@ -143,6 +143,30 @@ class TestFileComponentDynamicOutputs:
         assert result.data["doc"] == mock_result["doc"]
         assert result.data["file_path"] == "test.pdf"
 
+    @patch("subprocess.run")
+    def test_process_docling_subprocess_allows_ampersand_in_path(self, mock_subprocess):
+        """Test that valid file paths containing '&' are not rejected before subprocess execution."""
+        component = FileComponent()
+        component.markdown = False
+
+        mock_result = {
+            "ok": True,
+            "mode": "structured",
+            "doc": [{"page_no": 1, "label": "paragraph", "text": "Content", "level": 0}],
+            "meta": {"file_path": "/tmp/input.pdf"},
+        }
+        mock_subprocess.return_value = MagicMock(
+            stdout=json.dumps(mock_result).encode("utf-8"),
+            stderr=b"",
+        )
+
+        input_path = "docs/R&D/report.pdf"
+        result = component._process_docling_in_subprocess(input_path)
+
+        assert "error" not in result.data
+        assert result.data["file_path"] == input_path
+        mock_subprocess.assert_called_once()
+
     def test_dynamic_outputs_have_tool_mode_enabled(self):
         """Test that all dynamically created outputs have tool_mode=True."""
         component = FileComponent()

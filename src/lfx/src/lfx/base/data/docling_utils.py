@@ -37,7 +37,28 @@ def extract_docling_documents(
     Raises:
         TypeError: If the data cannot be extracted or is invalid
     """
+    documents, _, warning_message = extract_docling_documents_with_metadata(data_inputs, doc_key)
+    return documents, warning_message
+
+
+def extract_docling_documents_with_metadata(
+    data_inputs: Data | list[Data] | DataFrame, doc_key: str
+) -> tuple[list[DoclingDocument], list[dict], str | None]:
+    """Extract DoclingDocument objects and aligned metadata from data inputs.
+
+    Args:
+        data_inputs: The data inputs containing DoclingDocument objects
+        doc_key: The key/column name to look for DoclingDocument objects
+
+    Returns:
+        A tuple of (documents, metadata, warning_message) where warning_message is None if no warning.
+        Metadata entries preserve all source fields except the DoclingDocument field itself.
+
+    Raises:
+        TypeError: If the data cannot be extracted or is invalid
+    """
     documents: list[DoclingDocument] = []
+    metadata: list[dict] = []
     warning_message: str | None = None
 
     if isinstance(data_inputs, DataFrame):
@@ -46,6 +67,7 @@ def extract_docling_documents(
             raise TypeError(msg)
 
         # Primary: Check for exact column name match
+        source_column = doc_key
         if doc_key in data_inputs.columns:
             try:
                 documents = data_inputs[doc_key].tolist()
@@ -73,6 +95,7 @@ def extract_docling_documents(
                 logger.warning(warning_message)
                 try:
                     documents = data_inputs[found_column].tolist()
+                    source_column = found_column
                 except Exception as e:
                     msg = f"Error extracting DoclingDocument from DataFrame column '{found_column}': {e}"
                     raise TypeError(msg) from e
@@ -88,13 +111,18 @@ def extract_docling_documents(
                     f"3. If using VLM pipeline, try using the standard pipeline"
                 )
                 raise TypeError(msg)
+
+        for row in data_inputs.to_dict(orient="records"):
+            row_doc = row.get(source_column)
+            if isinstance(row_doc, DoclingDocument):
+                metadata.append({k: v for k, v in row.items() if k != source_column})
     else:
         if not data_inputs:
             msg = "No data inputs provided"
             raise TypeError(msg)
 
         if isinstance(data_inputs, Data):
-            if doc_key not in data_inputs.data:
+            if doc_key not in data_inputs.data or not isinstance(data_inputs.data[doc_key], DoclingDocument):
                 msg = (
                     f"'{doc_key}' field not available in the input Data. "
                     "Check that your input is a DoclingDocument. "
@@ -102,22 +130,26 @@ def extract_docling_documents(
                 )
                 raise TypeError(msg)
             documents = [data_inputs.data[doc_key]]
+            metadata = [{k: v for k, v in data_inputs.data.items() if k != doc_key}]
         else:
             try:
-                documents = [
-                    input_.data[doc_key]
-                    for input_ in data_inputs
-                    if isinstance(input_, Data)
-                    and doc_key in input_.data
-                    and isinstance(input_.data[doc_key], DoclingDocument)
-                ]
+                documents = []
+                metadata = []
+                for input_ in data_inputs:
+                    if (
+                        isinstance(input_, Data)
+                        and doc_key in input_.data
+                        and isinstance(input_.data[doc_key], DoclingDocument)
+                    ):
+                        documents.append(input_.data[doc_key])
+                        metadata.append({k: v for k, v in input_.data.items() if k != doc_key})
                 if not documents:
                     msg = f"No valid Data inputs found in {type(data_inputs)}"
                     raise TypeError(msg)
             except AttributeError as e:
                 msg = f"Invalid input type in collection: {e}"
                 raise TypeError(msg) from e
-    return documents, warning_message
+    return documents, metadata, warning_message
 
 
 def _unwrap_secrets(obj):

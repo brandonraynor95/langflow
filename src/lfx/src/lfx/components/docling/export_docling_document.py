@@ -2,7 +2,7 @@ from typing import Any
 
 from docling_core.types.doc import ImageRefMode
 
-from lfx.base.data.docling_utils import extract_docling_documents
+from lfx.base.data.docling_utils import extract_docling_documents_with_metadata
 from lfx.custom import Component
 from lfx.io import DropdownInput, HandleInput, MessageTextInput, Output, StrInput
 from lfx.schema import Data, DataFrame
@@ -86,14 +86,14 @@ class ExportDoclingDocumentComponent(Component):
         return build_config
 
     def export_document(self) -> list[Data]:
-        documents, warning = extract_docling_documents(self.data_inputs, self.doc_key)
+        documents, metadata_list, warning = extract_docling_documents_with_metadata(self.data_inputs, self.doc_key)
         if warning:
             self.status = warning
 
         results: list[Data] = []
         try:
             image_mode = ImageRefMode(self.image_mode)
-            for doc in documents:
+            for index, doc in enumerate(documents):
                 content = ""
                 if self.export_format == "Markdown":
                     content = doc.export_to_markdown(
@@ -108,7 +108,8 @@ class ExportDoclingDocumentComponent(Component):
                 elif self.export_format == "DocTags":
                     content = doc.export_to_doctags()
 
-                results.append(Data(text=content))
+                metadata = metadata_list[index] if index < len(metadata_list) else {}
+                results.append(Data(text=content, data=metadata))
         except Exception as e:
             msg = f"Error splitting text: {e}"
             raise TypeError(msg) from e

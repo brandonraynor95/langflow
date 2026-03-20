@@ -1,3 +1,5 @@
+import math
+
 from astrapy import DataAPIClient
 from langchain_core.documents import Document
 
@@ -409,7 +411,11 @@ class AstraDBVectorStoreComponent(AstraDBBaseComponent, LCVectorStoreComponent):
                 raise TypeError(msg)
 
         documents = [
-            Document(page_content=doc.page_content, metadata=serialize(doc.metadata, to_str=True)) for doc in documents
+            Document(
+                page_content=doc.page_content,
+                metadata=serialize(self._sanitize_metadata(doc.metadata), to_str=True),
+            )
+            for doc in documents
         ]
 
         if documents and self.deletion_field:
@@ -433,6 +439,18 @@ class AstraDBVectorStoreComponent(AstraDBBaseComponent, LCVectorStoreComponent):
                 raise ValueError(msg) from e
         else:
             self.log("No documents to add to the Vector Store.")
+
+    @classmethod
+    def _sanitize_metadata(cls, value):
+        if isinstance(value, float) and not math.isfinite(value):
+            return None
+        if isinstance(value, dict):
+            return {k: cls._sanitize_metadata(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [cls._sanitize_metadata(v) for v in value]
+        if isinstance(value, tuple):
+            return tuple(cls._sanitize_metadata(v) for v in value)
+        return value
 
     def _map_search_type(self) -> str:
         search_type_mapping = {
