@@ -252,6 +252,8 @@ const config = {
         "accent-blue": {
           DEFAULT: "hsl(var(--accent-blue))",
           foreground: "hsl(var(--accent-blue-foreground))",
+          muted: "hsl(var(--accent-blue-muted))",
+          "muted-foreground": "hsl(var(--accent-blue-muted-foreground))",
         },
         "accent-pink": {
           DEFAULT: "hsl(var(--accent-pink))",
