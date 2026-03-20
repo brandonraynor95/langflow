@@ -1,24 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useGetFlowVersions } from "@/controllers/API/queries/flow-version/use-get-flow-versions";
+import { useGetRefreshFlowsQuery } from "@/controllers/API/queries/flows/use-get-refresh-flows-query";
+import { useFolderStore } from "@/stores/foldersStore";
+import type { FlowType } from "@/types/flow";
+import type { FlowVersionEntry } from "@/types/flow/version";
 import { cn } from "@/utils/utils";
 import { useDeploymentStepper } from "../contexts/DeploymentStepperContext";
-import { MOCK_CONNECTIONS, MOCK_FLOWS_WITH_VERSIONS } from "../mock-data";
-
-export interface FlowVersionItem {
-  id: string;
-  label: string;
-  lastUpdated: string;
-}
-
-export interface FlowWithVersions {
-  id: string;
-  name: string;
-  icon: string;
-  versions: FlowVersionItem[];
-}
+import { MOCK_CONNECTIONS } from "../mock-data";
 
 export interface ConnectionItem {
   id: string;
@@ -36,8 +29,26 @@ export default function StepAttachFlows() {
     attachedConnectionByFlow,
     setAttachedConnectionByFlow: onAttachConnection,
   } = useDeploymentStepper();
-  const flows = MOCK_FLOWS_WITH_VERSIONS;
+
+  const { folderId } = useParams();
+  const myCollectionId = useFolderStore((state) => state.myCollectionId);
+  const currentFolderId = folderId ?? myCollectionId;
+
+  const { data: flowsData } = useGetRefreshFlowsQuery(
+    {
+      get_all: true,
+      remove_example_flows: true,
+    },
+    { enabled: !!currentFolderId },
+  );
+  const flows = useMemo(() => {
+    const list = Array.isArray(flowsData) ? flowsData : [];
+    return list.filter(
+      (f) => !f.is_component && f.folder_id === currentFolderId,
+    );
+  }, [flowsData, currentFolderId]);
   const connections = MOCK_CONNECTIONS;
+
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(
     flows[0]?.id ?? null,
   );
@@ -54,11 +65,23 @@ export default function StepAttachFlows() {
     { key: "", value: "" },
   ]);
 
+  const { data: versionResponse, isLoading: isLoadingVersions } =
+    useGetFlowVersions(
+      { flowId: selectedFlowId! },
+      { enabled: !!selectedFlowId },
+    );
+  const versions = versionResponse?.entries ?? [];
+
   const selectedFlow = flows.find((f) => f.id === selectedFlowId);
 
   const handleAttachFlow = () => {
     if (selectedFlowId && pendingVersion) {
-      onSelectVersion(selectedFlowId, pendingVersion);
+      const version = versions.find((v) => v.id === pendingVersion);
+      onSelectVersion(
+        selectedFlowId,
+        pendingVersion,
+        version?.version_tag ?? "",
+      );
       setPendingVersion(null);
       setRightPanel("connections");
       setSelectedConnection(
@@ -89,11 +112,7 @@ export default function StepAttachFlows() {
   const handleSelectFlow = (flowId: string) => {
     setSelectedFlowId(flowId);
     setPendingVersion(null);
-    if (selectedVersionByFlow.has(flowId)) {
-      setRightPanel("versions");
-    } else {
-      setRightPanel("versions");
-    }
+    setRightPanel("versions");
   };
 
   const handleAddEnvVar = () => {
@@ -111,10 +130,9 @@ export default function StepAttachFlows() {
   };
 
   const getVersionLabel = (flowId: string) => {
-    const versionId = selectedVersionByFlow.get(flowId);
-    if (!versionId) return null;
-    const flow = flows.find((f) => f.id === flowId);
-    return flow?.versions.find((v) => v.id === versionId)?.label ?? null;
+    const entry = selectedVersionByFlow.get(flowId);
+    if (!entry) return null;
+    return entry.versionTag || null;
   };
 
   const isFlowAttached = (flowId: string) =>
@@ -148,7 +166,7 @@ export default function StepAttachFlows() {
                 >
                   <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
                     <ForwardedIconComponent
-                      name={flow.icon}
+                      name={flow.icon ?? "Workflow"}
                       className="h-4 w-4 text-muted-foreground"
                     />
                   </div>
@@ -176,10 +194,6 @@ export default function StepAttachFlows() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {flow.versions.length}{" "}
-                      {flow.versions.length === 1 ? "version" : "versions"}
-                    </p>
                   </div>
                 </button>
               );
@@ -192,6 +206,8 @@ export default function StepAttachFlows() {
           {rightPanel === "versions" ? (
             <VersionPanel
               selectedFlow={selectedFlow}
+              versions={versions}
+              isLoadingVersions={isLoadingVersions}
               pendingVersion={pendingVersion}
               selectedVersionByFlow={selectedVersionByFlow}
               attachedConnectionByFlow={attachedConnectionByFlow}
@@ -228,15 +244,19 @@ export default function StepAttachFlows() {
 
 function VersionPanel({
   selectedFlow,
+  versions,
+  isLoadingVersions,
   pendingVersion,
   selectedVersionByFlow,
   attachedConnectionByFlow,
   onSelectPending,
   onAttach,
 }: {
-  selectedFlow: FlowWithVersions | undefined;
+  selectedFlow: FlowType | undefined;
+  versions: FlowVersionEntry[];
+  isLoadingVersions: boolean;
   pendingVersion: string | null;
-  selectedVersionByFlow: Map<string, string>;
+  selectedVersionByFlow: Map<string, { versionId: string; versionTag: string }>;
   attachedConnectionByFlow: Map<string, string>;
   onSelectPending: (id: string) => void;
   onAttach: () => void;
@@ -249,7 +269,7 @@ function VersionPanel({
     );
   }
 
-  const attachedVersionId = selectedVersionByFlow.get(selectedFlow.id);
+  const attachedEntry = selectedVersionByFlow.get(selectedFlow.id);
   const hasConnection = attachedConnectionByFlow.has(selectedFlow.id);
 
   return (
@@ -260,57 +280,68 @@ function VersionPanel({
       <div className="flex flex-1 flex-col overflow-hidden px-4 py-2">
         <h3 className="py-2 text-lg font-semibold">{selectedFlow.name}</h3>
         <div className="flex-1 space-y-3 overflow-y-auto py-3">
-          {selectedFlow.versions.map((version) => {
-            const isAttachedVersion = attachedVersionId === version.id;
-            const isPending = pendingVersion === version.id;
-            const isSelected = isPending;
-            return (
-              <button
-                key={version.id}
-                type="button"
-                onClick={() => onSelectPending(version.id)}
-                className={cn(
-                  "flex w-full items-center gap-4 rounded-xl border bg-muted p-3 text-left transition-colors",
-                  isSelected
-                    ? "border-primary"
-                    : "border-transparent hover:border-border",
-                )}
-              >
-                <span
+          {isLoadingVersions ? (
+            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+              Loading versions...
+            </div>
+          ) : versions.length === 0 ? (
+            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+              No versions found
+            </div>
+          ) : (
+            versions.map((version) => {
+              const isAttachedVersion = attachedEntry?.versionId === version.id;
+              const isPending = pendingVersion === version.id;
+              const isSelected = isPending;
+              return (
+                <button
+                  key={version.id}
+                  type="button"
+                  onClick={() => onSelectPending(version.id)}
                   className={cn(
-                    "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded",
+                    "flex w-full items-center gap-4 rounded-xl border bg-muted p-3 text-left transition-colors",
                     isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-muted-foreground bg-background",
+                      ? "border-primary"
+                      : "border-transparent hover:border-border",
                   )}
                 >
-                  {isSelected && (
-                    <ForwardedIconComponent
-                      name="Check"
-                      className="h-3.5 w-3.5"
-                    />
-                  )}
-                </span>
-                <span className="flex flex-col">
-                  <span className="flex items-center gap-2 text-sm font-medium leading-tight">
-                    {version.label}
-                    {isAttachedVersion && hasConnection && (
-                      <Badge
-                        variant="secondaryStatic"
-                        size="tag"
-                        className="bg-accent-blue-muted text-accent-blue-muted-foreground"
-                      >
-                        ATTACHED
-                      </Badge>
+                  <span
+                    className={cn(
+                      "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-muted-foreground bg-background",
+                    )}
+                  >
+                    {isSelected && (
+                      <ForwardedIconComponent
+                        name="Check"
+                        className="h-3.5 w-3.5"
+                      />
                     )}
                   </span>
-                  <span className="text-sm leading-tight text-muted-foreground">
-                    Last updated: {version.lastUpdated}
+                  <span className="flex flex-col">
+                    <span className="flex items-center gap-2 text-sm font-medium leading-tight">
+                      {version.version_tag}
+                      {isAttachedVersion && hasConnection && (
+                        <Badge
+                          variant="secondaryStatic"
+                          size="tag"
+                          className="bg-accent-blue-muted text-accent-blue-muted-foreground"
+                        >
+                          ATTACHED
+                        </Badge>
+                      )}
+                    </span>
+                    <span className="text-sm leading-tight text-muted-foreground">
+                      Created:{" "}
+                      {new Date(version.created_at).toLocaleDateString()}
+                    </span>
                   </span>
-                </span>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })
+          )}
         </div>
         <Button
           className="w-full"
@@ -467,6 +498,7 @@ function ConnectionPanel({
                 </span>
                 <div className="space-y-2">
                   {envVars.map((envVar, index) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: This is a simple form, using index as key is acceptable here
                     <div key={index} className="grid grid-cols-2 gap-2">
                       <Input
                         placeholder="Key"

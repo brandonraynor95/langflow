@@ -1,3 +1,4 @@
+import { useParams } from "react-router-dom";
 import {
   Accordion,
   AccordionContent,
@@ -5,8 +6,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { useGetRefreshFlowsQuery } from "@/controllers/API/queries/flows/use-get-refresh-flows-query";
+import { useFolderStore } from "@/stores/foldersStore";
 import { useDeploymentStepper } from "../contexts/DeploymentStepperContext";
-import { MOCK_CONNECTIONS, MOCK_FLOWS_WITH_VERSIONS } from "../mock-data";
+import { MOCK_CONNECTIONS } from "../mock-data";
 
 function ReviewField({ label, value }: { label: string; value: string }) {
   return (
@@ -26,12 +29,26 @@ export default function StepReview() {
     selectedVersionByFlow,
     attachedConnectionByFlow,
   } = useDeploymentStepper();
-  const flows = MOCK_FLOWS_WITH_VERSIONS;
+
+  const { folderId } = useParams();
+  const myCollectionId = useFolderStore((state) => state.myCollectionId);
+  const currentFolderId = folderId ?? myCollectionId;
+
+  const { data: flowsData } = useGetRefreshFlowsQuery(
+    {
+      get_all: true,
+      remove_example_flows: true,
+    },
+    { enabled: !!currentFolderId },
+  );
+  const allFlows = (Array.isArray(flowsData) ? flowsData : []).filter(
+    (f) => f.folder_id === currentFolderId,
+  );
   const connections = MOCK_CONNECTIONS;
+
   const reviewFlows = Array.from(selectedVersionByFlow.entries()).map(
-    ([flowId, versionId]) => {
-      const flow = flows.find((f) => f.id === flowId);
-      const version = flow?.versions.find((v) => v.id === versionId);
+    ([flowId, { versionId, versionTag }]) => {
+      const flow = allFlows.find((f) => f.id === flowId);
       const connectionId = attachedConnectionByFlow.get(flowId);
       const connection = connectionId
         ? connections.find((c) => c.id === connectionId)
@@ -39,8 +56,7 @@ export default function StepReview() {
       return {
         flowId,
         flowName: flow?.name ?? "Unknown",
-        versionLabel: version?.label ?? "—",
-        versionDate: version?.lastUpdated ?? "—",
+        versionLabel: versionTag || versionId,
         connectionName: connection?.name ?? "Not configured",
       };
     },
@@ -94,14 +110,6 @@ export default function StepReview() {
                       <span className="text-muted-foreground">Version</span>
                       <span className="text-foreground">
                         {item.versionLabel}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        Last updated
-                      </span>
-                      <span className="text-foreground">
-                        {item.versionDate}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">

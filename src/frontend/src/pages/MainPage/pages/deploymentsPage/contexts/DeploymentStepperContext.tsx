@@ -38,8 +38,12 @@ interface DeploymentStepperContextType {
   setDeploymentDescription: (description: string) => void;
 
   // Step 3: Attach Flows
-  selectedVersionByFlow: Map<string, string>;
-  handleSelectVersion: (flowId: string, versionId: string) => void;
+  selectedVersionByFlow: Map<string, { versionId: string; versionTag: string }>;
+  handleSelectVersion: (
+    flowId: string,
+    versionId: string,
+    versionTag: string,
+  ) => void;
   attachedConnectionByFlow: Map<string, string>;
   setAttachedConnectionByFlow: Dispatch<SetStateAction<Map<string, string>>>;
 }
@@ -65,7 +69,7 @@ export function DeploymentStepperProvider({
   const [deploymentName, setDeploymentName] = useState("");
   const [deploymentDescription, setDeploymentDescription] = useState("");
   const [selectedVersionByFlow, setSelectedVersionByFlow] = useState<
-    Map<string, string>
+    Map<string, { versionId: string; versionTag: string }>
   >(new Map());
   const [attachedConnectionByFlow, setAttachedConnectionByFlow] = useState<
     Map<string, string>
@@ -95,10 +99,10 @@ export function DeploymentStepperProvider({
   };
 
   const handleSelectVersion = useCallback(
-    (flowId: string, versionId: string) => {
+    (flowId: string, versionId: string, versionTag: string) => {
       setSelectedVersionByFlow((prev) => {
         const next = new Map(prev);
-        next.set(flowId, versionId);
+        next.set(flowId, { versionId, versionTag });
         return next;
       });
     },
