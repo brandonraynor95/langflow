@@ -1000,8 +1000,8 @@ class FileComponent(BaseFileComponent):
             """
         )
 
-        # Validate file_path to avoid command injection or unsafe input
-        if not isinstance(args["file_path"], str) or any(c in args["file_path"] for c in [";", "|", "&", "$", "`"]):
+        # Input goes through stdin (not shell); reject only clearly invalid path payloads.
+        if not isinstance(args["file_path"], str) or not args["file_path"] or "\x00" in args["file_path"]:
             return Data(data={"error": "Unsafe file path detected.", "file_path": args["file_path"]})
 
         proc = subprocess.run(  # noqa: S603
