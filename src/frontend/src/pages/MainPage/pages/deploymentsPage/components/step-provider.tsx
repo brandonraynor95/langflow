@@ -2,7 +2,7 @@ import { useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/utils/utils";
-import { useDeploymentStepper } from "../contexts/DeploymentStepperContext";
+import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
 import { MOCK_PROVIDER_INSTANCES, MOCK_PROVIDERS } from "../mock-data";
 import type {
   DeploymentProvider,
@@ -24,6 +24,9 @@ function ProviderCard({
   return (
     <button
       type="button"
+      role="radio"
+      aria-checked={selected}
+      data-testid={`provider-card-${provider.id}`}
       onClick={onSelect}
       className={cn(
         "flex h-[80px] items-center gap-3 rounded-lg border bg-muted p-3 text-left transition-colors",
@@ -211,7 +214,9 @@ export default function StepProvider() {
     credentials,
     setCredentials,
   } = useDeploymentStepper();
+  // TODO: replace with real API data
   const providers = MOCK_PROVIDERS;
+  // TODO: replace with real API data
   const instances = MOCK_PROVIDER_INSTANCES;
   const hasInstances = instances.length > 0;
 
@@ -227,7 +232,11 @@ export default function StepProvider() {
         <span className="pb-2 text-sm font-medium">
           Choose Provider <span className="text-destructive">*</span>
         </span>
-        <div className="grid grid-cols-2 gap-4">
+        <div
+          className="grid grid-cols-2 gap-4"
+          role="radiogroup"
+          aria-label="Provider"
+        >
           {providers.map((provider) => (
             <ProviderCard
               key={provider.id}

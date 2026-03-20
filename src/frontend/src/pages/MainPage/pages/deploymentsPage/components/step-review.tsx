@@ -8,7 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useGetRefreshFlowsQuery } from "@/controllers/API/queries/flows/use-get-refresh-flows-query";
 import { useFolderStore } from "@/stores/foldersStore";
-import { useDeploymentStepper } from "../contexts/DeploymentStepperContext";
+import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
 import { MOCK_CONNECTIONS } from "../mock-data";
 
 function ReviewField({ label, value }: { label: string; value: string }) {
@@ -44,6 +44,7 @@ export default function StepReview() {
   const allFlows = (Array.isArray(flowsData) ? flowsData : []).filter(
     (f) => f.folder_id === currentFolderId,
   );
+  // TODO: replace with real API data
   const connections = MOCK_CONNECTIONS;
 
   const reviewFlows = Array.from(selectedVersionByFlow.entries()).map(

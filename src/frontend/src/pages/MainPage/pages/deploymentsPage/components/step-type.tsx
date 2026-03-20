@@ -2,7 +2,7 @@ import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/utils/utils";
-import { useDeploymentStepper } from "../contexts/DeploymentStepperContext";
+import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
 import type { DeploymentType } from "../types";
 
 const TYPE_OPTIONS: {
@@ -17,14 +17,14 @@ const TYPE_OPTIONS: {
     label: "Agent",
     description: "Conversational agent with chat interface and tool calling",
     icon: "MessageSquare",
-    iconBg: "border-pink-500/20 bg-pink-500/20",
+    iconBg: "border-accent-pink-foreground/20 bg-accent-pink-foreground/20",
   },
   {
     type: "mcp",
     label: "MCP Server",
     description: "Model Context Protocol server for tool integration",
     icon: "Layers",
-    iconBg: "border-blue-500/20 bg-blue-500/20",
+    iconBg: "border-accent-blue-foreground/20 bg-accent-blue-foreground/20",
   },
 ];
 
@@ -45,11 +45,18 @@ export default function StepType() {
         <span className="text-sm font-medium">
           Choose Type <span className="text-destructive">*</span>
         </span>
-        <div className="grid grid-cols-2 gap-3">
+        <div
+          className="grid grid-cols-2 gap-3"
+          role="radiogroup"
+          aria-label="Deployment type"
+        >
           {TYPE_OPTIONS.map((option) => (
             <button
               key={option.type}
               type="button"
+              role="radio"
+              aria-checked={deploymentType === option.type}
+              data-testid={`deployment-type-${option.type}`}
               onClick={() => setDeploymentType(option.type)}
               className={cn(
                 "flex items-start gap-3 rounded-lg border bg-muted p-3 text-left transition-colors",

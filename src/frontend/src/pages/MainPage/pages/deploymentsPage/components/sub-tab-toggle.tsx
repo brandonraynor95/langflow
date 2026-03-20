@@ -23,6 +23,7 @@ export default function SubTabToggle({
         <Button
           key={tab.value}
           unstyled
+          data-testid={`subtab-${tab.value}`}
           onClick={() => onTabChange(tab.value)}
           className={cn(
             "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",

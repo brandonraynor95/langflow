@@ -1,5 +1,5 @@
 import { cn } from "@/utils/utils";
-import { useDeploymentStepper } from "../contexts/DeploymentStepperContext";
+import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
 
 export const DEPLOYMENT_STEPS = [
   { number: 1, label: "Provider" },
@@ -14,10 +14,7 @@ export default function DeploymentStepper() {
     ((currentStep - 1) / (DEPLOYMENT_STEPS.length - 1)) * 100;
 
   return (
-    <div
-      className="relative mx-auto w-full max-w-[700px]"
-      style={{ height: 52 }}
-    >
+    <div className="relative mx-auto h-[52px] w-full max-w-[700px]">
       {/* Track container — inset by half the circle width (16px) */}
       <div className="absolute left-4 right-4 top-4 h-[2px] bg-muted">
         {/* Progress fill */}

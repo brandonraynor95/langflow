@@ -13,7 +13,7 @@ import useAlertStore from "@/stores/alertStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import { cn } from "@/utils/utils";
 
-export type FlowTabType = "flows" | "components" | "mcp" | "deployments";
+import type { FlowTabType } from "../../types";
 
 interface HeaderComponentProps {
   flowType: FlowTabType;

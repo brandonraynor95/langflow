@@ -9,12 +9,12 @@ import {
 import {
   DeploymentStepperProvider,
   useDeploymentStepper,
-} from "../contexts/DeploymentStepperContext";
-import DeploymentStepper from "./DeploymentStepper";
-import StepAttachFlows from "./StepAttachFlows";
-import StepProvider from "./StepProvider";
-import StepReview from "./StepReview";
-import StepType from "./StepType";
+} from "../contexts/deployment-stepper-context";
+import DeploymentStepper from "./deployment-stepper";
+import StepAttachFlows from "./step-attach-flows";
+import StepProvider from "./step-provider";
+import StepReview from "./step-review";
+import StepType from "./step-type";
 
 interface DeploymentStepperModalProps {
   open: boolean;

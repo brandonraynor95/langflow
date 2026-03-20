@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
-import DeploymentStepperModal from "./components/DeploymentStepperModal";
-import DeploymentsEmptyState from "./components/DeploymentsEmptyState";
-import DeploymentsLoadingSkeleton from "./components/DeploymentsLoadingSkeleton";
-import DeploymentsTable from "./components/DeploymentsTable";
-import SubTabToggle, { type DeploymentSubTab } from "./components/SubTabToggle";
+import DeploymentStepperModal from "./components/deployment-stepper-modal";
+import DeploymentsEmptyState from "./components/deployments-empty-state";
+import DeploymentsLoadingSkeleton from "./components/deployments-loading-skeleton";
+import DeploymentsTable from "./components/deployments-table";
+import SubTabToggle, {
+  type DeploymentSubTab,
+} from "./components/sub-tab-toggle";
+// TODO: replace with real API data
 import { MOCK_DEPLOYMENTS } from "./mock-data";
 
 export default function DeploymentsPage() {
@@ -14,7 +17,7 @@ export default function DeploymentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [stepperOpen, setStepperOpen] = useState(false);
 
-  // Simulate loading with mock data
+  // TODO: replace with real API loading state
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);

@@ -1,4 +1,4 @@
-import type { ConnectionItem } from "./components/StepAttachFlows";
+import type { ConnectionItem } from "./components/step-attach-flows";
 import type { Deployment, DeploymentProvider, ProviderInstance } from "./types";
 
 export const MOCK_PROVIDERS: DeploymentProvider[] = [

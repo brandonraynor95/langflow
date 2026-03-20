@@ -90,7 +90,10 @@ export default function DeploymentsTable({
       </TableHeader>
       <TableBody>
         {deployments.map((deployment) => (
-          <TableRow key={deployment.id}>
+          <TableRow
+            key={deployment.id}
+            data-testid={`deployment-row-${deployment.id}`}
+          >
             <TableCell>
               <div className="flex flex-col">
                 <span className="font-medium">{deployment.name}</span>
@@ -130,6 +133,7 @@ export default function DeploymentsTable({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
+                data-testid={`test-deployment-${deployment.id}`}
                 aria-label={`Test ${deployment.name}`}
               >
                 <ForwardedIconComponent name="Play" className="h-4 w-4" />
@@ -140,6 +144,7 @@ export default function DeploymentsTable({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
+                data-testid={`actions-deployment-${deployment.id}`}
                 aria-label={`Actions for ${deployment.name}`}
               >
                 <ForwardedIconComponent

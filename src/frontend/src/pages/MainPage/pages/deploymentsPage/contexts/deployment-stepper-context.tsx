@@ -5,6 +5,7 @@ import {
   type SetStateAction,
   useCallback,
   useContext,
+  useMemo,
   useState,
 } from "react";
 import type {
@@ -78,25 +79,22 @@ export function DeploymentStepperProvider({
   const canGoNext =
     (currentStep === 1 && selectedProvider !== null) ||
     (currentStep === 2 && deploymentName.trim() !== "") ||
-    (currentStep === 3 && selectedVersionByFlow.size > 0);
+    (currentStep === 3 && selectedVersionByFlow.size > 0) ||
+    currentStep === 4;
 
-  const handleNext = () => {
-    if (currentStep < 4) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
+  const handleNext = useCallback(() => {
+    setCurrentStep((prev) => (prev < 4 ? prev + 1 : prev));
+  }, []);
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  const handleBack = useCallback(() => {
+    setCurrentStep((prev) => (prev > 1 ? prev - 1 : prev));
+  }, []);
 
-  const setSelectedProvider = (provider: DeploymentProvider) => {
+  const setSelectedProvider = useCallback((provider: DeploymentProvider) => {
     setSelectedProviderState(provider);
     setSelectedInstance(null);
     setCredentials({ apiKey: "", serviceUrl: "" });
-  };
+  }, []);
 
   const handleSelectVersion = useCallback(
     (flowId: string, versionId: string, versionTag: string) => {
@@ -109,31 +107,49 @@ export function DeploymentStepperProvider({
     [],
   );
 
+  const value = useMemo<DeploymentStepperContextType>(
+    () => ({
+      currentStep,
+      canGoNext,
+      handleNext,
+      handleBack,
+      selectedProvider,
+      setSelectedProvider,
+      selectedInstance,
+      setSelectedInstance,
+      credentials,
+      setCredentials,
+      deploymentType,
+      setDeploymentType,
+      deploymentName,
+      setDeploymentName,
+      deploymentDescription,
+      setDeploymentDescription,
+      selectedVersionByFlow,
+      handleSelectVersion,
+      attachedConnectionByFlow,
+      setAttachedConnectionByFlow,
+    }),
+    [
+      currentStep,
+      canGoNext,
+      handleNext,
+      handleBack,
+      selectedProvider,
+      setSelectedProvider,
+      selectedInstance,
+      credentials,
+      deploymentType,
+      deploymentName,
+      deploymentDescription,
+      selectedVersionByFlow,
+      handleSelectVersion,
+      attachedConnectionByFlow,
+    ],
+  );
+
   return (
-    <DeploymentStepperContext.Provider
-      value={{
-        currentStep,
-        canGoNext,
-        handleNext,
-        handleBack,
-        selectedProvider,
-        setSelectedProvider,
-        selectedInstance,
-        setSelectedInstance,
-        credentials,
-        setCredentials,
-        deploymentType,
-        setDeploymentType,
-        deploymentName,
-        setDeploymentName,
-        deploymentDescription,
-        setDeploymentDescription,
-        selectedVersionByFlow,
-        handleSelectVersion,
-        attachedConnectionByFlow,
-        setAttachedConnectionByFlow,
-      }}
-    >
+    <DeploymentStepperContext.Provider value={value}>
       {children}
     </DeploymentStepperContext.Provider>
   );

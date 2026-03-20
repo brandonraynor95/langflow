@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { useFolderStore } from "@/stores/foldersStore";
 import type { FlowType } from "@/types/flow";
 import type { FlowVersionEntry } from "@/types/flow/version";
 import { cn } from "@/utils/utils";
-import { useDeploymentStepper } from "../contexts/DeploymentStepperContext";
+import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
 import { MOCK_CONNECTIONS } from "../mock-data";
 
 export interface ConnectionItem {
@@ -47,11 +47,10 @@ export default function StepAttachFlows() {
       (f) => !f.is_component && f.folder_id === currentFolderId,
     );
   }, [flowsData, currentFolderId]);
+  // TODO: replace with real API data
   const connections = MOCK_CONNECTIONS;
 
-  const [selectedFlowId, setSelectedFlowId] = useState<string | null>(
-    flows[0]?.id ?? null,
-  );
+  const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
   const [pendingVersion, setPendingVersion] = useState<string | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanelView>("versions");
   const [connectionTab, setConnectionTab] =
@@ -64,6 +63,12 @@ export default function StepAttachFlows() {
   const [envVars, setEnvVars] = useState<{ key: string; value: string }[]>([
     { key: "", value: "" },
   ]);
+
+  useEffect(() => {
+    if (!selectedFlowId && flows.length > 0) {
+      setSelectedFlowId(flows[0].id);
+    }
+  }, [flows, selectedFlowId]);
 
   const { data: versionResponse, isLoading: isLoadingVersions } =
     useGetFlowVersions(
@@ -156,6 +161,7 @@ export default function StepAttachFlows() {
                 <button
                   key={flow.id}
                   type="button"
+                  data-testid={`flow-item-${flow.id}`}
                   onClick={() => handleSelectFlow(flow.id)}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors",
@@ -279,7 +285,11 @@ function VersionPanel({
       </div>
       <div className="flex flex-1 flex-col overflow-hidden px-4 py-2">
         <h3 className="py-2 text-lg font-semibold">{selectedFlow.name}</h3>
-        <div className="flex-1 space-y-3 overflow-y-auto py-3">
+        <div
+          className="flex-1 space-y-3 overflow-y-auto py-3"
+          role="radiogroup"
+          aria-label="Flow versions"
+        >
           {isLoadingVersions ? (
             <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
               Loading versions...
@@ -297,6 +307,9 @@ function VersionPanel({
                 <button
                   key={version.id}
                   type="button"
+                  role="radio"
+                  aria-checked={pendingVersion === version.id}
+                  data-testid={`version-item-${version.id}`}
                   onClick={() => onSelectPending(version.id)}
                   className={cn(
                     "flex w-full items-center gap-4 rounded-xl border bg-muted p-3 text-left transition-colors",
@@ -425,13 +438,20 @@ function ConnectionPanel({
         {/* Tab content */}
         <div className="mt-4 flex-1 overflow-y-auto">
           {connectionTab === "available" ? (
-            <div className="space-y-3">
+            <div
+              className="space-y-3"
+              role="radiogroup"
+              aria-label="Connections"
+            >
               {connections.map((conn) => {
                 const isSelected = selectedConnection === conn.id;
                 return (
                   <button
                     key={conn.id}
                     type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    data-testid={`connection-item-${conn.id}`}
                     onClick={() =>
                       onSelectConnection(isSelected ? null : conn.id)
                     }

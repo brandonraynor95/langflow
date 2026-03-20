@@ -14,7 +14,12 @@ export default function DeploymentsEmptyState({
       <p className="mt-1 text-sm text-muted-foreground">
         Create your first deployment to run your flows in production.
       </p>
-      <Button variant="outline" className="mt-4" onClick={onCreateDeployment}>
+      <Button
+        variant="outline"
+        className="mt-4"
+        data-testid="create-deployment-empty-btn"
+        onClick={onCreateDeployment}
+      >
         <ForwardedIconComponent name="Plus" className="h-4 w-4" />
         Create Deployment
       </Button>
