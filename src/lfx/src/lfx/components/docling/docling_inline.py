@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import queue
 import threading
 import time
@@ -85,6 +86,16 @@ class DoclingInlineComponent(BaseFileComponent):
             info="The user prompt to use when invoking the model.",
             advanced=True,
         ),
+        BoolInput(
+            name="isolate_in_subprocess",
+            display_name="Run in isolated process",
+            info=(
+                "Run Docling in a separate process to reduce the chance of killing the backend worker when "
+                "documents are very heavy. Disable to prioritize converter caching and speed."
+            ),
+            value=True,
+            advanced=True,
+        ),
         # TODO: expose more Docling options
     ]
 
@@ -144,6 +155,56 @@ class DoclingInlineComponent(BaseFileComponent):
         if thread.is_alive():
             self.log("Warning: Thread still alive after timeout")
 
+    def _wait_for_result_with_process_monitoring(self, result_queue: queue.Queue, process: mp.Process, timeout: int = 300):
+        """Wait for queue result while monitoring process health.
+
+        Provides a clearer error when the worker process is killed by the OS
+        (typically due to memory pressure).
+        """
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            if not process.is_alive():
+                try:
+                    result = result_queue.get_nowait()
+                except queue.Empty:
+                    if process.exitcode == -9:
+                        msg = (
+                            "Docling worker process was killed (SIGKILL), likely due to out-of-memory. "
+                            "Try smaller files, disable OCR, or run in a higher-memory environment."
+                        )
+                        raise RuntimeError(msg) from None
+
+                    msg = f"Docling worker process exited unexpectedly (exitcode={process.exitcode})."
+                    raise RuntimeError(msg) from None
+                else:
+                    self.log("Process completed and result retrieved")
+                    return result
+
+            try:
+                result = result_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+            else:
+                self.log("Result received from worker process")
+                return result
+
+        msg = f"Docling worker process timed out after {timeout} seconds"
+        raise TimeoutError(msg)
+
+    def _stop_process_gracefully(self, process: mp.Process, timeout: int = 10):
+        if not process.is_alive():
+            return
+
+        self.log("Stopping Docling worker process")
+        process.terminate()
+        process.join(timeout=timeout)
+
+        if process.is_alive():
+            self.log("Worker process still alive after terminate; forcing kill")
+            process.kill()
+            process.join(timeout=2)
+
     def process_files(self, file_list: list[BaseFileComponent.BaseFile]) -> list[BaseFileComponent.BaseFile]:
         try:
             from docling.document_converter import DocumentConverter  # noqa: F401
@@ -164,37 +225,51 @@ class DoclingInlineComponent(BaseFileComponent):
         if self.pic_desc_llm is not None:
             pic_desc_config = _serialize_pydantic_model(self.pic_desc_llm)
 
-        # Use threading instead of multiprocessing for memory sharing
-        # This enables the global DocumentConverter cache to work across runs
-        result_queue: queue.Queue = queue.Queue()
-        thread = threading.Thread(
-            target=docling_worker,
-            kwargs={
-                "file_paths": file_paths,
-                "queue": result_queue,
-                "pipeline": self.pipeline,
-                "ocr_engine": self.ocr_engine,
-                "do_picture_classification": self.do_picture_classification,
-                "pic_desc_config": pic_desc_config,
-                "pic_desc_prompt": self.pic_desc_prompt,
-            },
-            daemon=False,  # Allow thread to complete even if main thread exits
-        )
+        worker_kwargs = {
+            "file_paths": file_paths,
+            "pipeline": self.pipeline,
+            "ocr_engine": self.ocr_engine,
+            "do_picture_classification": self.do_picture_classification,
+            "pic_desc_config": pic_desc_config,
+            "pic_desc_prompt": self.pic_desc_prompt,
+        }
 
         result = None
-        thread.start()
+        if self.isolate_in_subprocess:
+            result_queue: queue.Queue = mp.Queue()
+            process = mp.Process(target=docling_worker, kwargs={**worker_kwargs, "queue": result_queue}, daemon=False)
+            process.start()
 
-        try:
-            result = self._wait_for_result_with_thread_monitoring(result_queue, thread, timeout=300)
-        except KeyboardInterrupt:
-            self.log("Docling thread cancelled by user")
-            result = []
-        except Exception as e:
-            self.log(f"Error during processing: {e}")
-            raise
-        finally:
-            # Wait for thread to complete gracefully
-            self._stop_thread_gracefully(thread)
+            try:
+                result = self._wait_for_result_with_process_monitoring(result_queue, process, timeout=300)
+            except KeyboardInterrupt:
+                self.log("Docling process cancelled by user")
+                result = []
+            except Exception as e:
+                self.log(f"Error during processing: {e}")
+                raise
+            finally:
+                self._stop_process_gracefully(process)
+        else:
+            # Thread mode allows converter cache reuse across runs and is faster on repeated executions.
+            result_queue = queue.Queue()
+            thread = threading.Thread(
+                target=docling_worker,
+                kwargs={**worker_kwargs, "queue": result_queue},
+                daemon=False,
+            )
+            thread.start()
+
+            try:
+                result = self._wait_for_result_with_thread_monitoring(result_queue, thread, timeout=300)
+            except KeyboardInterrupt:
+                self.log("Docling thread cancelled by user")
+                result = []
+            except Exception as e:
+                self.log(f"Error during processing: {e}")
+                raise
+            finally:
+                self._stop_thread_gracefully(thread)
 
         # Enhanced error checking with dependency-specific handling
         if isinstance(result, dict) and "error" in result:
