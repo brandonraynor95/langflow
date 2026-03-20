@@ -111,6 +111,12 @@ async def delete_messages(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ) -> None:
     try:
+        # Ownership guard lives in the CRUD layer: only messages belonging to
+        # current_user are selected and deleted; foreign IDs are ignored.
+        #
+        # Practical effect:
+        # - Mixed lists (owned + foreign IDs) only delete owned rows.
+        # - Pure foreign lists keep endpoint idempotent with 204 and no changes.
         await delete_messages_for_user(session, current_user.id, message_ids)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
@@ -124,16 +130,21 @@ async def update_message(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     try:
+        # Fetch is scoped by user ownership. A foreign message ID resolves to
+        # None so callers receive the same 404 as a non-existent message.
+        # This avoids leaking whether another user's message exists.
         db_message = await get_message_for_user(session, current_user.id, message_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
     if not db_message:
+        # Intentionally return 404 for both "not found" and "not owned".
         raise HTTPException(status_code=404, detail="Message not found")
 
     try:
         message_dict = message.model_dump(exclude_unset=True, exclude_none=True)
         if "text" in message_dict and message_dict["text"] != db_message.text:
+            # Keep edit flag consistent for UI/audit consumers when content changes.
             message_dict["edit"] = True
         db_message.sqlmodel_update(message_dict)
         session.add(db_message)
@@ -155,11 +166,15 @@ async def update_session_id(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ) -> list[MessageResponse]:
     try:
+        # Session updates are ownership-scoped to prevent session hijacking
+        # across users that might share or guess a session_id value.
+        # This endpoint is sensitive because a single call can move many rows.
         messages = await get_messages_for_user_by_session(session, current_user.id, old_session_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
     if not messages:
+        # Same response for "session does not exist" and "session exists but is foreign".
         raise HTTPException(status_code=404, detail="No messages found with the given session ID")
 
     try:
@@ -187,6 +202,9 @@ async def delete_messages_session(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     try:
+        # Keep endpoint idempotent (204) while enforcing ownership in CRUD.
+        # If the session belongs to another user, this becomes a safe no-op.
+        # This preserves existing client behavior while blocking cross-user deletes.
         await delete_messages_for_user_by_session(session, current_user.id, session_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
