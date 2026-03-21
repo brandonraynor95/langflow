@@ -42,6 +42,12 @@ VALIDATE_LEVEL="${VALIDATE_LEVEL:-4}"
 VALIDATE_FORMAT="${VALIDATE_FORMAT:-text}"
 LFX_VERSION="${LFX_VERSION:-}"
 
+# Normalise LFX_VERSION: if it looks like a bare version (starts with a digit),
+# prepend "==" so the pip specifier is valid.
+if [[ -n "${LFX_VERSION}" && "${LFX_VERSION}" =~ ^[0-9] ]]; then
+  LFX_VERSION="==${LFX_VERSION}"
+fi
+
 # ── Install lfx ───────────────────────────────────────────────────────────── #
 
 echo "==> Installing lfx${LFX_VERSION:+ ${LFX_VERSION}} ..."

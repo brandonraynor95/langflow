@@ -66,6 +66,12 @@ LANGFLOW_ENVIRONMENTS_FILE="${LANGFLOW_ENVIRONMENTS_FILE:-langflow-environments.
 
 # ── Install dependencies ───────────────────────────────────────────────────── #
 
+# Normalise SDK_VERSION: if it looks like a bare version (starts with a digit),
+# prepend "==" so the pip specifier is valid.
+if [[ -n "${SDK_VERSION}" && "${SDK_VERSION}" =~ ^[0-9] ]]; then
+  SDK_VERSION="==${SDK_VERSION}"
+fi
+
 echo "==> Installing langflow-sdk[testing] and pytest ..."
 pip install --quiet \
   "langflow-sdk[testing]${SDK_VERSION}" \

@@ -11,6 +11,7 @@ Preferred usage via the short aliases::
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import zipfile
@@ -429,7 +430,15 @@ class LangflowClient:
 
         Each flow is normalized (volatile fields stripped, keys sorted) before
         being written as ``<flow-name>.json``.  *output_dir* is created if it
-        does not exist.  Returns a mapping of ``{flow_name: file_path}``::
+        does not exist.  Returns a mapping of ``{flow_name: file_path}``.
+
+        .. note::
+            If two flows in the project share the same name the second one
+            overwrites the first on disk and in the returned mapping.  Flow
+            names within a project should be unique; this situation indicates
+            a data problem on the server.
+
+        ::
 
             written = client.pull_project("project-id", output_dir="flows/")
             for name, path in written.items():
@@ -758,14 +767,15 @@ class AsyncLangflowClient:
         return normalized
 
     async def push_project(self, directory: str | Path) -> list[tuple[Flow, bool]]:
-        """Push all ``*.json`` flow files in *directory* to the server.
+        """Push all ``*.json`` flow files in *directory* to the server concurrently.
 
-        Returns a list of ``(flow, created)`` pairs::
+        Returns a list of ``(flow, created)`` pairs in sorted filename order::
 
             results = await client.push_project("flows/my-project/")
         """
         directory = Path(directory)
-        return [await self.push(p) for p in sorted(directory.glob("*.json"))]
+        paths = sorted(directory.glob("*.json"))
+        return list(await asyncio.gather(*[self.push(p) for p in paths]))
 
     async def pull_project(
         self,
@@ -776,7 +786,13 @@ class AsyncLangflowClient:
         """Download all flows in a project and write them to *output_dir*.
 
         Each flow is normalized before being written as ``<flow-name>.json``.
-        Returns ``{flow_name: file_path}``::
+        Returns ``{flow_name: file_path}``.
+
+        .. note::
+            Flows with duplicate names overwrite each other.  See
+            :meth:`LangflowClient.pull_project` for details.
+
+        ::
 
             written = await client.pull_project("project-id", output_dir="flows/")
         """

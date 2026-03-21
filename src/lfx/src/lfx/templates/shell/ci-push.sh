@@ -71,6 +71,12 @@ LANGFLOW_PROJECT_ID="${LANGFLOW_PROJECT_ID:-}"
 DRY_RUN="${DRY_RUN:-false}"
 LFX_VERSION="${LFX_VERSION:-}"
 
+# Normalise LFX_VERSION: if it looks like a bare version (starts with a digit),
+# prepend "==" so the pip specifier is valid.
+if [[ -n "${LFX_VERSION}" && "${LFX_VERSION}" =~ ^[0-9] ]]; then
+  LFX_VERSION="==${LFX_VERSION}"
+fi
+
 # ── Install lfx ───────────────────────────────────────────────────────────── #
 
 echo "==> Installing lfx${LFX_VERSION:+ ${LFX_VERSION}} ..."
