@@ -393,12 +393,18 @@ describe("SidebarSegmentedNav", () => {
   });
 
   it("exports NAV_ITEMS correctly", () => {
-    expect(NAV_ITEMS).toHaveLength(7);
+    expect(NAV_ITEMS).toHaveLength(8);
     expect(NAV_ITEMS[0]).toEqual({
       id: "search",
       icon: "search",
       label: "Search",
       tooltip: "Search",
+    });
+    expect(NAV_ITEMS[2]).toEqual({
+      id: "mcp",
+      icon: "Mcp",
+      label: "MCP",
+      tooltip: "MCP",
     });
     expect(NAV_ITEMS[3]).toEqual({
       id: "bundles",
@@ -424,6 +430,12 @@ describe("SidebarSegmentedNav", () => {
       label: "Traces",
       tooltip: "Traces",
     });
+    expect(NAV_ITEMS[7]).toEqual({
+      id: "memories",
+      icon: "Brain",
+      label: "Memories",
+      tooltip: "Memories",
+    });
   });
 
   it("sets active section to traces when clicking traces", () => {
@@ -448,6 +460,18 @@ describe("SidebarSegmentedNav", () => {
 
     expect(mockPlaygroundStore.setIsOpen).toHaveBeenCalledWith(false);
     expect(mockPlaygroundStore.setIsFullscreen).toHaveBeenCalledWith(false);
+    expect(mockUseSidebar.setActiveSection).toHaveBeenCalledWith("components");
+    expect(mockUseSidebar.toggleSidebar).not.toHaveBeenCalled();
+  });
+
+  it("toggles back to components when clicking memories while already active and open", () => {
+    mockUseSidebar.activeSection = "memories";
+    mockUseSidebar.open = true;
+    render(<SidebarSegmentedNav />);
+
+    const memoriesButton = screen.getByTestId("sidebar-nav-memories");
+    fireEvent.click(memoriesButton);
+
     expect(mockUseSidebar.setActiveSection).toHaveBeenCalledWith("components");
     expect(mockUseSidebar.toggleSidebar).not.toHaveBeenCalled();
   });
@@ -495,6 +519,23 @@ describe("SidebarSegmentedNav", () => {
 
     it("exits traces and returns to canvas when add_note is clicked in traces", () => {
       mockUseSidebar.activeSection = "traces";
+      render(<SidebarSegmentedNav />);
+
+      const addNoteButton = screen.getByTestId("sidebar-nav-add_note");
+      fireEvent.click(addNoteButton);
+
+      expect(mockUseSidebar.setActiveSection).toHaveBeenCalledWith(
+        "components",
+      );
+      expect(mockDispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "lf:start-add-note",
+        }),
+      );
+    });
+
+    it("exits memories and returns to canvas when add_note is clicked in memories", () => {
+      mockUseSidebar.activeSection = "memories";
       render(<SidebarSegmentedNav />);
 
       const addNoteButton = screen.getByTestId("sidebar-nav-add_note");
