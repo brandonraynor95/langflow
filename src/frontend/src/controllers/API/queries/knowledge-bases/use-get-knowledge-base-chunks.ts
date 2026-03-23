@@ -63,7 +63,13 @@ export const useGetKnowledgeBaseChunks: useQueryFunctionType<
     getChunksFn,
     {
       enabled: !!params?.kb_name,
-      retry: false,
+      retry: (failureCount, error: any) => {
+        const status = error?.response?.status;
+        if (typeof status === "number") {
+          return status >= 500 && failureCount < 3;
+        }
+        return failureCount < 3;
+      },
       refetchOnWindowFocus: false,
       ...options,
     },
