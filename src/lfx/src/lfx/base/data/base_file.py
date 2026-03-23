@@ -253,13 +253,16 @@ class BaseFileComponent(Component, ABC):
         # structured and markdown outputs are cached independently.
         markdown_flag = getattr(self, "markdown", False)
         cache_attr = f"_load_files_core_cache_{markdown_flag}"
+        cache_paths_attr = f"_load_files_core_paths_{markdown_flag}"
 
-        if hasattr(self, cache_attr):
+        current_paths = tuple(getattr(self, "path", []) or [])
+        if hasattr(self, cache_attr) and getattr(self, cache_paths_attr, None) == current_paths:
             return getattr(self, cache_attr)
 
         data_list = self.load_files_base()
         result = data_list if data_list else [Data()]
         setattr(self, cache_attr, result)
+        setattr(self, cache_paths_attr, current_paths)
         return result
 
     def _extract_file_metadata(self, data_item) -> dict:
