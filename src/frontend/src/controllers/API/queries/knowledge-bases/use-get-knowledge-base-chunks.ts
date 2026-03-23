@@ -63,6 +63,7 @@ export const useGetKnowledgeBaseChunks: useQueryFunctionType<
     getChunksFn,
     {
       enabled: !!params?.kb_name,
+      retry: false,
       refetchOnWindowFocus: false,
       ...options,
     },
