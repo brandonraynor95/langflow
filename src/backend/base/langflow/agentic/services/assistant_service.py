@@ -6,14 +6,18 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException
+from lfx.components.tools.flow_builder_tools import drain_flow_events, init_working_flow, reset_working_flow
+from lfx.graph.flow_builder.flow import flow_to_spec_summary
 from lfx.log.logger import logger
 
-from langflow.agentic.helpers.code_extraction import extract_component_code
+from langflow.agentic.helpers.code_extraction import extract_component_code, extract_flow_json
 from langflow.agentic.helpers.error_handling import extract_friendly_error
 from langflow.agentic.helpers.sse import (
     format_cancelled_event,
     format_complete_event,
     format_error_event,
+    format_flow_preview_event,
+    format_flow_update_event,
     format_progress_event,
     format_token_event,
 )
@@ -24,11 +28,36 @@ from langflow.agentic.services.flow_executor import (
     extract_response_text,
 )
 from langflow.agentic.services.flow_types import (
+    FLOW_BUILDER_ASSISTANT_FLOW,
     MAX_VALIDATION_RETRIES,
     VALIDATION_RETRY_TEMPLATE,
     VALIDATION_UI_DELAY_SECONDS,
 )
 from langflow.agentic.services.helpers.intent_classification import classify_intent
+
+
+async def _get_current_flow_summary(flow_id: str | None) -> str | None:
+    """Build a spec-like summary and initialize working flow from the user's canvas."""
+    if not flow_id:
+        return None
+    try:
+        from uuid import UUID
+
+        from lfx.services.deps import session_scope
+
+        from langflow.services.database.models.flow import Flow
+
+        async with session_scope() as session:
+            flow = await session.get(Flow, UUID(flow_id))
+            if flow and flow.data:
+                flow_dict = {"name": flow.name, "data": flow.data}
+                # Initialize working flow so tools can read/write the actual canvas
+                init_working_flow(flow_dict, flow_id)
+                return flow_to_spec_summary(flow_dict)
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not load current flow for context", exc_info=True)
+    return None
+
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Callable, Coroutine
@@ -74,6 +103,14 @@ async def execute_flow_with_validation(
         )
 
         response_text = extract_response_text(result)
+
+        # Check if the flow builder tools produced updates
+        flow_updates = drain_flow_events()
+        if flow_updates:
+            logger.info("Flow updates from agent in non-streaming response")
+            reset_working_flow()
+            return {**result, "has_flow": True, "flow_updates": flow_updates}
+
         code = extract_component_code(response_text)
 
         if not code:
@@ -158,9 +195,23 @@ async def execute_flow_with_validation_streaming(
         api_key_var=api_key_var,
     )
 
-    # Check if this is a component generation request based on LLM classification
+    # Route based on intent classification
     is_component_request = intent_result.intent == "generate_component"
-    logger.info(f"Intent classification: {intent_result.intent} (is_component_request={is_component_request})")
+    is_flow_request = intent_result.intent == "build_flow"
+    logger.info(f"Intent classification: {intent_result.intent}")
+
+    # Reset flow builder state for each request
+    reset_working_flow()
+
+    # Inject current flow context for all intents so the agent
+    # can answer questions about or modify the user's canvas
+    current_flow_summary = await _get_current_flow_summary(global_variables.get("FLOW_ID"))
+    if current_flow_summary:
+        current_input = f"[Current flow on canvas:\n{current_flow_summary}\n]\n\n{current_input}"
+
+    # Use the flow builder assistant for flow building requests
+    if is_flow_request:
+        flow_filename = FLOW_BUILDER_ASSISTANT_FLOW
 
     # Create cancel event for propagating cancellation to flow executor
     cancel_event = asyncio.Event()
@@ -186,7 +237,12 @@ async def execute_flow_with_validation_streaming(
             logger.debug(f"Starting attempt {attempt}, is_disconnected provided: {is_disconnected is not None}")
 
             # Step 1: Generating (different step name based on intent)
-            step_name: StepType = "generating_component" if is_component_request else "generating"
+            if is_component_request:
+                step_name: StepType = "generating_component"
+            elif is_flow_request:
+                step_name = "generating_flow"
+            else:
+                step_name = "generating"
             yield format_progress_event(
                 step_name,
                 attempt,  # 0 for first try, 1+ for retries
@@ -210,11 +266,22 @@ async def execute_flow_with_validation_streaming(
             )
             try:
                 # Use streaming executor to get token events
+                has_flow_updates = False
                 async for event_type, event_data in flow_generator:
                     if event_type == "token":
-                        # Stream tokens for both Q&A and component generation
-                        # For components, the frontend shows live code preview
+                        # Drain any flow_update events from tools
+                        for update in drain_flow_events():
+                            has_flow_updates = True
+                            yield format_flow_update_event(update)
                         yield format_token_event(event_data)
+                    elif event_type == "flow_preview":
+                        has_flow_updates = True
+                        yield format_flow_preview_event(
+                            flow_data=event_data.get("flow", {}),
+                            name=event_data.get("name", ""),
+                            node_count=event_data.get("node_count", 0),
+                            edge_count=event_data.get("edge_count", 0),
+                        )
                     elif event_type == "end":
                         # Flow completed, store result
                         result = event_data
@@ -259,18 +326,42 @@ async def execute_flow_with_validation_streaming(
                 message="Response ready",
             )
 
-            # Always try to extract component code from the response,
-            # regardless of intent classification. This handles follow-up
-            # modification requests (e.g., "can you use dataframe output instead?")
-            # that get classified as "question" but actually generate component code.
+            # Extract the response text and check for flow or component artifacts
             response_text = extract_response_text(result)
+
+            # Drain any remaining flow events
+            for update in drain_flow_events():
+                has_flow_updates = True
+                yield format_flow_update_event(update)
+
+            if has_flow_updates:
+                yield format_complete_event({**result, "has_flow": True})
+                reset_working_flow()
+                return
+
+            # Fallback: check for flow JSON in the response text
+            flow_data = extract_flow_json(response_text)
+            if flow_data and "data" in flow_data and "nodes" in flow_data.get("data", {}):
+                logger.info("Flow data found in response text, sending flow preview")
+                yield format_flow_preview_event(
+                    flow_data=flow_data,
+                    name=flow_data.get("name", ""),
+                    node_count=len(flow_data["data"].get("nodes", [])),
+                    edge_count=len(flow_data["data"].get("edges", [])),
+                )
+                yield format_complete_event({**result, "has_flow": True})
+                return
+
+            # Try to extract component code from the response.
+            # This handles both explicit component generation and follow-up
+            # modification requests that produce component code.
             code = extract_component_code(response_text)
 
             # Only proceed with validation if the code looks like a Langflow component
             has_component_code = code and "class " in code and "Component" in code
 
             if not has_component_code or code is None:
-                # No component code found — return as plain text response
+                # No component code or flow found — return as plain text response
                 yield format_complete_event(result)
                 return
 

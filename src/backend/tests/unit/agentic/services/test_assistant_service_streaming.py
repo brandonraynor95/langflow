@@ -336,3 +336,105 @@ class TestErrorHandling:
 
             error_events = [e for e in events if "error" in e.lower() or "no result" in e.lower()]
             assert len(error_events) >= 1
+
+
+class TestFlowPreview:
+    """Tests for flow_preview event emission when agent builds a flow."""
+
+    @pytest.mark.asyncio
+    async def test_should_emit_flow_update_when_tool_pushes_event(self):
+        """When a flow builder tool pushes an event, assistant should emit flow_update."""
+        import json
+
+        import lfx.components.tools.flow_builder_tools as tools_module
+
+        test_flow = {"name": "Test", "data": {"nodes": [{"data": {"type": "ChatInput"}}], "edges": []}}
+
+        # Create a flow generator that pushes a flow event between tokens,
+        # simulating what happens when the agent calls build_flow mid-execution.
+        async def flow_gen_with_tool_call():
+            yield ("token", "Building...")
+            # Simulate the tool pushing an event during execution
+            tools_module._flow_events.append({"action": "set_flow", "flow": test_flow})
+            yield ("token", " Done!")
+            yield ("end", {"result": "Building... Done!"})
+
+        with (
+            patch(f"{MODULE}.classify_intent", new_callable=AsyncMock, return_value=_make_intent("build_flow")),
+            patch(f"{MODULE}.execute_flow_file_streaming", return_value=flow_gen_with_tool_call()),
+        ):
+            gen = execute_flow_with_validation_streaming(
+                flow_filename="flow_builder_assistant",
+                input_value="build me a simple chat flow",
+                global_variables={},
+            )
+            events = await _collect_events(gen)
+
+            # Should have flow_update event
+            flow_update_events = [e for e in events if "flow_update" in e]
+            assert len(flow_update_events) >= 1, f"Expected flow_update event, got events: {events}"
+
+            # Parse the flow_update SSE event
+            update_data = json.loads(flow_update_events[0].split("data: ")[1].strip())
+            assert update_data["event"] == "flow_update"
+            assert update_data["action"] == "set_flow"
+
+            # Should also have complete event with has_flow
+            complete_events = [e for e in events if '"event": "complete"' in e]
+            assert len(complete_events) == 1
+            complete_data = json.loads(complete_events[0].split("data: ")[1].strip())
+            assert complete_data["data"].get("has_flow") is True
+
+        # Verify events were drained
+        assert len(tools_module._flow_events) == 0
+
+    @pytest.mark.asyncio
+    async def test_should_not_emit_flow_preview_for_qa(self):
+        """Q&A responses should not emit flow_preview even if tool ran previously."""
+        import lfx.components.tools.flow_builder_tools as tools_module
+
+        # Ensure no leftover flow data
+        tools_module._last_built_flow = None
+
+        flow_gen = _make_flow_events(
+            [
+                ("token", "Langflow is a tool for building AI flows."),
+                ("end", {"result": "Langflow is a tool for building AI flows."}),
+            ]
+        )
+
+        with (
+            patch(f"{MODULE}.classify_intent", new_callable=AsyncMock, return_value=_make_intent("question")),
+            patch(f"{MODULE}.execute_flow_file_streaming", return_value=flow_gen()),
+        ):
+            gen = execute_flow_with_validation_streaming(
+                flow_filename="TestFlow",
+                input_value="what is langflow?",
+                global_variables={},
+            )
+            events = await _collect_events(gen)
+
+            flow_preview_events = [e for e in events if "flow_preview" in e]
+            assert len(flow_preview_events) == 0
+
+    @pytest.mark.asyncio
+    async def test_should_route_build_flow_intent_to_flow_builder(self):
+        """build_flow intent should use the flow builder assistant flow."""
+        flow_gen = _make_flow_events([("end", {"result": "done"})])
+
+        mock_streaming = MagicMock(return_value=flow_gen())
+
+        with (
+            patch(f"{MODULE}.classify_intent", new_callable=AsyncMock, return_value=_make_intent("build_flow")),
+            patch(f"{MODULE}.execute_flow_file_streaming", mock_streaming),
+        ):
+            gen = execute_flow_with_validation_streaming(
+                flow_filename="LangflowAssistant.json",
+                input_value="build me a chatbot",
+                global_variables={},
+            )
+            await _collect_events(gen)
+
+            # Verify it used the flow builder assistant, not the original flow
+            call_kwargs = mock_streaming.call_args[1]
+            assert call_kwargs["flow_filename"] == "flow_builder_assistant"
