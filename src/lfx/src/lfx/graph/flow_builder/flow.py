@@ -59,6 +59,43 @@ def flow_info(flow: dict) -> dict:
     }
 
 
+def flow_to_spec_summary(flow: dict) -> str:
+    """Convert a flow dict to a compact summary with component IDs for LLM context.
+
+    Includes full component IDs so the agent can reference them in tool calls.
+    Field values are NOT included -- the agent should use get_field_value to inspect.
+    """
+    data = flow.get("data", {})
+    nodes = data.get("nodes", [])
+    edges = data.get("edges", [])
+
+    if not nodes:
+        return "(empty canvas)"
+
+    id_to_type: dict[str, str] = {}
+    lines = [f"name: {flow.get('name', 'Untitled')}"]
+
+    lines.append("\ncomponents:")
+    for node in nodes:
+        nd = node.get("data", {})
+        nid = nd.get("id", node.get("id", ""))
+        ntype = nd.get("type", "?")
+        id_to_type[nid] = ntype
+        lines.append(f"  {nid}: {ntype}")
+
+    if edges:
+        lines.append("\nconnections:")
+        for edge in edges:
+            src = edge.get("source", "")
+            tgt = edge.get("target", "")
+            edge_data = edge.get("data", {})
+            src_handle = edge_data.get("sourceHandle", {}).get("name", "?")
+            tgt_handle = edge_data.get("targetHandle", {}).get("fieldName", "?")
+            lines.append(f"  {src}.{src_handle} -> {tgt}.{tgt_handle}")
+
+    return "\n".join(lines)
+
+
 def flow_graph_repr(flow: dict) -> str:
     """Build an ASCII DAG representation of a flow's graph.
 
