@@ -7,25 +7,26 @@ EXAMPLES_DIR="$SCRIPT_DIR"
 TEST_SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 
 MODE="syntax"
-EXECUTION_TIER="readonly"
+
+load_repo_env() {
+  local env_file="$ROOT_DIR/.env"
+  if [[ -f "$env_file" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$env_file"
+    set +a
+  fi
+}
 
 print_help() {
   cat <<'EOF'
 Usage:
-  test-javascript-examples.sh [--execute] [--tier readonly|mutating|destructive|all]
+  test-javascript-examples.sh [--execute]
 
 Modes:
   (default)            Syntax check only (`node --check`)
   --execute            Execute examples after syntax checks
 
-Execution tiers (used only with --execute):
-  readonly             Run only read-only examples
-  mutating             Run read-only + mutating examples
-  destructive          Run everything including deletes
-  all                  Alias of destructive
-
-Optional per-file override:
-  // @safety=readonly|mutating|destructive
 EOF
 }
 
@@ -34,14 +35,6 @@ while [[ $# -gt 0 ]]; do
     --execute)
       MODE="execute"
       shift
-      ;;
-    --tier)
-      if [[ -z "${2:-}" ]]; then
-        echo "Missing value for --tier"
-        exit 1
-      fi
-      EXECUTION_TIER="$2"
-      shift 2
       ;;
     --help|-h)
       print_help
@@ -54,14 +47,6 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
-if [[ "$EXECUTION_TIER" == "all" ]]; then
-  EXECUTION_TIER="destructive"
-fi
-if [[ "$EXECUTION_TIER" != "readonly" && "$EXECUTION_TIER" != "mutating" && "$EXECUTION_TIER" != "destructive" ]]; then
-  echo "Invalid --tier '$EXECUTION_TIER' (expected readonly|mutating|destructive|all)"
-  exit 1
-fi
 
 if ! command -v node >/dev/null 2>&1; then
   echo "Node.js is required to test JavaScript examples."
@@ -95,44 +80,8 @@ SKIP=0
 
 echo "Testing ${#JS_FILES[@]} JavaScript examples in '$MODE' mode..."
 if [[ "$MODE" == "execute" ]]; then
-  echo "Execution tier: $EXECUTION_TIER"
+  load_repo_env
 fi
-
-safety_level_for_file() {
-  python3 - "$1" <<'PY'
-import re
-import sys
-
-text = open(sys.argv[1], encoding="utf-8").read()
-override = re.search(r'^\s*//\s*@safety=(readonly|mutating|destructive)\s*$', text, re.M)
-if override:
-    print(override.group(1))
-    raise SystemExit(0)
-
-method = "GET"
-m = re.search(r"method:\s*['\"]([A-Za-z]+)['\"]", text)
-if m:
-    method = m.group(1).upper()
-
-if method in {"GET", "HEAD", "OPTIONS"}:
-    print("readonly")
-elif method == "DELETE":
-    print("destructive")
-else:
-    print("mutating")
-PY
-}
-
-should_run_for_tier() {
-  local file_tier="$1"
-  local requested_tier="$2"
-  case "$requested_tier" in
-    readonly) [[ "$file_tier" == "readonly" ]] ;;
-    mutating) [[ "$file_tier" == "readonly" || "$file_tier" == "mutating" ]] ;;
-    destructive) [[ "$file_tier" == "readonly" || "$file_tier" == "mutating" || "$file_tier" == "destructive" ]] ;;
-    *) return 1 ;;
-  esac
-}
 
 has_placeholder_file_inputs() {
   python3 - "$1" <<'PY'
@@ -143,9 +92,26 @@ print("yes" if any(n in text for n in needles) else "no")
 PY
 }
 
+has_missing_required_env() {
+  python3 - "$1" <<'PY'
+import os
+import re
+import sys
+
+text = open(sys.argv[1], encoding="utf-8").read()
+vars_to_check = ["FLOW_ID", "PROJECT_ID", "FOLDER_ID", "SESSION_ID", "JOB_ID", "USER_ID"]
+
+for name in vars_to_check:
+    if re.search(rf"process\.env\.{name}\b", text) and not os.getenv(name):
+        print(name)
+        raise SystemExit(0)
+
+print("")
+PY
+}
+
 for file in "${JS_FILES[@]}"; do
   rel="${file#"$ROOT_DIR"/}"
-  safety_tier="$(safety_level_for_file "$file")"
 
   if ! node --check "$file" >/tmp/langflow-js-check.out 2>/tmp/langflow-js-check.err; then
     echo "FAIL  $rel (node --check)"
@@ -160,26 +126,27 @@ for file in "${JS_FILES[@]}"; do
       continue
     fi
 
-    if ! should_run_for_tier "$safety_tier" "$EXECUTION_TIER"; then
-      echo "SKIP  $rel (tier=$safety_tier, requested=$EXECUTION_TIER)"
-      ((SKIP+=1))
-      continue
-    fi
-
     if [[ "$(has_placeholder_file_inputs "$file")" == "yes" ]]; then
       echo "SKIP  $rel (placeholder file input values)"
       ((SKIP+=1))
       continue
     fi
 
+    missing_env="$(has_missing_required_env "$file")"
+    if [[ -n "$missing_env" ]]; then
+      echo "SKIP  $rel (missing required env: $missing_env)"
+      ((SKIP+=1))
+      continue
+    fi
+
     if ! node "$file" >/tmp/langflow-js-example.out 2>/tmp/langflow-js-example.err; then
-      echo "FAIL  $rel (execution, tier=$safety_tier)"
+      echo "FAIL  $rel (execution)"
       ((FAIL+=1))
       continue
     fi
   fi
 
-  echo "PASS  $rel (tier=$safety_tier)"
+  echo "PASS  $rel"
   ((PASS+=1))
 done
 

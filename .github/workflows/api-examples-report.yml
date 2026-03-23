@@ -1,0 +1,133 @@
+name: API Examples Report
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: "(Optional) Branch to checkout"
+        required: false
+        type: string
+      execute:
+        description: "Execute examples (otherwise syntax-only)"
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "(Optional) Branch to checkout"
+        required: false
+        type: string
+      execute:
+        description: "Execute examples (otherwise syntax-only)"
+        required: false
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - "docs/docs/API-Reference/**"
+
+env:
+  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.12"
+  LANGFLOW_API_KEY: ${{ secrets.LANGFLOW_API_KEY }}
+  LANGFLOW_URL: ${{ secrets.LANGFLOW_URL }}
+  LANGFLOW_SERVER_URL: ${{ secrets.LANGFLOW_SERVER_URL }}
+  FLOW_ID: ${{ secrets.FLOW_ID }}
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+
+jobs:
+  report:
+    name: Non-blocking examples report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Configure Environment Variables
+        shell: bash
+        run: |
+          touch .env
+          {
+            echo "LANGFLOW_API_KEY=${LANGFLOW_API_KEY}"
+            echo "LANGFLOW_URL=${LANGFLOW_URL}"
+            echo "LANGFLOW_SERVER_URL=${LANGFLOW_SERVER_URL}"
+            echo "FLOW_ID=${FLOW_ID}"
+            echo "PROJECT_ID=${PROJECT_ID}"
+          } > .env
+
+      - name: Run example syntax checks and build report
+        shell: bash
+        run: |
+          set +e
+          mkdir -p /tmp/api-example-reports
+
+          if [[ "${{ inputs.execute || false }}" == "true" ]]; then
+            bash docs/docs/API-Reference/curl-examples/test-curl-examples.sh --execute > /tmp/api-example-reports/curl.txt 2>&1
+          else
+            bash docs/docs/API-Reference/curl-examples/test-curl-examples.sh > /tmp/api-example-reports/curl.txt 2>&1
+          fi
+          CURL_EXIT=$?
+
+          if [[ "${{ inputs.execute || false }}" == "true" ]]; then
+            bash docs/docs/API-Reference/python-examples/test-python-examples.sh --execute > /tmp/api-example-reports/python.txt 2>&1
+          else
+            bash docs/docs/API-Reference/python-examples/test-python-examples.sh > /tmp/api-example-reports/python.txt 2>&1
+          fi
+          PY_EXIT=$?
+
+          if [[ "${{ inputs.execute || false }}" == "true" ]]; then
+            bash docs/docs/API-Reference/javascript-examples/test-javascript-examples.sh --execute > /tmp/api-example-reports/javascript.txt 2>&1
+          else
+            bash docs/docs/API-Reference/javascript-examples/test-javascript-examples.sh > /tmp/api-example-reports/javascript.txt 2>&1
+          fi
+          JS_EXIT=$?
+
+          status() {
+            if [ "$1" -eq 0 ]; then
+              echo "✅ pass"
+            else
+              echo "❌ fail"
+            fi
+          }
+
+          {
+            echo "## API Example Checks (Non-blocking)"
+            echo
+            echo "| Suite | Status | Exit code |"
+            echo "|---|---:|---:|"
+            echo "| curl | $(status "$CURL_EXIT") | $CURL_EXIT |"
+            echo "| python | $(status "$PY_EXIT") | $PY_EXIT |"
+            echo "| javascript | $(status "$JS_EXIT") | $JS_EXIT |"
+            echo
+            echo "> This workflow is informational and does not fail the PR."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "curl_exit=$CURL_EXIT" >> "$GITHUB_ENV"
+          echo "python_exit=$PY_EXIT" >> "$GITHUB_ENV"
+          echo "javascript_exit=$JS_EXIT" >> "$GITHUB_ENV"
+
+          # Always exit zero so this report never blocks.
+          exit 0
+
+      - name: Upload report logs
+        uses: actions/upload-artifact@v6
+        with:
+          name: api-example-reports
+          path: /tmp/api-example-reports
+          if-no-files-found: warn
