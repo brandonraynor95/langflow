@@ -19,6 +19,7 @@ export interface MemoriesMainContentProps {
 
 export type MemoryActionMutation = {
   mutate: (args: { memoryId: string }) => void;
+  isPending: boolean;
 };
 
 export type MemoryDetailsProps = {

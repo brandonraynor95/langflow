@@ -185,7 +185,10 @@ export default function CreateMemoryModal({
           label: "Create Memory",
           icon: <ForwardedIconComponent name="Plus" className="mr-2 h-4 w-4" />,
           loading: createMemoryMutation.isPending,
-          disabled: !name.trim() || selectedEmbeddingModel.length === 0,
+          disabled:
+            !name.trim() ||
+            selectedEmbeddingModel.length === 0 ||
+            (preprocessingEnabled && selectedPreprocessingModel.length === 0),
         }}
       />
     </BaseModal>

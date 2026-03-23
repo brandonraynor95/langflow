@@ -4,6 +4,7 @@ import { MemoryDetailsProps } from "../types";
 import { MemoryDetailsHeader } from "./MemoryDetailsHeader";
 import { MemoryKnowledgeBaseSection } from "./MemoryKnowledgeBaseSection";
 import { MemoryStatusBanners } from "./MemoryStatusBanners";
+import { Link } from "react-router-dom";
 
 export function MemoryDetails({
   memory,
@@ -77,7 +78,7 @@ export function MemoryDetails({
 
         <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
           <span>
-            <span className="font-medium text-foreground">KB:</span><a href={`/assets/knowledge-bases/${memory.kb_name}/chunks`}>{memory.kb_name}</a>
+            <span className="font-medium text-foreground">KB:</span> <Link to={`/assets/knowledge-bases/${encodeURIComponent(memory.kb_name)}/chunks`}>{memory.kb_name}</Link>
           </span>
           <span>&middot;</span>
           <span>

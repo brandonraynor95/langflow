@@ -38,6 +38,7 @@ export function MemoryKnowledgeBaseSection({
         <div className="flex items-center gap-2">
           {docsData?.sessions && docsData.sessions.length > 1 && (
             <select
+              aria-label="Session filter"
               className="h-7 rounded border border-border bg-background px-2 text-xs"
               value={selectedSession ?? ""}
               onChange={(e) => setSelectedSession(e.target.value || null)}
@@ -53,6 +54,7 @@ export function MemoryKnowledgeBaseSection({
 
           <div className="flex items-center gap-1">
             <Input
+              aria-label="Search chunks"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -63,6 +65,7 @@ export function MemoryKnowledgeBaseSection({
               variant="ghost"
               size="icon"
               className="h-7 w-7"
+              aria-label="Search"
               onClick={handleSearch}
             >
               <IconComponent name="Search" className="h-3.5 w-3.5" />
@@ -72,6 +75,7 @@ export function MemoryKnowledgeBaseSection({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
+                aria-label="Clear search"
                 onClick={() => {
                   setSearchQuery("");
                   setActiveSearch("");

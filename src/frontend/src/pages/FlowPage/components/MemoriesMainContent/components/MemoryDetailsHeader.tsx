@@ -69,7 +69,7 @@ export function MemoryDetailsHeader({
           }}
           asChild
         >
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" disabled={deleteMutation.isPending}>
             <IconComponent name="Trash2" className="mr-1.5 h-3.5 w-3.5" />
             Delete
           </Button>

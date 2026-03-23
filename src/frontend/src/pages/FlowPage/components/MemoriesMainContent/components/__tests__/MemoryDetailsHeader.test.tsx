@@ -39,7 +39,7 @@ describe("MemoryDetailsHeader", () => {
     isProcessing: false,
     manualUpdateMutation: { mutate: jest.fn(), isPending: false },
     handleManualUpdate: jest.fn(),
-    deleteMutation: { mutate: jest.fn() },
+    deleteMutation: { mutate: jest.fn(), isPending: false },
     updateMemoryMutation: { isPending: false },
     handleToggleActive: jest.fn(),
   } as any;

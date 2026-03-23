@@ -180,6 +180,7 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
 
   useEffect(() => {
     setOnFlowPage(true);
+    setSelectedMemoryId(null);
 
     return () => {
       setOnFlowPage(false);
