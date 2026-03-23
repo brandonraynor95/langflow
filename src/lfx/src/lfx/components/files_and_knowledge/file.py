@@ -980,6 +980,18 @@ class FileComponent(BaseFileComponent):
                         print(json.dumps({"ok": False, "error": "Docling produced no document", "meta": meta}))
                         return
 
+                    # Extract DoclingDocument metadata
+                    if hasattr(doc, "name") and doc.name:
+                        meta["name"] = doc.name
+                    if hasattr(doc, "origin") and doc.origin is not None:
+                        origin = doc.origin
+                        if hasattr(origin, "filename") and origin.filename:
+                            meta["filename"] = origin.filename
+                        if hasattr(origin, "binary_hash") and origin.binary_hash:
+                            meta["document_id"] = str(origin.binary_hash)
+                        if hasattr(origin, "mimetype") and origin.mimetype:
+                            meta["mimetype"] = origin.mimetype
+
                     if markdown:
                         text = export_markdown(doc, ImageRefMode, image_mode, img_ph, pg_ph)
                         print(json.dumps({"ok": True, "mode": "markdown", "text": text, "meta": meta}))
@@ -1008,16 +1020,34 @@ class FileComponent(BaseFileComponent):
             """
         )
 
-        # Validate file_path to avoid command injection or unsafe input
-        if not isinstance(args["file_path"], str) or any(c in args["file_path"] for c in [";", "|", "&", "$", "`"]):
+        # Validate file_path to avoid command injection or unsafe input.
+        # Note: $ is intentionally not blocked here because the path is passed as JSON via
+        # stdin to the subprocess, not interpolated in a shell command.
+        if not isinstance(args["file_path"], str) or any(c in args["file_path"] for c in [";", "|", "&", "`"]):
             return Data(data={"error": "Unsafe file path detected.", "file_path": args["file_path"]})
 
-        proc = subprocess.run(  # noqa: S603
-            [sys.executable, "-u", "-c", child_script],
-            input=json.dumps(args).encode("utf-8"),
-            capture_output=True,
-            check=False,
-        )
+        # Timeout prevents the subprocess from blocking the worker thread indefinitely,
+        # which is critical in single-worker setups where thread pool exhaustion
+        # makes the entire server unresponsive.
+        docling_timeout = 600  # 10 minutes; large PDFs with OCR may need this
+        try:
+            proc = subprocess.run(  # noqa: S603
+                [sys.executable, "-u", "-c", child_script],
+                input=json.dumps(args).encode("utf-8"),
+                capture_output=True,
+                check=False,
+                timeout=docling_timeout,
+            )
+        except subprocess.TimeoutExpired:
+            return Data(
+                data={
+                    "error": (
+                        f"Docling processing timed out after {docling_timeout}s. "
+                        "Consider using the standalone Docling component for large documents."
+                    ),
+                    "file_path": original_file_path,
+                },
+            )
 
         if not proc.stdout:
             err_msg = proc.stderr.decode("utf-8", errors="replace") if proc.stderr else "no output from child process"
