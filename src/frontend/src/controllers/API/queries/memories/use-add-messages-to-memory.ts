@@ -6,13 +6,8 @@ import { UseRequestProcessor } from "../../services/request-processor";
 import {
   isMockMemoriesEnabled,
   mockMemoriesApi,
-  type MemoryInfo,
 } from "../../mocks/memories";
-
-interface AddMessagesToMemoryParams {
-  memoryId: string;
-  message_ids: string[];
-}
+import type { AddMessagesToMemoryParams, MemoryInfo } from "./types";
 
 export const useAddMessagesToMemory: useMutationFunctionType<
   undefined,

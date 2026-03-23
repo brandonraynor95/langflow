@@ -4,7 +4,7 @@ import type {
   MemoryDocumentsResponse,
   MemoryInfo,
   UpdateMemoryPayload,
-} from "./types";
+} from "../queries/memories/types";
 import {
   applySearch,
   computeSessions,
@@ -16,13 +16,6 @@ import {
   setStatusAsync,
 } from "./memories.helpers";
 
-export type {
-  CreateMemoryPayload,
-  MemoryDocumentItem,
-  MemoryDocumentsResponse,
-  MemoryInfo,
-  UpdateMemoryPayload,
-} from "./types";
 
 export const mockMemoriesApi = {
   reset() {

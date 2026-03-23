@@ -5,20 +5,17 @@ import { getURL } from "../../helpers/constants";
 import { UseRequestProcessor } from "../../services/request-processor";
 import {
   isMockMemoriesEnabled,
-  mockMemoriesApi,
-  type CreateMemoryPayload,
-  type MemoryInfo,
+  mockMemoriesApi
 } from "../../mocks/memories";
-
-export interface CreateMemoryParams extends CreateMemoryPayload {}
+import type { CreateMemoryPayload, MemoryInfo } from "./types";
 
 export const useCreateMemory: useMutationFunctionType<
   undefined,
-  CreateMemoryParams
+  CreateMemoryPayload
 > = (options?) => {
   const { mutate, queryClient } = UseRequestProcessor();
 
-  const createMemoryFn = async (params: CreateMemoryParams): Promise<MemoryInfo> => {
+  const createMemoryFn = async (params: CreateMemoryPayload): Promise<MemoryInfo> => {
     const response = isMockMemoriesEnabled()
       ? { data: await mockMemoriesApi.create(params) }
       : await api.post<MemoryInfo>(`${getURL("MEMORIES")}/`, params);
@@ -27,7 +24,7 @@ export const useCreateMemory: useMutationFunctionType<
     return response.data;
   };
 
-  const mutation: UseMutationResult<MemoryInfo, any, CreateMemoryParams> = mutate(
+  const mutation: UseMutationResult<MemoryInfo, any, CreateMemoryPayload> = mutate(
     ["useCreateMemory"],
     createMemoryFn,
     options,

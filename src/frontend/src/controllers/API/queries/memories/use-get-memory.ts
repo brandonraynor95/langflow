@@ -6,12 +6,8 @@ import { UseRequestProcessor } from "../../services/request-processor";
 import {
   isMockMemoriesEnabled,
   mockMemoriesApi,
-  type MemoryInfo,
 } from "../../mocks/memories";
-
-interface GetMemoryParams {
-  memoryId: string;
-}
+import type { GetMemoryParams, MemoryInfo } from "./types";
 
 export const useGetMemory: useQueryFunctionType<GetMemoryParams, MemoryInfo> = (
   params,

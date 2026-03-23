@@ -1,4 +1,4 @@
-import { MemoryDocumentItem, MemoryInfo } from "@/controllers/API/mocks/types";
+import type { MemoryDocumentItem, MemoryInfo } from "@/controllers/API/queries/memories/types";
 
 export type SummaryCardProps = {
   label: string;

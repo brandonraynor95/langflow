@@ -4,10 +4,7 @@ import { api } from "../../api";
 import { getURL } from "../../helpers/constants";
 import { UseRequestProcessor } from "../../services/request-processor";
 import { isMockMemoriesEnabled, mockMemoriesApi } from "../../mocks/memories";
-
-interface DeleteMemoryParams {
-  memoryId: string;
-}
+import type { DeleteMemoryParams } from "./types";
 
 export const useDeleteMemory: useMutationFunctionType<undefined, DeleteMemoryParams> = (
   options?,

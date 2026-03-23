@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import useAlertStore from "@/stores/alertStore";
-import { useGetMemories, type MemoryInfo } from "@/controllers/API/queries/memories/use-get-memories";
+import { useGetMemories} from "@/controllers/API/queries/memories/use-get-memories";
 import { useGetMemory } from "@/controllers/API/queries/memories/use-get-memory";
-import type { MemoryDocumentItem } from "@/controllers/API/queries/memories/use-get-memory-documents";
 import { useAddMessagesToMemory } from "@/controllers/API/queries/memories/use-add-messages-to-memory";
 import { useDeleteMemory } from "@/controllers/API/queries/memories/use-delete-memory";
 import { useUpdateMemory } from "@/controllers/API/queries/memories/use-update-memory";
 import { UseMemoriesDataProps } from "../types";
+import type { MemoryDocumentItem, MemoryInfo } from "@/controllers/API/queries/memories/types";
 
 export function useMemoriesData({
   currentFlowId,

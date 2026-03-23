@@ -6,13 +6,8 @@ import { UseRequestProcessor } from "../../services/request-processor";
 import {
   isMockMemoriesEnabled,
   mockMemoriesApi,
-  type MemoryInfo,
-  type UpdateMemoryPayload,
 } from "../../mocks/memories";
-
-export interface UpdateMemoryParams extends UpdateMemoryPayload {
-  memoryId: string;
-}
+import type { MemoryInfo, UpdateMemoryParams } from "./types";
 
 export const useUpdateMemory: useMutationFunctionType<
   undefined,

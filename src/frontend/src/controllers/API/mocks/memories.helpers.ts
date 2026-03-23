@@ -1,4 +1,4 @@
-import type { MemoryDocumentItem, MemoryInfo, MemoryStatus, MockDb } from "./types";
+import type { MemoryDocumentItem, MemoryInfo, MemoryStatus, MockDb } from "../queries/memories/types";
 
 const STORAGE_KEY = "langflow.mock.memories.v1";
 
