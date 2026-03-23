@@ -15,7 +15,8 @@ STREAMING_EVENT_TIMEOUT_SECONDS = 300.0
 MAX_VALIDATION_RETRIES = 3
 VALIDATION_UI_DELAY_SECONDS = 0.3
 LANGFLOW_ASSISTANT_FLOW = "LangflowAssistant.json"
-TRANSLATION_FLOW = "TranslationFlow.json"
+FLOW_BUILDER_ASSISTANT_FLOW = "flow_builder_assistant"
+TRANSLATION_FLOW = "translation_flow.py"
 
 VALIDATION_RETRY_TEMPLATE = """The previous component code has an error. Please fix it.
 
@@ -35,7 +36,7 @@ class IntentResult:
     """Result from intent classification flow."""
 
     translation: str
-    intent: str  # "generate_component" or "question"
+    intent: str  # "generate_component", "build_flow", or "question"
 
 
 @dataclass
