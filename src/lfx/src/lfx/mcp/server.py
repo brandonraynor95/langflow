@@ -49,6 +49,7 @@ from lfx.graph.flow_builder import (
 from lfx.graph.flow_builder import (
     remove_connection as fb_remove_connection,
 )
+from lfx.log.logger import logger
 from lfx.mcp.client import LangflowClient
 from lfx.mcp.registry import (
     describe_component as reg_describe,
@@ -801,7 +802,10 @@ async def run_flow(
             msg = data.get("error", "Flow execution failed")
             raise RuntimeError(msg)
 
-    return result or await client.post(f"/run/{flow_id}", json_data=request, timeout=300.0)
+    if not result:
+        logger.warning("Streaming produced no result for flow %s, falling back to synchronous execution", flow_id)
+        return await client.post(f"/run/{flow_id}", json_data=request, timeout=300.0)
+    return result
 
 
 @mcp.tool()
