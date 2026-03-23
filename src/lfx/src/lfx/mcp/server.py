@@ -38,6 +38,9 @@ from lfx.graph.flow_builder import (
     flow_info as fb_flow_info,
 )
 from lfx.graph.flow_builder import (
+    flow_to_spec_summary as fb_spec_summary,
+)
+from lfx.graph.flow_builder import (
     get_component as fb_get_component,
 )
 from lfx.graph.flow_builder import (
@@ -345,6 +348,7 @@ async def list_flows(query: str | None = None) -> list[dict[str, Any]]:
                 "name": name,
                 "description": f.get("description", ""),
                 "graph": fb_graph_repr(f),
+                "spec_summary": fb_spec_summary(f),
                 "node_count": len(data.get("nodes", [])),
                 "edge_count": len(data.get("edges", [])),
             }
@@ -363,6 +367,7 @@ async def get_flow_info(flow_id: str) -> dict[str, Any]:
     info = fb_flow_info(flow)
     info["id"] = flow_id
     info["graph"] = fb_graph_repr(flow)
+    info["spec_summary"] = fb_spec_summary(flow)
     return info
 
 
@@ -676,6 +681,31 @@ async def describe_component_type(component_type: str) -> dict[str, Any]:
     return reg_describe(registry, component_type)
 
 
+@mcp.tool()
+async def components(
+    query: str | None = None,
+    component_type: str | None = None,
+    category: str | None = None,
+    output_type: str | None = None,
+) -> list[dict[str, Any]] | dict[str, Any]:
+    """Search or describe component types in one call.
+
+    With component_type: returns full description (inputs, outputs, fields).
+    Without component_type: searches/lists component types.
+    No args: lists all available types.
+
+    Args:
+        query: Search term to filter by name or category.
+        component_type: If given, describe this specific type instead of searching.
+        category: Filter by category (e.g. "models", "inputs").
+        output_type: Filter by output type (e.g. "LanguageModel", "Message").
+    """
+    registry = await _get_registry()
+    if component_type:
+        return reg_describe(registry, component_type)
+    return search_registry(registry, query=query, category=category, output_type=output_type)
+
+
 # ---------------------------------------------------------------------------
 # Connection
 # ---------------------------------------------------------------------------
@@ -907,6 +937,259 @@ async def get_component_output(
         result["error"] = "Component build failed"
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Flow management
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def validate_flow(flow_id: str) -> dict[str, Any]:
+    """Validate a flow and return structured per-component results.
+
+    Unlike build_flow (which returns a job_id), this waits for the build
+    to complete and returns a clear pass/fail with specific errors.
+    Use this before run_flow to catch issues early.
+
+    Args:
+        flow_id: The flow UUID.
+    """
+    import asyncio
+
+    # Get expected component count
+    flow = await _get_flow(flow_id)
+    expected = len(flow.get("data", {}).get("nodes", []))
+    if expected == 0:
+        return {"valid": True, "component_count": 0, "errors": [], "warnings": []}
+
+    # Trigger a build
+    build_result = await _get_client().post(f"/build/{flow_id}/flow")
+    job_id = build_result.get("job_id", "")
+    if not job_id:
+        return {"valid": False, "error": "Build did not return a job_id"}
+
+    # Poll until build completes or timeout
+    builds: dict[str, Any] = {}
+    for _ in range(30):
+        await asyncio.sleep(1.0)
+        data = await _get_client().get(f"/monitor/builds?flow_id={flow_id}")
+        builds = data.get("vertex_builds", {})
+        if len(builds) >= expected:
+            break
+    else:
+        return {
+            "valid": False,
+            "error": f"Build timed out: {len(builds)}/{expected} components completed",
+        }
+
+    errors = []
+    for comp_id, build_list in builds.items():
+        if not build_list:
+            continue
+        latest = build_list[-1]
+        if not latest.get("valid", False):
+            artifacts = latest.get("artifacts", {})
+            error_msg = artifacts.get("error", str(artifacts)) if isinstance(artifacts, dict) else str(artifacts)
+            errors.append({"component_id": comp_id, "error": error_msg or "Unknown error"})
+
+    return {
+        "valid": len(errors) == 0,
+        "component_count": len(builds),
+        "errors": errors,
+    }
+
+
+@mcp.tool()
+async def rename_flow(
+    flow_id: str,
+    name: str | None = None,
+    description: str | None = None,
+) -> dict[str, Any]:
+    """Update a flow's name and/or description.
+
+    Args:
+        flow_id: The flow UUID.
+        name: New name (omit to keep current).
+        description: New description (omit to keep current).
+    """
+    update: dict[str, Any] = {}
+    if name is not None:
+        update["name"] = name
+    if description is not None:
+        update["description"] = description
+    if not update:
+        msg = "Provide at least name or description"
+        raise ValueError(msg)
+
+    result = await _get_client().patch(f"/flows/{flow_id}", json_data=update)
+    return {"id": flow_id, "name": result.get("name", ""), "description": result.get("description", "")}
+
+
+@mcp.tool()
+async def export_flow(flow_id: str) -> dict[str, Any]:
+    """Export a flow as a complete JSON object for backup or sharing.
+
+    Returns the full flow data with sensitive fields (API keys, passwords) redacted.
+
+    Args:
+        flow_id: The flow UUID.
+    """
+    from lfx.mcp.redact import redact_node
+
+    flow = await _get_flow(flow_id)
+    data = flow.get("data", {})
+    # Redact sensitive fields before exposing to LLM context
+    if "nodes" in data:
+        data = {
+            **data,
+            "nodes": [{**n, "data": redact_node(n.get("data", {}))} for n in data["nodes"]],
+        }
+    return {
+        "id": flow_id,
+        "name": flow.get("name", ""),
+        "description": flow.get("description", ""),
+        "data": data,
+    }
+
+
+@mcp.tool()
+async def update_flow_from_spec(flow_id: str, spec: str) -> dict[str, Any]:
+    """Update an existing flow to match a spec, preserving the flow ID.
+
+    Replaces all nodes, edges, and config with what the spec defines.
+    Useful for iterating on a flow without creating a new one each time.
+
+    Args:
+        flow_id: The flow UUID to update.
+        spec: Text spec in the same format as create_flow_from_spec.
+    """
+    parsed = parse_flow_spec(spec)
+    registry = await _get_registry()
+
+    # Validate references before building (same as create_flow_from_spec)
+    node_ids = {n["id"] for n in parsed["nodes"]}
+    for spec_id in parsed.get("config", {}):
+        if spec_id not in node_ids:
+            msg = f"Config references unknown node '{spec_id}'. Available: {sorted(node_ids)}"
+            raise ValueError(msg)
+    for edge in parsed.get("edges", []):
+        if edge["source_id"] not in node_ids:
+            msg = f"Edge references unknown source '{edge['source_id']}'"
+            raise ValueError(msg)
+        if edge["target_id"] not in node_ids:
+            msg = f"Edge references unknown target '{edge['target_id']}'"
+            raise ValueError(msg)
+
+    # Build new flow data from spec
+    flow = empty_flow(
+        name=parsed.get("name", "Untitled Flow"),
+        description=parsed.get("description", ""),
+    )
+
+    id_map: dict[str, str] = {}
+    for node in parsed["nodes"]:
+        result = fb_add_component(flow, node["type"], registry)
+        id_map[node["id"]] = result["id"]
+
+    for spec_id, params in parsed.get("config", {}).items():
+        fb_configure(flow, id_map[spec_id], params)
+
+    for edge in parsed["edges"]:
+        fb_add_connection(
+            flow,
+            id_map[edge["source_id"]],
+            edge["source_output"],
+            id_map[edge["target_id"]],
+            edge["target_input"],
+        )
+
+    layout_flow(flow)
+
+    # Patch the existing flow with new data
+    patch_data: dict[str, Any] = {
+        "data": flow["data"],
+        "description": parsed.get("description", ""),
+    }
+    if parsed.get("name"):
+        patch_data["name"] = parsed["name"]
+
+    await _get_client().patch(f"/flows/{flow_id}", json_data=patch_data)
+
+    return {
+        "id": flow_id,
+        "name": parsed.get("name", ""),
+        "node_count": len(flow["data"]["nodes"]),
+        "edge_count": len(flow["data"]["edges"]),
+        "node_id_map": id_map,
+        "spec_summary": fb_spec_summary(flow),
+    }
+
+
+@mcp.tool()
+async def freeze_component(flow_id: str, component_id: str) -> dict[str, str]:
+    """Freeze a component so it uses cached output and skips re-execution.
+
+    Useful when iterating on downstream components without paying the
+    cost of re-running expensive upstream LLM calls.
+
+    Args:
+        flow_id: The flow UUID.
+        component_id: The component ID to freeze.
+    """
+    flow = await _get_flow(flow_id)
+    for node in flow.get("data", {}).get("nodes", []):
+        nid = node.get("data", {}).get("id", node.get("id", ""))
+        if nid == component_id:
+            node_config = node.get("data", {}).get("node")
+            if node_config is None:
+                msg = f"Component '{component_id}' has malformed data (missing 'node' key)"
+                raise ValueError(msg)
+            node_config["frozen"] = True
+            await _patch_flow(flow_id, flow)
+            return {"frozen": component_id}
+
+    msg = f"Component not found: {component_id}"
+    raise ValueError(msg)
+
+
+@mcp.tool()
+async def unfreeze_component(flow_id: str, component_id: str) -> dict[str, str]:
+    """Unfreeze a component so it re-executes on the next run.
+
+    Args:
+        flow_id: The flow UUID.
+        component_id: The component ID to unfreeze.
+    """
+    flow = await _get_flow(flow_id)
+    for node in flow.get("data", {}).get("nodes", []):
+        nid = node.get("data", {}).get("id", node.get("id", ""))
+        if nid == component_id:
+            node_config = node.get("data", {}).get("node")
+            if node_config is None:
+                msg = f"Component '{component_id}' has malformed data (missing 'node' key)"
+                raise ValueError(msg)
+            node_config["frozen"] = False
+            await _patch_flow(flow_id, flow)
+            return {"unfrozen": component_id}
+
+    msg = f"Component not found: {component_id}"
+    raise ValueError(msg)
+
+
+@mcp.tool()
+async def layout_flow_tool(flow_id: str) -> dict[str, str]:
+    """Re-layout a flow's components using the Sugiyama algorithm.
+
+    Useful after adding or removing components to clean up positioning.
+
+    Args:
+        flow_id: The flow UUID.
+    """
+    flow = await _get_flow(flow_id)
+    layout_flow(flow)
+    await _patch_flow(flow_id, flow)
+    return {"laid_out": flow_id}
 
 
 # ---------------------------------------------------------------------------
