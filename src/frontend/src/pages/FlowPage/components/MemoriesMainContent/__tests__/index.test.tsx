@@ -89,33 +89,46 @@ describe("MemoriesMainContent", () => {
   });
 
   it("renders empty state when no memory is selected", () => {
-    render(<MemoriesMainContent selectedMemoryId={null} onSelectMemory={jest.fn()} />);
+    render(
+      <MemoriesMainContent
+        selectedMemoryId={null}
+        onSelectMemory={jest.fn()}
+      />,
+    );
     expect(screen.getByText("NoMemorySelected")).toBeInTheDocument();
   });
 
   it("renders loading state for selected memory", () => {
     mockedHookValue.isLoading = true;
 
-    render(<MemoriesMainContent selectedMemoryId="m1" onSelectMemory={jest.fn()} />);
+    render(
+      <MemoriesMainContent selectedMemoryId="m1" onSelectMemory={jest.fn()} />,
+    );
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("renders memory details when selected memory exists", () => {
     mockedHookValue.memory = { id: "m1" };
 
-    render(<MemoriesMainContent selectedMemoryId="m1" onSelectMemory={jest.fn()} />);
+    render(
+      <MemoriesMainContent selectedMemoryId="m1" onSelectMemory={jest.fn()} />,
+    );
     expect(screen.getByText("MemoryDetails")).toBeInTheDocument();
   });
 
   it("opens create modal via sidebar action", () => {
-    render(<MemoriesMainContent selectedMemoryId="m1" onSelectMemory={jest.fn()} />);
+    render(
+      <MemoriesMainContent selectedMemoryId="m1" onSelectMemory={jest.fn()} />,
+    );
 
     fireEvent.click(screen.getByText("open-create"));
     expect(mockSetCreateModalOpen).toHaveBeenCalledWith(true);
   });
 
   it("clears selected document when panel closes", () => {
-    render(<MemoriesMainContent selectedMemoryId="m1" onSelectMemory={jest.fn()} />);
+    render(
+      <MemoriesMainContent selectedMemoryId="m1" onSelectMemory={jest.fn()} />,
+    );
 
     fireEvent.click(screen.getByText("close-panel"));
     expect(mockSetDocumentPanelOpen).toHaveBeenCalledWith(false);
@@ -125,7 +138,12 @@ describe("MemoriesMainContent", () => {
   it("forwards create success to onSelectMemory", () => {
     const onSelectMemory = jest.fn();
 
-    render(<MemoriesMainContent selectedMemoryId="m1" onSelectMemory={onSelectMemory} />);
+    render(
+      <MemoriesMainContent
+        selectedMemoryId="m1"
+        onSelectMemory={onSelectMemory}
+      />,
+    );
 
     fireEvent.click(screen.getByText("create-success"));
     expect(onSelectMemory).toHaveBeenCalledWith("m-created");

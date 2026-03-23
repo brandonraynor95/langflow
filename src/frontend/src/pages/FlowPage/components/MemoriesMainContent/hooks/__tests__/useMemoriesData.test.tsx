@@ -239,7 +239,12 @@ describe("useMemoriesData", () => {
       ...memoryQueryData,
       documents: [
         { message_id: "a", session_id: "s1", content: "hello", sender: "user" },
-        { message_id: "b", session_id: "s2", content: "world", sender: "assistant" },
+        {
+          message_id: "b",
+          session_id: "s2",
+          content: "world",
+          sender: "assistant",
+        },
       ],
       document_sessions: ["s1", "s2"],
     };
@@ -252,7 +257,10 @@ describe("useMemoriesData", () => {
       }),
     );
 
-    expect(Array.from(result.current.groupedBySession.keys())).toEqual(["s1", "s2"]);
+    expect(Array.from(result.current.groupedBySession.keys())).toEqual([
+      "s1",
+      "s2",
+    ]);
 
     act(() => {
       result.current.setSelectedSession("s2");
