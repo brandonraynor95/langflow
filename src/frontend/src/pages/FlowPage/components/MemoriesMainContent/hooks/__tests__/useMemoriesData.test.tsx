@@ -6,12 +6,27 @@ const mockSetSuccessData = jest.fn();
 
 jest.mock("@/stores/alertStore", () => ({
   __esModule: true,
-  default: () => ({ setErrorData: mockSetErrorData, setSuccessData: mockSetSuccessData }),
+  default: () => ({
+    setErrorData: mockSetErrorData,
+    setSuccessData: mockSetSuccessData,
+  }),
 }));
 
 const memories = [
-  { id: "m1", name: "First", description: "alpha", status: "idle", is_active: true },
-  { id: "m2", name: "Second", description: "beta", status: "idle", is_active: false },
+  {
+    id: "m1",
+    name: "First",
+    description: "alpha",
+    status: "idle",
+    is_active: true,
+  },
+  {
+    id: "m2",
+    name: "Second",
+    description: "beta",
+    status: "idle",
+    is_active: false,
+  },
 ] as any;
 
 jest.mock("@/controllers/API/queries/memories/use-get-memories", () => ({
@@ -34,9 +49,12 @@ jest.mock("@/controllers/API/queries/memories/use-get-memory", () => ({
 }));
 
 const mutation = { mutate: jest.fn(), isPending: false };
-jest.mock("@/controllers/API/queries/memories/use-add-messages-to-memory", () => ({
-  useAddMessagesToMemory: () => mutation,
-}));
+jest.mock(
+  "@/controllers/API/queries/memories/use-add-messages-to-memory",
+  () => ({
+    useAddMessagesToMemory: () => mutation,
+  }),
+);
 jest.mock("@/controllers/API/queries/memories/use-delete-memory", () => ({
   useDeleteMemory: () => mutation,
 }));

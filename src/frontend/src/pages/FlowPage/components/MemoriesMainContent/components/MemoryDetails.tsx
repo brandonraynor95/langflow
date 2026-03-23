@@ -54,7 +54,11 @@ export function MemoryDetails({
             value={memory.total_messages_processed}
             icon="MessageSquare"
           />
-          <SummaryCard label="Total Chunks" value={memory.total_chunks} icon="Layers" />
+          <SummaryCard
+            label="Total Chunks"
+            value={memory.total_chunks}
+            icon="Layers"
+          />
           <SummaryCard
             label="Sessions Captured"
             value={memory.sessions_count}
@@ -78,21 +82,29 @@ export function MemoryDetails({
 
         <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
           <span>
-            <span className="font-medium text-foreground">KB:</span> <Link to={`/assets/knowledge-bases/${encodeURIComponent(memory.kb_name)}/chunks`}>{memory.kb_name}</Link>
+            <span className="font-medium text-foreground">KB:</span>{" "}
+            <Link
+              to={`/assets/knowledge-bases/${encodeURIComponent(memory.kb_name)}/chunks`}
+            >
+              {memory.kb_name}
+            </Link>
           </span>
           <span>&middot;</span>
           <span>
-            <span className="font-medium text-foreground">Model:</span> {memory.embedding_model}
+            <span className="font-medium text-foreground">Model:</span>{" "}
+            {memory.embedding_model}
           </span>
           <span>&middot;</span>
           <span>
-            <span className="font-medium text-foreground">Provider:</span> {memory.embedding_provider}
+            <span className="font-medium text-foreground">Provider:</span>{" "}
+            {memory.embedding_provider}
           </span>
           {memory.batch_size > 1 && (
             <>
               <span>&middot;</span>
               <span>
-                <span className="font-medium text-foreground">Batch Size:</span> {memory.batch_size}
+                <span className="font-medium text-foreground">Batch Size:</span>{" "}
+                {memory.batch_size}
               </span>
             </>
           )}
@@ -100,7 +112,10 @@ export function MemoryDetails({
             <>
               <span>&middot;</span>
               <span>
-                <span className="font-medium text-foreground">Preprocessing:</span> enabled
+                <span className="font-medium text-foreground">
+                  Preprocessing:
+                </span>{" "}
+                enabled
               </span>
             </>
           )}

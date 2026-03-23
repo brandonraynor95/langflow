@@ -13,7 +13,9 @@ export default function MemoriesMainContent({
   onSelectMemory,
 }: MemoriesMainContentProps) {
   const currentFlowId = useFlowsManagerStore((state) => state.currentFlowId);
-  const currentFlowName = useFlowsManagerStore((state) => state.currentFlow?.name);
+  const currentFlowName = useFlowsManagerStore(
+    (state) => state.currentFlow?.name,
+  );
 
   const {
     memories,

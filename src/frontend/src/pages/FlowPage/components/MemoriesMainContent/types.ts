@@ -1,4 +1,7 @@
-import type { MemoryDocumentItem, MemoryInfo } from "@/controllers/API/queries/memories/types";
+import type {
+  MemoryDocumentItem,
+  MemoryInfo,
+} from "@/controllers/API/queries/memories/types";
 
 export type SummaryCardProps = {
   label: string;
@@ -81,7 +84,6 @@ export type MemoryKnowledgeBaseSectionProps = {
   handleOpenDocumentPanel: (doc: MemoryDocumentItem) => void;
   totalChunks: number;
 };
-
 
 export type MemoryStatusBannersProps = {
   memory: MemoryInfo;

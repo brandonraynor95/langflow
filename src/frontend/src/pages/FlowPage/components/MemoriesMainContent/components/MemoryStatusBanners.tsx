@@ -2,7 +2,6 @@ import IconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
 import type { MemoryStatusBannersProps } from "../types";
 
-
 export function MemoryStatusBanners({
   memory,
   isProcessing,
@@ -14,7 +13,10 @@ export function MemoryStatusBanners({
       {isProcessing && (
         <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
           <div className="flex items-center gap-3">
-            <IconComponent name="Loader2" className="h-5 w-5 animate-spin text-primary" />
+            <IconComponent
+              name="Loader2"
+              className="h-5 w-5 animate-spin text-primary"
+            />
             <div>
               <p className="text-sm font-medium">
                 {memory.status === "generating"
@@ -38,8 +40,12 @@ export function MemoryStatusBanners({
                 className="mt-0.5 h-5 w-5 text-destructive"
               />
               <div>
-                <p className="text-sm font-medium text-destructive">Update Failed</p>
-                <p className="mt-1 text-xs text-destructive/80">{memory.error_message}</p>
+                <p className="text-sm font-medium text-destructive">
+                  Update Failed
+                </p>
+                <p className="mt-1 text-xs text-destructive/80">
+                  {memory.error_message}
+                </p>
               </div>
             </div>
             <Button

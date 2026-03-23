@@ -3,10 +3,7 @@ import type { useQueryFunctionType } from "@/types/api";
 import { api } from "../../api";
 import { getURL } from "../../helpers/constants";
 import { UseRequestProcessor } from "../../services/request-processor";
-import {
-  isMockMemoriesEnabled,
-  mockMemoriesApi,
-} from "../../mocks/memories";
+import { isMockMemoriesEnabled, mockMemoriesApi } from "../../mocks/memories";
 import type { GetMemoryParams, MemoryInfo } from "./types";
 
 export const useGetMemory: useQueryFunctionType<GetMemoryParams, MemoryInfo> = (

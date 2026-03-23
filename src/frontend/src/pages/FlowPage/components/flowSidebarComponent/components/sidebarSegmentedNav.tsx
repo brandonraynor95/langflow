@@ -83,8 +83,7 @@ const SidebarSegmentedNav = () => {
   const [isAddNoteActive, setIsAddNoteActive] = useState(false);
 
   const shouldReturnToCanvasOnSecondClick =
-    activeSection === "traces" ||
-    activeSection === "memories";
+    activeSection === "traces" || activeSection === "memories";
 
   const handleAddNote = () => {
     if (shouldReturnToCanvasOnSecondClick) {
@@ -128,10 +127,7 @@ const SidebarSegmentedNav = () => {
 
                     setSearch?.("");
                     if (activeSection === item.id && open) {
-                      if (
-                        item.id === "traces" ||
-                        item.id === "memories"
-                      ) {
+                      if (item.id === "traces" || item.id === "memories") {
                         setActiveSection("components");
                       } else {
                         toggleSidebar();

@@ -22,7 +22,9 @@ jest.mock("@/modals/deleteConfirmationModal", () => ({
   default: ({ children, onConfirm }: any) => (
     <div>
       {children}
-      <button onClick={() => onConfirm({ stopPropagation: jest.fn() })}>confirm-delete</button>
+      <button onClick={() => onConfirm({ stopPropagation: jest.fn() })}>
+        confirm-delete
+      </button>
     </div>
   ),
 }));
@@ -57,7 +59,9 @@ describe("MemoryDetailsHeader", () => {
     expect(baseProps.handleManualUpdate).toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("confirm-delete"));
-    expect(baseProps.deleteMutation.mutate).toHaveBeenCalledWith({ memoryId: "m1" });
+    expect(baseProps.deleteMutation.mutate).toHaveBeenCalledWith({
+      memoryId: "m1",
+    });
   });
 
   it("toggles auto-capture", () => {

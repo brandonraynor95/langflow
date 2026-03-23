@@ -26,8 +26,12 @@ export function MemoryDocumentPanel({
           <div className="flex h-full flex-col overflow-hidden">
             <div className="border-b border-border px-4 py-3 pr-12">
               <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap">
-                <span className="shrink-0 text-sm font-medium">Chunk Details</span>
-                <span className="shrink-0 text-sm text-muted-foreground">-</span>
+                <span className="shrink-0 text-sm font-medium">
+                  Chunk Details
+                </span>
+                <span className="shrink-0 text-sm text-muted-foreground">
+                  -
+                </span>
                 <span className="shrink-0 text-sm font-medium">
                   {selectedDocument.message_id || "(no id)"}
                 </span>
@@ -45,7 +49,9 @@ export function MemoryDocumentPanel({
                   {selectedDocument.sender || "-"}
                 </span>
                 <span>
-                  <span className="font-medium text-foreground">Timestamp:</span>{" "}
+                  <span className="font-medium text-foreground">
+                    Timestamp:
+                  </span>{" "}
                   {formatTimestamp(selectedDocument.timestamp)}
                 </span>
               </div>

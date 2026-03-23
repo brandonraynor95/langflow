@@ -16,7 +16,6 @@ import {
   setStatusAsync,
 } from "./memories.helpers";
 
-
 export const mockMemoriesApi = {
   reset() {
     setDb({ memories: {}, documents: {} });
@@ -28,7 +27,9 @@ export const mockMemoriesApi = {
     const filtered = flowId ? all.filter((m) => m.flow_id === flowId) : all;
     // newest first
     return filtered.sort(
-      (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+      (a, b) =>
+        new Date(b.created_at ?? 0).getTime() -
+        new Date(a.created_at ?? 0).getTime(),
     );
   },
 
@@ -90,7 +91,10 @@ export const mockMemoriesApi = {
     return mem;
   },
 
-  async update(memoryId: string, patch: UpdateMemoryPayload): Promise<MemoryInfo> {
+  async update(
+    memoryId: string,
+    patch: UpdateMemoryPayload,
+  ): Promise<MemoryInfo> {
     const db = getDb();
     const existing = db.memories[memoryId];
     if (!existing) {
@@ -102,7 +106,10 @@ export const mockMemoriesApi = {
     const next: MemoryInfo = {
       ...existing,
       ...patch,
-      batch_size: patch.batch_size !== undefined ? normalizeBatchSize(patch.batch_size) : existing.batch_size,
+      batch_size:
+        patch.batch_size !== undefined
+          ? normalizeBatchSize(patch.batch_size)
+          : existing.batch_size,
       updated_at: nowIso(),
     };
 
@@ -142,13 +149,15 @@ export const mockMemoriesApi = {
     db.memories[memoryId] = next;
 
     // Create a few placeholder docs so the UI has something to render.
-    const docs: MemoryDocumentItem[] = Array.from({ length: 5 }).map((_, idx) => ({
-      message_id: randomId("msg"),
-      session_id: `session_${idx % 2 === 0 ? "a" : "b"}`,
-      sender: idx % 2 === 0 ? "Human" : "Machine",
-      timestamp: nowIso(),
-      content: `Mock chunk ${idx + 1} for memory \"${next.name}\"`,
-    }));
+    const docs: MemoryDocumentItem[] = Array.from({ length: 5 }).map(
+      (_, idx) => ({
+        message_id: randomId("msg"),
+        session_id: `session_${idx % 2 === 0 ? "a" : "b"}`,
+        sender: idx % 2 === 0 ? "Human" : "Machine",
+        timestamp: nowIso(),
+        content: `Mock chunk ${idx + 1} for memory \"${next.name}\"`,
+      }),
+    );
 
     db.documents[memoryId] = docs;
 
@@ -190,7 +199,10 @@ export const mockMemoriesApi = {
     return next;
   },
 
-  async addMessages(memoryId: string, messageIds: string[]): Promise<MemoryInfo> {
+  async addMessages(
+    memoryId: string,
+    messageIds: string[],
+  ): Promise<MemoryInfo> {
     const db = getDb();
     const existing = db.memories[memoryId];
     if (!existing) {
@@ -215,7 +227,8 @@ export const mockMemoriesApi = {
       ...existing,
       status: "idle",
       error_message: undefined,
-      total_messages_processed: existing.total_messages_processed + messageIds.length,
+      total_messages_processed:
+        existing.total_messages_processed + messageIds.length,
       total_chunks: merged.length,
       sessions_count: computeSessions(merged).length,
       updated_at: nowIso(),
@@ -251,5 +264,5 @@ export const mockMemoriesApi = {
 
 export const isMockMemoriesEnabled = () => {
   const flag = (import.meta as any).env?.VITE_MOCK_MEMORIES_API;
-  return true|| flag === "true" || flag === true;
+  return true || flag === "true" || flag === true;
 };

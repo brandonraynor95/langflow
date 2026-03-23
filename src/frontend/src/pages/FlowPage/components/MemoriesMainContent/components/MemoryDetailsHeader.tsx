@@ -22,7 +22,9 @@ export function MemoryDetailsHeader({
         <div>
           <h2 className="text-sm font-semibold">{memory.name}</h2>
           {memory.description && (
-            <p className="text-xs text-muted-foreground">{memory.description}</p>
+            <p className="text-xs text-muted-foreground">
+              {memory.description}
+            </p>
           )}
         </div>
         <span
@@ -69,7 +71,11 @@ export function MemoryDetailsHeader({
           }}
           asChild
         >
-          <Button variant="outline" size="sm" disabled={deleteMutation.isPending}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={deleteMutation.isPending}
+          >
             <IconComponent name="Trash2" className="mr-1.5 h-3.5 w-3.5" />
             Delete
           </Button>

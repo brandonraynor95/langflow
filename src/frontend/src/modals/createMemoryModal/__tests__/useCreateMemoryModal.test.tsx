@@ -8,7 +8,10 @@ const mockMutate = jest.fn();
 jest.mock("@/stores/alertStore", () => ({
   __esModule: true,
   default: (selector: any) =>
-    selector({ setErrorData: mockSetErrorData, setSuccessData: mockSetSuccessData }),
+    selector({
+      setErrorData: mockSetErrorData,
+      setSuccessData: mockSetSuccessData,
+    }),
 }));
 
 const mockProviders = [
@@ -17,7 +20,10 @@ const mockProviders = [
     is_enabled: true,
     icon: "Bot",
     models: [
-      { model_name: "text-embedding-3-small", metadata: { model_type: "embeddings" } },
+      {
+        model_name: "text-embedding-3-small",
+        metadata: { model_type: "embeddings" },
+      },
       { model_name: "gpt-4o-mini", metadata: { model_type: "llm" } },
     ],
   },
@@ -68,7 +74,11 @@ describe("useCreateMemoryModal", () => {
     act(() => {
       result.current.setName("My Memory");
       result.current.setSelectedEmbeddingModel([
-        { id: "text-embedding-3-small", name: "text-embedding-3-small", provider: "OpenAI" } as any,
+        {
+          id: "text-embedding-3-small",
+          name: "text-embedding-3-small",
+          provider: "OpenAI",
+        } as any,
       ]);
       result.current.setBatchSizeInput("5");
       result.current.setPreprocessingEnabled(true);

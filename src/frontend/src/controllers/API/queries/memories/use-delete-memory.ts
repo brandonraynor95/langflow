@@ -6,9 +6,10 @@ import { UseRequestProcessor } from "../../services/request-processor";
 import { isMockMemoriesEnabled, mockMemoriesApi } from "../../mocks/memories";
 import type { DeleteMemoryParams } from "./types";
 
-export const useDeleteMemory: useMutationFunctionType<undefined, DeleteMemoryParams> = (
-  options?,
-) => {
+export const useDeleteMemory: useMutationFunctionType<
+  undefined,
+  DeleteMemoryParams
+> = (options?) => {
   const { mutate, queryClient } = UseRequestProcessor();
 
   const deleteMemoryFn = async (params: DeleteMemoryParams): Promise<void> => {
@@ -19,7 +20,9 @@ export const useDeleteMemory: useMutationFunctionType<undefined, DeleteMemoryPar
     }
 
     queryClient.invalidateQueries({ queryKey: ["useGetMemories"] });
-    queryClient.invalidateQueries({ queryKey: ["useGetMemory", params.memoryId] });
+    queryClient.invalidateQueries({
+      queryKey: ["useGetMemory", params.memoryId],
+    });
   };
 
   const mutation: UseMutationResult<void, any, DeleteMemoryParams> = mutate(

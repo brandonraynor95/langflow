@@ -20,7 +20,10 @@ export function MemoriesSidebar({
       <div className="border-b border-border px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <IconComponent name="Brain" className="h-4 w-4 text-muted-foreground" />
+            <IconComponent
+              name="Brain"
+              className="h-4 w-4 text-muted-foreground"
+            />
             <h2 className="text-sm font-semibold">Memories</h2>
           </div>
           <Button
@@ -97,7 +100,9 @@ export function MemoriesSidebar({
                           title="Auto-capture enabled"
                         />
                       )}
-                      <div className="truncate text-sm font-medium">{memoryItem.name}</div>
+                      <div className="truncate text-sm font-medium">
+                        {memoryItem.name}
+                      </div>
                     </div>
                     {memoryItem.description && (
                       <div className="truncate text-xs text-muted-foreground">
@@ -109,7 +114,8 @@ export function MemoriesSidebar({
                     className={cn(
                       "ml-2 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
                       statusBgColors[memoryItem.status] || "bg-muted",
-                      statusColors[memoryItem.status] || "text-muted-foreground",
+                      statusColors[memoryItem.status] ||
+                        "text-muted-foreground",
                     )}
                   >
                     {memoryItem.status}

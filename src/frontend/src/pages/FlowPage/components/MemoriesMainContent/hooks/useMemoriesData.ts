@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import useAlertStore from "@/stores/alertStore";
-import { useGetMemories} from "@/controllers/API/queries/memories/use-get-memories";
+import { useGetMemories } from "@/controllers/API/queries/memories/use-get-memories";
 import { useGetMemory } from "@/controllers/API/queries/memories/use-get-memory";
 import { useAddMessagesToMemory } from "@/controllers/API/queries/memories/use-add-messages-to-memory";
 import { useDeleteMemory } from "@/controllers/API/queries/memories/use-delete-memory";
 import { useUpdateMemory } from "@/controllers/API/queries/memories/use-update-memory";
 import { UseMemoriesDataProps } from "../types";
-import type { MemoryDocumentItem, MemoryInfo } from "@/controllers/API/queries/memories/types";
+import type {
+  MemoryDocumentItem,
+  MemoryInfo,
+} from "@/controllers/API/queries/memories/types";
 
 export function useMemoriesData({
   currentFlowId,
@@ -21,7 +24,8 @@ export function useMemoriesData({
   const [activeSearch, setActiveSearch] = useState("");
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [documentPanelOpen, setDocumentPanelOpen] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<MemoryDocumentItem | null>(null);
+  const [selectedDocument, setSelectedDocument] =
+    useState<MemoryDocumentItem | null>(null);
 
   const { data: memories } = useGetMemories(
     { flowId: currentFlowId ?? undefined },
@@ -67,7 +71,7 @@ export function useMemoriesData({
       retry: false,
     },
   );
-  
+
   useEffect(() => {
     if (isError && selectedMemoryId) {
       onSelectMemory?.(null);
@@ -95,7 +99,9 @@ export function useMemoriesData({
 
     const sessions =
       memory?.document_sessions ??
-      Array.from(new Set(rawDocuments.map((doc) => doc.session_id).filter(Boolean)));
+      Array.from(
+        new Set(rawDocuments.map((doc) => doc.session_id).filter(Boolean)),
+      );
 
     return {
       documents: filteredDocuments,
@@ -106,7 +112,6 @@ export function useMemoriesData({
 
   const docsLoading = isLoading;
 
-  
   const manualUpdateMutation = useAddMessagesToMemory({
     onSuccess: () => setSuccessData({ title: "Memory updated" }),
     onError: (error: any) =>

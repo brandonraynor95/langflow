@@ -176,7 +176,9 @@ export default function CreateMemoryModal({
 
         <div className="rounded-lg border border-border bg-muted/50 p-4">
           <p className="text-sm text-muted-foreground">
-            Create the memory first, then use <span className="font-medium text-foreground">Generate</span> to vectorize messages.
+            Create the memory first, then use{" "}
+            <span className="font-medium text-foreground">Generate</span> to
+            vectorize messages.
           </p>
         </div>
       </BaseModal.Content>

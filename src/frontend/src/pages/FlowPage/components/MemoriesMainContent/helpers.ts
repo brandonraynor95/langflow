@@ -45,4 +45,3 @@ export const formatTimestamp = (ts?: string) => {
     return ts;
   }
 };
-

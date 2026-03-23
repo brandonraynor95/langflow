@@ -299,11 +299,7 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
                 segmentedSidebar={ENABLE_NEW_SIDEBAR}
               >
                 <FlowSearchProvider>
-                  {!view && (
-                    <FlowSidebarComponent
-                      isLoading={isLoading}
-                    />
-                  )}
+                  {!view && <FlowSidebarComponent isLoading={isLoading} />}
                   <main
                     className={cn(
                       "flex flex-1 min-w-0 overflow-hidden transition-all duration-300",

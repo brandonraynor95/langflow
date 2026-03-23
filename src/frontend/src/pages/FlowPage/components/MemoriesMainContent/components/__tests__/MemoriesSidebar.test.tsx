@@ -8,8 +8,12 @@ jest.mock("@/components/common/genericIconComponent", () => ({
 
 describe("MemoriesSidebar", () => {
   const baseProps = {
-    memories: [{ id: "m1", name: "Memory One", status: "idle", is_active: true }],
-    filteredMemories: [{ id: "m1", name: "Memory One", status: "idle", is_active: true }],
+    memories: [
+      { id: "m1", name: "Memory One", status: "idle", is_active: true },
+    ],
+    filteredMemories: [
+      { id: "m1", name: "Memory One", status: "idle", is_active: true },
+    ],
     memoriesSearch: "",
     setMemoriesSearch: jest.fn(),
     selectedMemoryId: "m1",

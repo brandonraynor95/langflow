@@ -33,7 +33,9 @@ export function MemoryKnowledgeBaseSection({
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <div className="flex items-center gap-2">
           <h3 className="text-xs font-semibold">Knowledge Base</h3>
-          <span className="text-xs text-muted-foreground">{docsData?.total ?? 0} chunks</span>
+          <span className="text-xs text-muted-foreground">
+            {docsData?.total ?? 0} chunks
+          </span>
         </div>
         <div className="flex items-center gap-2">
           {docsData?.sessions && docsData.sessions.length > 1 && (
