@@ -52,6 +52,7 @@ from lfx.graph.flow_builder import (
 from lfx.graph.flow_builder import (
     remove_connection as fb_remove_connection,
 )
+from lfx.graph.flow_builder.spec import validate_spec_references
 from lfx.log.logger import logger
 from lfx.mcp.client import LangflowClient
 from lfx.mcp.registry import (
@@ -268,18 +269,7 @@ async def create_flow_from_spec(spec: str, *, validate: bool = True) -> dict[str
     parsed = parse_flow_spec(spec)
 
     # Validate references before creating anything
-    node_ids = {n["id"] for n in parsed["nodes"]}
-    for spec_id in parsed.get("config", {}):
-        if spec_id not in node_ids:
-            msg = f"Config references unknown node '{spec_id}'. Available: {sorted(node_ids)}"
-            raise ValueError(msg)
-    for edge in parsed.get("edges", []):
-        if edge["source_id"] not in node_ids:
-            msg = f"Edge references unknown source '{edge['source_id']}'. Available: {sorted(node_ids)}"
-            raise ValueError(msg)
-        if edge["target_id"] not in node_ids:
-            msg = f"Edge references unknown target '{edge['target_id']}'. Available: {sorted(node_ids)}"
-            raise ValueError(msg)
+    validate_spec_references(parsed)
 
     # Create flow
     created = await create_flow(
@@ -1067,19 +1057,7 @@ async def update_flow_from_spec(flow_id: str, spec: str) -> dict[str, Any]:
     parsed = parse_flow_spec(spec)
     registry = await _get_registry()
 
-    # Validate references before building (same as create_flow_from_spec)
-    node_ids = {n["id"] for n in parsed["nodes"]}
-    for spec_id in parsed.get("config", {}):
-        if spec_id not in node_ids:
-            msg = f"Config references unknown node '{spec_id}'. Available: {sorted(node_ids)}"
-            raise ValueError(msg)
-    for edge in parsed.get("edges", []):
-        if edge["source_id"] not in node_ids:
-            msg = f"Edge references unknown source '{edge['source_id']}'"
-            raise ValueError(msg)
-        if edge["target_id"] not in node_ids:
-            msg = f"Edge references unknown target '{edge['target_id']}'"
-            raise ValueError(msg)
+    validate_spec_references(parsed)
 
     # Build new flow data from spec
     flow = empty_flow(
