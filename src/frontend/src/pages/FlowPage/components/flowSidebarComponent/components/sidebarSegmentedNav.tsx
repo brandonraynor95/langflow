@@ -65,6 +65,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Traces",
     tooltip: "Traces",
   },
+  {
+    id: "memories",
+    icon: "Brain",
+    label: "Memories",
+    tooltip: "Memories",
+  },
 ];
 
 const SidebarSegmentedNav = () => {
@@ -75,8 +81,13 @@ const SidebarSegmentedNav = () => {
     (state) => state.setIsFullscreen,
   );
   const [isAddNoteActive, setIsAddNoteActive] = useState(false);
+
+  const shouldReturnToCanvasOnSecondClick =
+    activeSection === "traces" ||
+    activeSection === "memories";
+
   const handleAddNote = () => {
-    if (activeSection === "traces") {
+    if (shouldReturnToCanvasOnSecondClick) {
       setActiveSection("components");
     }
     window.dispatchEvent(new Event("lf:start-add-note"));
@@ -117,7 +128,10 @@ const SidebarSegmentedNav = () => {
 
                     setSearch?.("");
                     if (activeSection === item.id && open) {
-                      if (item.id === "traces") {
+                      if (
+                        item.id === "traces" ||
+                        item.id === "memories"
+                      ) {
                         setActiveSection("components");
                       } else {
                         toggleSidebar();

@@ -28,16 +28,22 @@ import {
 } from "./components/flowSidebarComponent";
 import Page from "./components/PageComponent";
 import { FlowInsightsContent } from "./components/TraceComponent/FlowInsightsContent";
+import MemoriesMainContent from "./components/MemoriesMainContent";
 
 function FlowPageMainContent({
   flowId,
   setIsLoading,
+  selectedMemoryId,
+  onSelectMemory,
 }: {
   flowId?: string;
   setIsLoading: (isLoading: boolean) => void;
+  selectedMemoryId: string | null;
+  onSelectMemory: (id: string | null) => void;
 }): JSX.Element {
   const { activeSection } = useSidebar();
   const showTraces = ENABLE_NEW_SIDEBAR && activeSection === "traces";
+  const showMemories = ENABLE_NEW_SIDEBAR && activeSection === "memories";
 
   if (showTraces) {
     return (
@@ -51,6 +57,15 @@ function FlowPageMainContent({
           showFlowActivityHeader
         />
       </div>
+    );
+  }
+
+  if (showMemories) {
+    return (
+      <MemoriesMainContent
+        selectedMemoryId={selectedMemoryId}
+        onSelectMemory={onSelectMemory}
+      />
     );
   }
 
@@ -69,6 +84,7 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
   const currentSavedFlow = useFlowsManagerStore((state) => state.currentFlow);
   const setSuccessData = useAlertStore((state) => state.setSuccessData);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
 
   const changesNotSaved =
     customStringify(currentFlow) !== customStringify(currentSavedFlow) &&
@@ -282,7 +298,11 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
                 segmentedSidebar={ENABLE_NEW_SIDEBAR}
               >
                 <FlowSearchProvider>
-                  {!view && <FlowSidebarComponent isLoading={isLoading} />}
+                  {!view && (
+                    <FlowSidebarComponent
+                      isLoading={isLoading}
+                    />
+                  )}
                   <main
                     className={cn(
                       "flex flex-1 min-w-0 overflow-hidden transition-all duration-300",
@@ -295,6 +315,8 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
                       <FlowPageMainContent
                         flowId={id}
                         setIsLoading={setIsLoading}
+                        selectedMemoryId={selectedMemoryId}
+                        onSelectMemory={setSelectedMemoryId}
                       />
                     </div>
                   </main>

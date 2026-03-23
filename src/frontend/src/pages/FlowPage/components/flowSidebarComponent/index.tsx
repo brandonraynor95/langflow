@@ -69,7 +69,7 @@ export type SearchContextType = {
   // Additional properties for the sidebar to use
   search?: string;
   setSearch?: (value: string) => void;
-  searchInputRef?: React.RefObject<HTMLInputElement | null>;
+  searchInputRef?: React.RefObject<HTMLInputElement>;
   handleInputFocus?: () => void;
   handleInputBlur?: () => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -93,7 +93,7 @@ export function FlowSearchProvider({
 }) {
   const [search, setSearch] = useState("");
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null!);
 
   const focusSearchInput = useCallback(() => {
     if (searchInputRef.current) {
@@ -213,7 +213,7 @@ export function FlowSidebarComponent({ isLoading }: FlowSidebarComponentProps) {
   // Get search state from context
   const context = useSearchContext();
   // Unconditional fallback ref to satisfy Rules of Hooks
-  const fallbackSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const fallbackSearchInputRef = useRef<HTMLInputElement>(null!);
   const {
     search = "",
     setSearch = () => {},
@@ -601,15 +601,18 @@ export function FlowSidebarComponent({ isLoading }: FlowSidebarComponentProps) {
   const currentFlowForVersions = useFlowStore((state) => state.currentFlow);
 
   const showTraces = ENABLE_NEW_SIDEBAR && activeSection === "traces";
+  const showMemories = ENABLE_NEW_SIDEBAR && activeSection === "memories";
+
+  const isFeatureSection = showTraces || showMemories;
 
   const SIDEBAR_EXPAND_ANIMATION_MS = 300;
   const [isFullSidebarPanelMounted, setIsFullSidebarPanelMounted] = useState(
-    !showTraces,
+    !isFeatureSection,
   );
   const [isFullSidebarPanelShown, setIsFullSidebarPanelShown] = useState(
-    !showTraces,
+    !isFeatureSection,
   );
-  const prevShowTracesRef = useRef(showTraces);
+  const prevIsFeatureSectionRef = useRef(isFeatureSection);
   const expandedSidebarWidthRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -617,16 +620,16 @@ export function FlowSidebarComponent({ isLoading }: FlowSidebarComponentProps) {
       ".group\\/sidebar-wrapper",
     ) as HTMLElement | null;
 
-    const wasShowingTraces = prevShowTracesRef.current;
-    prevShowTracesRef.current = showTraces;
+    const wasInFeatureSection = prevIsFeatureSectionRef.current;
+    prevIsFeatureSectionRef.current = isFeatureSection;
 
     if (!wrapper) {
-      setIsFullSidebarPanelMounted(!showTraces);
-      setIsFullSidebarPanelShown(!showTraces);
+      setIsFullSidebarPanelMounted(!isFeatureSection);
+      setIsFullSidebarPanelShown(!isFeatureSection);
       return;
     }
 
-    if (showTraces) {
+    if (isFeatureSection) {
       const computed =
         getComputedStyle(wrapper).getPropertyValue("--sidebar-width");
       expandedSidebarWidthRef.current = computed?.trim() || null;
@@ -643,7 +646,7 @@ export function FlowSidebarComponent({ isLoading }: FlowSidebarComponentProps) {
       expandedSidebarWidthRef.current || "17.5rem",
     );
 
-    if (wasShowingTraces) {
+    if (wasInFeatureSection) {
       const timeoutId = window.setTimeout(() => {
         // Mount hidden first, then animate in next frame.
         setIsFullSidebarPanelMounted(true);
@@ -659,7 +662,7 @@ export function FlowSidebarComponent({ isLoading }: FlowSidebarComponentProps) {
     // Non-traces transitions: show immediately.
     setIsFullSidebarPanelMounted(true);
     setIsFullSidebarPanelShown(true);
-  }, [showTraces]);
+  }, [isFeatureSection]);
 
   const [category, component] = getFilterComponent?.split(".") ?? ["", ""];
 
