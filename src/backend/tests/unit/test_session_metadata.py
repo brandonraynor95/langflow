@@ -326,4 +326,5 @@ async def test_update_session_metadata():
     # Actual update functionality depends on aupdate_messages implementation
     assert messages[0].session_metadata == initial_metadata
 
+
 # Made with Bob
