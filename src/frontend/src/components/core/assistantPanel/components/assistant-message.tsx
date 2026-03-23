@@ -10,12 +10,19 @@ import { cn } from "@/utils/utils";
 import type { AssistantMessage } from "../assistant-panel.types";
 import { getRandomThinkingMessage } from "../helpers/messages";
 import { AssistantComponentResult } from "./assistant-component-result";
+import { FlowEditCarousel } from "./assistant-flow-edit-card";
+import { AssistantFlowPreview } from "./assistant-flow-preview";
 import { AssistantLoadingState } from "./assistant-loading-state";
 import { AssistantValidationFailed } from "./assistant-validation-failed";
 
 interface AssistantMessageItemProps {
   message: AssistantMessage;
   onApprove?: (messageId: string) => void;
+  onUpdateFlowAction?: (
+    messageId: string,
+    actionId: string,
+    status: "applied" | "dismissed",
+  ) => void;
 }
 
 function ThinkingIndicator({ message }: { message: string }) {
@@ -40,6 +47,7 @@ function ThinkingIndicator({ message }: { message: string }) {
 export function AssistantMessageItem({
   message,
   onApprove,
+  onUpdateFlowAction,
 }: AssistantMessageItemProps) {
   const { userData } = useContext(AuthContext);
   const isUser = message.role === "user";
@@ -74,14 +82,19 @@ export function AssistantMessageItem({
   // Generate randomized messages once per message
   const thinkingMessage = useMemo(() => getRandomThinkingMessage(), []);
 
-  // Steps that indicate component generation mode (not just Q&A)
+  // Steps that indicate component/flow generation mode (not just Q&A)
   const componentGenerationSteps = [
     "generating_component",
+    "generating_flow",
     "extracting_code",
     "validating",
     "validation_failed",
     "retrying",
     "validated",
+    "searching_components",
+    "building_flow",
+    "flow_built",
+    "flow_build_failed",
   ];
 
   // Detect component code in streaming content (handles misclassified intent)
@@ -152,6 +165,50 @@ export function AssistantMessageItem({
           result={message.result}
           onApprove={() => onApprove?.(message.id)}
         />
+      );
+    }
+
+    // Show flow edit cards when agent proposed changes
+    if (message.flowActions && message.flowActions.length > 0) {
+      return (
+        <div className="flex flex-col gap-3">
+          {message.content && (
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              className="prose prose-sm max-w-full text-muted-foreground dark:prose-invert prose-p:leading-relaxed prose-p:my-1"
+            >
+              {message.content}
+            </Markdown>
+          )}
+          <FlowEditCarousel
+            actions={message.flowActions}
+            onUpdateAction={(actionId, status) =>
+              onUpdateFlowAction?.(message.id, actionId, status)
+            }
+          />
+        </div>
+      );
+    }
+
+    // Show flow preview when a flow was built
+    if (message.flowPreview) {
+      // Strip the flow_json code block from the visible content
+      const cleanContent = message.content
+        ?.replace(/```flow_json[\s\S]*?```/gi, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      return (
+        <div className="flex flex-col gap-3">
+          {cleanContent && (
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              className="prose prose-sm max-w-full text-muted-foreground dark:prose-invert prose-p:leading-relaxed prose-p:my-1"
+            >
+              {cleanContent}
+            </Markdown>
+          )}
+          <AssistantFlowPreview flowPreview={message.flowPreview} />
+        </div>
       );
     }
 

@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState } from "react";
 import ShortUniqueId from "short-unique-id";
 import {
+  type AgenticFlowUpdateEvent,
   type AgenticStepType,
   postAssistStream,
 } from "@/controllers/API/queries/agentic";
 import { usePostValidateComponentCode } from "@/controllers/API/queries/nodes/use-post-validate-component-code";
 import { useAddComponent } from "@/hooks/use-add-component";
+import useFlowStore from "@/stores/flowStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import type { APIClassType } from "@/types/api";
 import type {
@@ -21,6 +23,11 @@ interface UseAssistantChatReturn {
   currentStep: AgenticStepType | null;
   handleSend: (content: string, model: AssistantModel | null) => Promise<void>;
   handleApprove: (messageId: string) => Promise<void>;
+  handleUpdateFlowAction: (
+    messageId: string,
+    actionId: string,
+    status: "applied" | "dismissed",
+  ) => void;
   handleStopGeneration: () => void;
   handleClearHistory: () => void;
 }
@@ -35,6 +42,52 @@ export function useAssistantChat(): UseAssistantChatReturn {
   const currentFlowId = useFlowsManagerStore((state) => state.currentFlowId);
   const addComponent = useAddComponent();
   const { mutateAsync: validateComponent } = usePostValidateComponentCode();
+  const paste = useFlowStore((state) => state.paste);
+
+  /** Apply a flow_update event to the canvas in real time */
+  const applyFlowUpdate = useCallback(
+    (event: AgenticFlowUpdateEvent) => {
+      switch (event.action) {
+        case "set_flow": {
+          const flow = event.flow as {
+            data?: { nodes?: unknown[]; edges?: unknown[] };
+          };
+          if (flow?.data?.nodes) {
+            paste(
+              {
+                nodes: flow.data.nodes as never[],
+                edges: (flow.data.edges ?? []) as never[],
+              },
+              { x: 100, y: 100 },
+            );
+          }
+          break;
+        }
+        case "add_component": {
+          const node = event.node as Record<string, unknown>;
+          if (node) {
+            // Add node at its layout position using setNodes
+            const setNodes = useFlowStore.getState().setNodes;
+            setNodes((prev) => [...prev, node as never]);
+          }
+          break;
+        }
+        case "connect": {
+          const edge = event.edge as Record<string, unknown>;
+          if (edge) {
+            const setEdges = useFlowStore.getState().setEdges;
+            setEdges((prev) => [...prev, edge as never]);
+          }
+          break;
+        }
+        // configure and remove_component would need different handling
+        // For the spike, these are logged but not applied visually
+        default:
+          break;
+      }
+    },
+    [paste],
+  );
 
   const handleSend = useCallback(
     async (content: string, model: AssistantModel | null) => {
@@ -114,15 +167,82 @@ export function useAssistantChat(): UseAssistantChatReturn {
             },
             onToken: (event) => {
               setMessages((prev) =>
+                prev.map((msg) => {
+                  if (msg.id !== assistantMessageId) return msg;
+                  // Add whitespace when tool calls break the stream:
+                  // previous text ends with punctuation, new chunk starts
+                  // with a word character, and there's no trailing space.
+                  const prev = msg.content;
+                  const chunk = event.chunk;
+                  const needsSpace =
+                    prev.length > 0 &&
+                    /[.!?:)\]"']$/.test(prev) &&
+                    /^[A-Z]/.test(chunk);
+                  return {
+                    ...msg,
+                    content: prev + (needsSpace ? "\n\n" : "") + chunk,
+                  };
+                }),
+              );
+            },
+            onFlowPreview: (event) => {
+              // Apply flow to canvas immediately
+              applyFlowUpdate({
+                event: "flow_update",
+                action: "set_flow",
+                flow: event.flow,
+              });
+              setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === assistantMessageId
                     ? {
                         ...msg,
-                        content: msg.content + event.chunk,
+                        flowPreview: {
+                          flow: event.flow,
+                          name: event.name,
+                          nodeCount: event.node_count,
+                          edgeCount: event.edge_count,
+                          graph: event.graph,
+                        },
                       }
                     : msg,
                 ),
               );
+            },
+            onFlowUpdate: (event) => {
+              if (event.action === "edit_field") {
+                // Add to flowActions for user review (don't apply immediately)
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? {
+                          ...msg,
+                          flowActions: [
+                            ...(msg.flowActions ?? []),
+                            {
+                              id: event.id as string,
+                              type: "edit_field" as const,
+                              description: event.description as string,
+                              component_id: event.component_id as string,
+                              component_type: event.component_type as string,
+                              field: event.field as string,
+                              old_value: event.old_value,
+                              new_value: event.new_value,
+                              patch: event.patch as {
+                                op: string;
+                                path: string;
+                                value: unknown;
+                              }[],
+                              status: "pending" as const,
+                            },
+                          ],
+                        }
+                      : msg,
+                  ),
+                );
+              } else {
+                applyFlowUpdate(event);
+              }
             },
             onComplete: (event) => {
               setMessages((prev) =>
@@ -135,6 +255,7 @@ export function useAssistantChat(): UseAssistantChatReturn {
                         result: {
                           content: event.data.result || "",
                           validated: event.data.validated,
+                          hasFlow: event.data.has_flow,
                           className: event.data.class_name,
                           componentCode: event.data.component_code,
                           validationAttempts: event.data.validation_attempts,
@@ -241,6 +362,24 @@ export function useAssistantChat(): UseAssistantChatReturn {
     setIsProcessing(false);
   }, []);
 
+  const handleUpdateFlowAction = useCallback(
+    (messageId: string, actionId: string, status: "applied" | "dismissed") => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                flowActions: msg.flowActions?.map((a) =>
+                  a.id === actionId ? { ...a, status } : a,
+                ),
+              }
+            : msg,
+        ),
+      );
+    },
+    [],
+  );
+
   const handleClearHistory = useCallback(() => {
     abortControllerRef.current?.abort();
     setMessages([]);
@@ -255,6 +394,7 @@ export function useAssistantChat(): UseAssistantChatReturn {
     currentStep,
     handleSend,
     handleApprove,
+    handleUpdateFlowAction,
     handleStopGeneration,
     handleClearHistory,
   };

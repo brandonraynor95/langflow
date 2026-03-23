@@ -110,6 +110,7 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
     currentStep,
     handleSend,
     handleApprove,
+    handleUpdateFlowAction,
     handleStopGeneration,
     handleClearHistory,
   } = useAssistantChat();
@@ -229,6 +230,7 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
                   key={msg.id}
                   message={msg}
                   onApprove={handleApproveAndClose}
+                  onUpdateFlowAction={handleUpdateFlowAction}
                 />
               ))}
             </StickToBottom.Content>
