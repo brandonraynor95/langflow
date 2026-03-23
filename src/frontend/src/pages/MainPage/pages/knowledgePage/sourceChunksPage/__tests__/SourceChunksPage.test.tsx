@@ -105,7 +105,6 @@ describe("SourceChunksPage", () => {
       render(<SourceChunksPage />);
 
       expect(screen.getByText("Failed to load chunks")).toBeInTheDocument();
-
     });
   });
 
