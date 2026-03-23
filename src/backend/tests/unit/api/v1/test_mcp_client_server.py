@@ -640,3 +640,45 @@ class TestRunFlow:
         assert len(events) > 0
         event_types = {e.get("event") for e in events}
         assert "end" in event_types
+
+
+# ---------------------------------------------------------------------------
+# Build results / component outputs
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.usefixtures("mcp_client")
+class TestGetBuildResults:
+    async def test_get_build_results_after_run(self, mcp_client, created_api_key):
+        """After running a flow, get_build_results should return per-component data."""
+        mcp_client.api_key = created_api_key.api_key
+        created = await mcp_server_module.create_flow("BuildResultsTest")
+        c1 = await mcp_server_module.add_component(created["id"], "ChatInput")
+        c2 = await mcp_server_module.add_component(created["id"], "ChatOutput")
+        await mcp_server_module.connect_components(created["id"], c1["id"], "message", c2["id"], "input_value")
+        await mcp_server_module.run_flow(created["id"], input_value="Hello")
+
+        results = await mcp_server_module.get_build_results(created["id"])
+        assert isinstance(results, dict)
+        assert "builds" in results
+        # Should have build data for at least the components we added
+        assert len(results["builds"]) > 0
+
+    async def test_get_build_results_empty_flow(self):
+        """A flow that hasn't been run should return empty builds."""
+        created = await mcp_server_module.create_flow("NoBuildTest")
+        results = await mcp_server_module.get_build_results(created["id"])
+        assert results["builds"] == {}
+
+    async def test_get_component_output_after_run(self, mcp_client, created_api_key):
+        """After running, get_component_output should return a specific component's output."""
+        mcp_client.api_key = created_api_key.api_key
+        created = await mcp_server_module.create_flow("CompOutputTest")
+        c1 = await mcp_server_module.add_component(created["id"], "ChatInput")
+        c2 = await mcp_server_module.add_component(created["id"], "ChatOutput")
+        await mcp_server_module.connect_components(created["id"], c1["id"], "message", c2["id"], "input_value")
+        await mcp_server_module.run_flow(created["id"], input_value="Test message")
+
+        output = await mcp_server_module.get_component_output(created["id"], c1["id"])
+        assert isinstance(output, dict)
+        assert "component_id" in output
