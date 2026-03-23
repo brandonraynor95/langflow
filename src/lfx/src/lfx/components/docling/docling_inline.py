@@ -1,11 +1,16 @@
+import multiprocessing
+import platform
 import queue
 import threading
 import time
+from contextlib import suppress
 
 from lfx.base.data import BaseFileComponent
 from lfx.base.data.docling_utils import _serialize_pydantic_model, docling_worker
 from lfx.inputs import BoolInput, DropdownInput, HandleInput, StrInput
 from lfx.schema import Data
+
+_USE_SUBPROCESS = platform.system() == "Darwin"
 
 
 class DoclingInlineComponent(BaseFileComponent):
@@ -92,57 +97,70 @@ class DoclingInlineComponent(BaseFileComponent):
         *BaseFileComponent.get_base_outputs(),
     ]
 
-    def _wait_for_result_with_thread_monitoring(
-        self, result_queue: queue.Queue, thread: threading.Thread, timeout: int = 300
-    ):
-        """Wait for result from queue while monitoring thread health.
+    def _wait_for_result_with_worker_monitoring(self, result_queue, worker, timeout: int = 300):
+        """Wait for result from queue while monitoring worker health.
 
-        Handles cases where thread crashes without sending result.
+        Works with both threading.Thread and multiprocessing.Process workers.
+        Handles cases where the worker crashes without sending a result.
         """
         start_time = time.time()
 
         while time.time() - start_time < timeout:
-            # Check if thread is still alive
-            if not thread.is_alive():
-                # Thread finished, try to get any result it might have sent
+            if not worker.is_alive():
                 try:
                     result = result_queue.get_nowait()
                 except queue.Empty:
-                    # Thread finished without sending result
-                    msg = "Worker thread crashed unexpectedly without producing result."
+                    exit_code = getattr(worker, "exitcode", None)
+                    if exit_code is not None and exit_code != 0:
+                        msg = f"Worker process exited with code {exit_code}"
+                    else:
+                        msg = "Worker crashed unexpectedly without producing result."
                     raise RuntimeError(msg) from None
                 else:
-                    self.log("Thread completed and result retrieved")
+                    self.log("Worker completed and result retrieved")
                     return result
 
-            # Poll the queue instead of blocking
             try:
                 result = result_queue.get(timeout=1)
             except queue.Empty:
-                # No result yet, continue monitoring
+                continue
+            except (EOFError, OSError):
+                # Queue pipe broken — worker likely crashed
+                if not worker.is_alive():
+                    msg = "Worker crashed and queue connection lost."
+                    raise RuntimeError(msg) from None
                 continue
             else:
-                self.log("Result received from worker thread")
+                self.log("Result received from worker")
                 return result
 
-        # Overall timeout reached
-        msg = f"Thread timed out after {timeout} seconds"
+        msg = f"Worker timed out after {timeout} seconds"
         raise TimeoutError(msg)
 
-    def _stop_thread_gracefully(self, thread: threading.Thread, timeout: int = 10):
-        """Wait for thread to complete gracefully.
+    def _terminate_worker_gracefully(self, worker, timeout: int = 10):
+        """Terminate worker gracefully.
 
-        Note: Python threads cannot be forcefully killed, so we just wait.
-        The thread should respond to shutdown signals via the queue.
+        For processes: sends SIGTERM, waits, then SIGKILL if still alive.
+        For threads: waits for completion (threads cannot be forcefully killed).
         """
-        if not thread.is_alive():
+        if not worker.is_alive():
             return
 
-        self.log("Waiting for thread to complete gracefully")
-        thread.join(timeout=timeout)
+        self.log("Waiting for worker to complete gracefully")
 
-        if thread.is_alive():
-            self.log("Warning: Thread still alive after timeout")
+        if hasattr(worker, "terminate"):
+            # multiprocessing.Process — can be forcefully terminated
+            worker.terminate()
+            worker.join(timeout=timeout)
+            if worker.is_alive():
+                self.log("Warning: Process still alive after timeout, killing")
+                worker.kill()
+                worker.join(timeout=5)
+        else:
+            # threading.Thread — can only wait
+            worker.join(timeout=timeout)
+            if worker.is_alive():
+                self.log("Warning: Thread still alive after timeout")
 
     def process_files(self, file_list: list[BaseFileComponent.BaseFile]) -> list[BaseFileComponent.BaseFile]:
         try:
@@ -164,37 +182,51 @@ class DoclingInlineComponent(BaseFileComponent):
         if self.pic_desc_llm is not None:
             pic_desc_config = _serialize_pydantic_model(self.pic_desc_llm)
 
-        # Use threading instead of multiprocessing for memory sharing
-        # This enables the global DocumentConverter cache to work across runs
-        result_queue: queue.Queue = queue.Queue()
-        thread = threading.Thread(
-            target=docling_worker,
-            kwargs={
-                "file_paths": file_paths,
-                "queue": result_queue,
-                "pipeline": self.pipeline,
-                "ocr_engine": self.ocr_engine,
-                "do_picture_classification": self.do_picture_classification,
-                "pic_desc_config": pic_desc_config,
-                "pic_desc_prompt": self.pic_desc_prompt,
-            },
-            daemon=False,  # Allow thread to complete even if main thread exits
-        )
+        worker_kwargs = {
+            "file_paths": file_paths,
+            "pipeline": self.pipeline,
+            "ocr_engine": self.ocr_engine,
+            "do_picture_classification": self.do_picture_classification,
+            "pic_desc_config": pic_desc_config,
+            "pic_desc_prompt": self.pic_desc_prompt,
+        }
+
+        if _USE_SUBPROCESS:
+            # Subprocess with "spawn" context keeps the parent's GIL free so
+            # Gunicorn heartbeats continue during heavy model loading.
+            ctx = multiprocessing.get_context("spawn")
+            result_queue = ctx.Queue()
+            worker = ctx.Process(
+                target=docling_worker,
+                kwargs={**worker_kwargs, "queue": result_queue},
+                daemon=False,
+            )
+        else:
+            # Threading shares the in-process DocumentConverter cache across runs.
+            result_queue = queue.Queue()
+            worker = threading.Thread(
+                target=docling_worker,
+                kwargs={**worker_kwargs, "queue": result_queue},
+                daemon=False,
+            )
 
         result = None
-        thread.start()
+        worker.start()
 
         try:
-            result = self._wait_for_result_with_thread_monitoring(result_queue, thread, timeout=300)
+            result = self._wait_for_result_with_worker_monitoring(result_queue, worker, timeout=300)
         except KeyboardInterrupt:
-            self.log("Docling thread cancelled by user")
+            self.log("Docling worker cancelled by user")
             result = []
         except Exception as e:
             self.log(f"Error during processing: {e}")
             raise
         finally:
-            # Wait for thread to complete gracefully
-            self._stop_thread_gracefully(thread)
+            self._terminate_worker_gracefully(worker)
+            if _USE_SUBPROCESS:
+                with suppress(Exception):
+                    result_queue.close()
+                    result_queue.join_thread()
 
         # Enhanced error checking with dependency-specific handling
         if isinstance(result, dict) and "error" in result:
