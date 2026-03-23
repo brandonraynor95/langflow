@@ -671,6 +671,7 @@ async def test_download_then_upload_roundtrip(client: AsyncClient, json_flow: st
         saved_flows = []
         for f in flow_list.flows:
             f.user_id = active_user.id
+            f.id = uuid4()
             db_flow = Flow.model_validate(f, from_attributes=True)
             _session.add(db_flow)
             saved_flows.append(db_flow)
