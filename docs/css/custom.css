@@ -91,6 +91,30 @@ html[data-theme="dark"] {
   max-width: 800px;
 }
 
+/*
+ * Inline Lucide icons in body copy (<Icon /> in MDX).
+ * Default lucide-react size is 24px, which reads huge next to Geist body text.
+ * Scale to the font (and keep card / explicit sizes overridable below).
+ */
+.markdown p svg.lf-inline-icon,
+.markdown li svg.lf-inline-icon,
+.markdown td svg.lf-inline-icon,
+.markdown th svg.lf-inline-icon,
+.markdown blockquote svg.lf-inline-icon {
+  width: 1em !important;
+  height: 1em !important;
+  min-width: 0.875em;
+  min-height: 0.875em;
+  vertical-align: -0.14em;
+}
+
+/* Card grid: keep icons tied to card title scale, not body 1em */
+.lf-card-icon svg.lf-inline-icon {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  vertical-align: middle;
+}
+
 /* Overall layout - more centered feel */
 .main-wrapper {
   max-width: 1400px;
