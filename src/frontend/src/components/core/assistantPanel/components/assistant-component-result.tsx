@@ -28,7 +28,7 @@ export function parseComponentInfo(code: string | undefined) {
   const description = descMatch?.[1] || null;
 
   // Extract inputs with type (e.g. MessageTextInput, IntInput, etc.)
-  const inputRegex = /(\w+Input)\(\s*(?:[^)]*?)display_name\s*=\s*"([^"]+)"/gs;
+  const inputRegex = /(\w+Input)\(\s*(?:[^)]*?)display_name\s*=\s*"([^"]+)"/g;
   const inputs: FieldInfo[] = [];
   let match;
   while ((match = inputRegex.exec(code)) !== null) {
@@ -46,7 +46,7 @@ export function parseComponentInfo(code: string | undefined) {
 
   // Extract outputs: get display_name and method name, then resolve return type from method signature
   const outputRegex =
-    /Output\(\s*(?:[^)]*?)display_name\s*=\s*"([^"]+)"(?:[^)]*?)method\s*=\s*"(\w+)"/gs;
+    /Output\(\s*(?:[^)]*?)display_name\s*=\s*"([^"]+)"(?:[^)]*?)method\s*=\s*"(\w+)"/g;
   const outputs: FieldInfo[] = [];
   while ((match = outputRegex.exec(code)) !== null) {
     const methodName = match[2];

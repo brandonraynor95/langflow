@@ -60,19 +60,33 @@ jest.mock("@/components/ui/button", () => ({
   ),
 }));
 
-jest.mock("@/modals/flowLogsModal", () => ({
-  __esModule: true,
-  default: ({ children }) => (
-    <div data-testid="flow-logs-modal">{children}</div>
-  ),
-}));
-
 jest.mock("../CanvasControlsDropdown", () => ({
   __esModule: true,
   default: () => <div data-testid="controls-dropdown" />,
 }));
 
+jest.mock("../HelpDropdown", () => ({
+  __esModule: true,
+  default: () => <div data-testid="help-dropdown" />,
+}));
+
 jest.mock("@/assets/langflow_assistant.svg", () => "mock-assistant-icon.svg");
+
+jest.mock("@/stores/assistantManagerStore", () => ({
+  __esModule: true,
+  default: jest.fn((selector) => {
+    const state = { toggleAssistant: jest.fn() };
+    return typeof selector === "function" ? selector(state) : state;
+  }),
+}));
+
+jest.mock("@/customization/feature-flags", () => ({
+  ENABLE_INSPECTION_PANEL: false,
+}));
+
+jest.mock("zustand/react/shallow", () => ({
+  useShallow: (fn: unknown) => fn,
+}));
 
 describe("CanvasControls", () => {
   beforeEach(() => {
@@ -80,44 +94,35 @@ describe("CanvasControls", () => {
   });
 
   it("should_render_panel_with_all_controls_when_mounted", () => {
-    render(<CanvasControls />);
+    render(<CanvasControls selectedNode={null} />);
 
     expect(screen.getByTestId("main_canvas_controls")).toBeInTheDocument();
     expect(screen.getByTestId("controls-dropdown")).toBeInTheDocument();
-    expect(screen.getByTestId("flow-logs-modal")).toBeInTheDocument();
   });
 
   it("should_render_assistant_button_with_new_badge", () => {
-    render(<CanvasControls />);
+    render(<CanvasControls selectedNode={null} />);
 
-    expect(screen.getByTitle("Langflow Assistant")).toBeInTheDocument();
     expect(screen.getByText("New")).toBeInTheDocument();
     expect(screen.getByAltText("Langflow Assistant")).toBeInTheDocument();
   });
 
-  it("should_render_logs_button_with_terminal_icon", () => {
-    render(<CanvasControls />);
-
-    expect(screen.getByTitle("Logs")).toBeInTheDocument();
-    expect(screen.getByTestId("icon-Terminal")).toBeInTheDocument();
-  });
-
   it("should_render_undo_button_with_icon", () => {
-    render(<CanvasControls />);
+    render(<CanvasControls selectedNode={null} />);
 
     expect(screen.getByTitle("Undo")).toBeInTheDocument();
     expect(screen.getByTestId("icon-Undo2")).toBeInTheDocument();
   });
 
   it("should_render_redo_button_with_icon", () => {
-    render(<CanvasControls />);
+    render(<CanvasControls selectedNode={null} />);
 
     expect(screen.getByTitle("Redo")).toBeInTheDocument();
     expect(screen.getByTestId("icon-Redo2")).toBeInTheDocument();
   });
 
   it("should_call_undo_when_undo_button_clicked", () => {
-    render(<CanvasControls />);
+    render(<CanvasControls selectedNode={null} />);
 
     const undoButton = screen.getByTitle("Undo");
     fireEvent.click(undoButton);
@@ -126,7 +131,7 @@ describe("CanvasControls", () => {
   });
 
   it("should_call_redo_when_redo_button_clicked", () => {
-    render(<CanvasControls />);
+    render(<CanvasControls selectedNode={null} />);
 
     const redoButton = screen.getByTitle("Redo");
     fireEvent.click(redoButton);
@@ -136,7 +141,7 @@ describe("CanvasControls", () => {
 
   it("should_render_children_when_provided", () => {
     render(
-      <CanvasControls>
+      <CanvasControls selectedNode={null}>
         <div data-testid="child-element">Lock Button</div>
       </CanvasControls>,
     );
@@ -145,16 +150,16 @@ describe("CanvasControls", () => {
   });
 
   it("should_position_panel_at_bottom_center", () => {
-    render(<CanvasControls />);
+    render(<CanvasControls selectedNode={null} />);
 
     const panel = screen.getByTestId("main_canvas_controls");
     expect(panel).toHaveAttribute("position", "bottom-center");
   });
 
-  it("should_have_bottom_padding_class_for_32px_spacing", () => {
-    render(<CanvasControls />);
+  it("should_have_overflow_visible_class_on_panel", () => {
+    render(<CanvasControls selectedNode={null} />);
 
     const panel = screen.getByTestId("main_canvas_controls");
-    expect(panel.className).toContain("!bottom-8");
+    expect(panel.className).toContain("!overflow-visible");
   });
 });
