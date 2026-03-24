@@ -52,12 +52,18 @@ class TestDoclingEmptyTextExtraction:
         assert result.data["doc"] == []
         # The subprocess returns the raw result; processing happens in process_files
 
-    @patch("subprocess.run")
-    def test_process_files_handles_empty_doc_rows(self, mock_subprocess, tmp_path):
+    @patch("lfx.components.files_and_knowledge.file.get_settings_service")
+    @patch("subprocess.Popen")
+    def test_process_files_handles_empty_doc_rows(self, mock_popen, mock_settings, tmp_path):
         """Test that process_files correctly handles empty doc_rows from Docling."""
         # Create a test image file
         test_image = tmp_path / "test_image.png"
         test_image.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)  # Minimal PNG header
+
+        # Mock settings service to return local storage
+        mock_settings_instance = MagicMock()
+        mock_settings_instance.settings.storage_type = "local"
+        mock_settings.return_value = mock_settings_instance
 
         component = FileComponent()
         component.advanced_mode = True
@@ -75,10 +81,11 @@ class TestDoclingEmptyTextExtraction:
             "doc": [],
             "meta": {"file_path": str(test_image)},
         }
-        mock_subprocess.return_value = MagicMock(
-            stdout=json.dumps(mock_result).encode("utf-8"),
-            stderr=b"",
-        )
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 0
+        mock_proc.stdout.read.return_value = json.dumps(mock_result).encode("utf-8")
+        mock_proc.stderr.read.return_value = b""
+        mock_popen.return_value = mock_proc
 
         # Create BaseFile mock
         from lfx.base.data.base_file import BaseFileComponent
