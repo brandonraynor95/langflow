@@ -1,6 +1,9 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import ModelInputComponent, { ModelOption } from "../index";
+import type { BaseInputProps } from "@/components/core/parameterRenderComponent/types";
+import ModelInputComponent from "../index";
+import type { ModelInputComponentType, ModelOption } from "../types";
 
 // Mock scrollIntoView for cmdk library
 Element.prototype.scrollIntoView = jest.fn();
@@ -11,6 +14,20 @@ jest.mock("@/stores/alertStore", () => ({
   __esModule: true,
   default: () => ({
     setErrorData: mockSetErrorData,
+  }),
+}));
+
+// Mock useRefreshModelInputs with controllable promise
+let mockRefreshResolve: () => void;
+const mockRefreshAllModelInputs = jest.fn(
+  () =>
+    new Promise<void>((resolve) => {
+      mockRefreshResolve = resolve;
+    }),
+);
+jest.mock("@/hooks/use-refresh-model-inputs", () => ({
+  useRefreshModelInputs: () => ({
+    refreshAllModelInputs: mockRefreshAllModelInputs,
   }),
 }));
 
@@ -122,7 +139,7 @@ const mockOptions: ModelOption[] = [
   },
 ];
 
-const defaultProps: any = {
+const defaultProps: BaseInputProps & ModelInputComponentType = {
   id: "test-model-input",
   value: [],
   disabled: false,
@@ -134,11 +151,32 @@ const defaultProps: any = {
     template: {
       model: {
         model_type: "language",
+        type: "",
+        required: false,
+        list: false,
+        show: false,
+        readonly: false,
       },
     },
+    description: "",
+    display_name: "",
+    documentation: "",
   },
   handleNodeClass: jest.fn(),
   editNode: false,
+};
+
+// Helper to render with QueryClientProvider
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>,
+  );
 };
 
 describe("ModelInputComponent", () => {
@@ -147,22 +185,27 @@ describe("ModelInputComponent", () => {
   });
 
   describe("Rendering", () => {
-    it("should render loading state when no options are provided", () => {
-      render(<ModelInputComponent {...defaultProps} options={[]} />);
+    it("should render disabled combobox when no options are provided", () => {
+      renderWithQueryClient(
+        <ModelInputComponent {...defaultProps} options={[]} />,
+      );
 
-      expect(screen.getByTestId("loading-text")).toBeInTheDocument();
-      expect(screen.getByText("Loading models")).toBeInTheDocument();
+      const combobox = screen.getByRole("combobox");
+      expect(combobox).toBeInTheDocument();
+      expect(combobox).toBeDisabled();
     });
 
     it("should render the model selector when options are available", () => {
-      render(<ModelInputComponent {...defaultProps} />);
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
 
       // Should show the dropdown trigger
       expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
     it("should display placeholder text when no model is selected", () => {
-      render(<ModelInputComponent {...defaultProps} value={[]} />);
+      renderWithQueryClient(
+        <ModelInputComponent {...defaultProps} value={[]} />,
+      );
 
       // Initially selects first model, but let's check the UI is present
       expect(screen.getByRole("combobox")).toBeInTheDocument();
@@ -179,7 +222,9 @@ describe("ModelInputComponent", () => {
         },
       ];
 
-      render(<ModelInputComponent {...defaultProps} value={selectedValue} />);
+      renderWithQueryClient(
+        <ModelInputComponent {...defaultProps} value={selectedValue} />,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("gpt-4")).toBeInTheDocument();
@@ -187,7 +232,9 @@ describe("ModelInputComponent", () => {
     });
 
     it("should render disabled state correctly", () => {
-      render(<ModelInputComponent {...defaultProps} disabled={true} />);
+      renderWithQueryClient(
+        <ModelInputComponent {...defaultProps} disabled={true} />,
+      );
 
       const button = screen.getByRole("combobox");
       expect(button).toBeDisabled();
@@ -197,7 +244,7 @@ describe("ModelInputComponent", () => {
   describe("Dropdown Interaction", () => {
     it("should open dropdown when trigger is clicked", async () => {
       const user = userEvent.setup();
-      render(<ModelInputComponent {...defaultProps} />);
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
 
       const trigger = screen.getByRole("combobox");
       await user.click(trigger);
@@ -210,7 +257,7 @@ describe("ModelInputComponent", () => {
 
     it("should show model options grouped by provider", async () => {
       const user = userEvent.setup();
-      render(<ModelInputComponent {...defaultProps} />);
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
 
       const trigger = screen.getByRole("combobox");
       await user.click(trigger);
@@ -227,7 +274,7 @@ describe("ModelInputComponent", () => {
       const handleOnNewValue = jest.fn();
       const user = userEvent.setup();
 
-      render(
+      renderWithQueryClient(
         <ModelInputComponent
           {...defaultProps}
           handleOnNewValue={handleOnNewValue}
@@ -251,7 +298,7 @@ describe("ModelInputComponent", () => {
   describe("Model Provider Modal", () => {
     it("should open manage providers dialog when button is clicked", async () => {
       const user = userEvent.setup();
-      render(<ModelInputComponent {...defaultProps} />);
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
 
       // Open dropdown first
       const trigger = screen.getByRole("combobox");
@@ -276,7 +323,7 @@ describe("ModelInputComponent", () => {
   describe("Footer Buttons", () => {
     it("should render Manage Model Providers button", async () => {
       const user = userEvent.setup();
-      render(<ModelInputComponent {...defaultProps} />);
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
 
       const trigger = screen.getByRole("combobox");
       await user.click(trigger);
@@ -284,6 +331,92 @@ describe("ModelInputComponent", () => {
       await waitFor(() => {
         expect(screen.getByText("Manage Model Providers")).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("Refresh List", () => {
+    it("should close popover before entering loading state when refresh is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
+
+      const trigger = screen.getByRole("combobox");
+      await user.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("refresh-model-list")).toBeInTheDocument();
+      });
+
+      const refreshButton = screen.getByTestId("refresh-model-list");
+      await user.click(refreshButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Loading models")).toBeInTheDocument();
+      });
+
+      mockRefreshResolve();
+
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).toBeInTheDocument();
+      });
+
+      // Popover must be closed after refresh to prevent width measurement glitch
+      expect(screen.queryByTestId("gpt-4-option")).not.toBeInTheDocument();
+      expect(screen.queryByText("OpenAI")).not.toBeInTheDocument();
+    });
+
+    it("should not crash when component renders without popover open during refresh", () => {
+      mockRefreshAllModelInputs.mockImplementationOnce(() => Promise.resolve());
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
+
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
+      expect(screen.queryByTestId("gpt-4-option")).not.toBeInTheDocument();
+    });
+
+    it("should call refresh with silent flag exactly once per click", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
+
+      const trigger = screen.getByRole("combobox");
+      await user.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("refresh-model-list")).toBeInTheDocument();
+      });
+
+      const refreshButton = screen.getByTestId("refresh-model-list");
+      await user.click(refreshButton);
+
+      expect(mockRefreshAllModelInputs).toHaveBeenCalledTimes(1);
+      expect(mockRefreshAllModelInputs).toHaveBeenCalledWith({ silent: true });
+
+      mockRefreshResolve();
+    });
+
+    it("should recover to normal state when refresh rejects", async () => {
+      // handleRefreshButtonPress uses try/finally, so refreshOptions resets even on error
+      mockRefreshAllModelInputs.mockImplementationOnce(() =>
+        Promise.reject(new Error("Network error")),
+      );
+
+      const user = userEvent.setup();
+      renderWithQueryClient(<ModelInputComponent {...defaultProps} />);
+
+      const trigger = screen.getByRole("combobox");
+      await user.click(trigger);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("refresh-model-list")).toBeInTheDocument();
+      });
+
+      const refreshButton = screen.getByTestId("refresh-model-list");
+      await user.click(refreshButton);
+
+      // finally block sets refreshOptions=false, restoring the combobox
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText("Loading models")).not.toBeInTheDocument();
     });
   });
 
@@ -300,7 +433,7 @@ describe("ModelInputComponent", () => {
         },
       ];
 
-      render(
+      renderWithQueryClient(
         <ModelInputComponent {...defaultProps} options={optionsWithDisabled} />,
       );
 
@@ -309,7 +442,9 @@ describe("ModelInputComponent", () => {
     });
 
     it("should handle empty value array", () => {
-      render(<ModelInputComponent {...defaultProps} value={[]} />);
+      renderWithQueryClient(
+        <ModelInputComponent {...defaultProps} value={[]} />,
+      );
 
       // Component should render without crashing
       expect(screen.getByRole("combobox")).toBeInTheDocument();
@@ -318,7 +453,7 @@ describe("ModelInputComponent", () => {
     it("should auto-select first model when value is empty and options exist", () => {
       const handleOnNewValue = jest.fn();
 
-      render(
+      renderWithQueryClient(
         <ModelInputComponent
           {...defaultProps}
           value={[]}

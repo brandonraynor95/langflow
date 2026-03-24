@@ -12,12 +12,12 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
-from langchain.callbacks.base import BaseCallbackHandler
+from langchain_classic.callbacks.base import BaseCallbackHandler
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from langchain.schema import AgentAction, AgentFinish, LLMResult
+    from langchain_classic.schema import AgentAction, AgentFinish, LLMResult
     from langchain_core.documents import Document
     from langchain_core.messages import BaseMessage
 
@@ -50,7 +50,7 @@ class NativeCallbackHandler(BaseCallbackHandler):
 
     def _resolve_parent_span_id(self, parent_run_id: UUID | None) -> UUID | None:
         """Return the correct parent span ID so nested LangChain calls form a proper tree."""
-        if parent_run_id:
+        if parent_run_id and parent_run_id in self._spans:
             return self._get_span_id(parent_run_id)
         return self.parent_span_id
 

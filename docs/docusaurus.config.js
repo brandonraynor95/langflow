@@ -110,6 +110,18 @@ const config = {
           routeBasePath: "/", // Serve the docs at the site's root
           sidebarPath: require.resolve("./sidebars.js"), // Use sidebars.js file
           sidebarCollapsed: true,
+          // Versioning configuration
+          lastVersion: "1.8.0",
+          versions: {
+            current: {
+              label: "1.9.x (Next)",
+              path: "next",
+            },
+            "1.8.0": {
+              label: "1.8.x",
+              path: "",
+            },
+          },
           beforeDefaultRemarkPlugins: [
             [
               remarkCodeHike,
@@ -153,6 +165,11 @@ const config = {
             id: "api",
             spec: "openapi/openapi.json",
             route: "/api",
+          },
+          {
+            id: "workflow",
+            spec: "openapi/langflow-workflows-openapi.json",
+            route: "/api/workflow",
           },
         ],
         theme: {
@@ -422,6 +439,10 @@ const config = {
           srcDark: "img/lf-docs-dark.svg",
         },
         items: [
+          {
+            type: 'docsVersionDropdown',
+            position: 'left',
+          },
           // right
           {
             position: "right",

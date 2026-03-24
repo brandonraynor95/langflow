@@ -38,6 +38,7 @@ from .input_mixin import (
 class TableInput(BaseInputMixin, MetadataTraceMixin, TableMixin, ListableInputMixin, ToolModeMixin):
     field_type: SerializableFieldTypes = FieldTypes.TABLE
     is_list: bool = True
+    input_types: list[str] = ["DataFrame", "Table"]
 
     @field_validator("value")
     @classmethod
@@ -102,18 +103,34 @@ class ToolsInput(BaseInputMixin, ListableInputMixin, MetadataTraceMixin, ToolMod
     real_time_refresh: bool = True
 
 
-class DataInput(HandleInput, InputTraceMixin, ListableInputMixin, ToolModeMixin):
-    """Represents an Input that has a Handle that receives a Data object.
+class JSONInput(HandleInput, InputTraceMixin, ListableInputMixin, ToolModeMixin):
+    """Represents an Input that has a Handle that receives a JSON object.
+
+    This is the new standard input for Langflow data structures.
+    DataInput is maintained as an alias for backwards compatibility.
 
     Attributes:
-        input_types (list[str]): A list of input types supported by this data input.
+        input_types (list[str]): A list of input types supported by this JSON input.
     """
 
-    input_types: list[str] = ["Data"]
+    input_types: list[str] = ["Data", "JSON"]
+
+
+# DataInput is maintained for backwards compatibility - it is now an alias to JSONInput
+DataInput = JSONInput
 
 
 class DataFrameInput(HandleInput, InputTraceMixin, ListableInputMixin, ToolModeMixin):
-    input_types: list[str] = ["DataFrame"]
+    """Represents an Input that has a Handle that receives a Table (DataFrame) object.
+
+    Note: This accepts DataFrame and Table types. For visual table inputs in the UI,
+    use TableInput instead (which has field_type: FieldTypes.TABLE).
+
+    Attributes:
+        input_types (list[str]): A list of input types supported by this input.
+    """
+
+    input_types: list[str] = ["DataFrame", "Table"]
 
 
 class PromptInput(BaseInputMixin, ListableInputMixin, InputTraceMixin, ToolModeMixin):
@@ -177,9 +194,10 @@ class ModelInput(BaseInputMixin, ModelInputMixin, ListableInputMixin, InputTrace
         - [{'name': 'gpt-4o'}] -> [{'name': 'gpt-4o'}] (unchanged)
         - 'connect_other_models' -> 'connect_other_models' (special value, keep as string)
         """
-        # Handle empty or None values
-        if v is None or v == "":
-            return v
+        # Handle empty or None values — normalize all to None so that
+        # ``self.<model_field>`` is None when nothing is selected.
+        if v is None or v in ("", []):
+            return None
 
         # Special case: keep "connect_other_models" as a string to enable connection mode
         if v == "connect_other_models":
@@ -848,6 +866,7 @@ InputTypes: TypeAlias = (
     | QueryInput
     | DefaultPromptField
     | BoolInput
+    | JSONInput
     | DataInput
     | DictInput
     | DropdownInput
@@ -879,6 +898,9 @@ InputTypes: TypeAlias = (
 )
 
 InputTypesMap: dict[str, type[InputTypes]] = {t.__name__: t for t in get_args(InputTypes)}
+# DataInput is an alias for JSONInput, so its __name__ is "JSONInput".
+# Add explicit entry so serialized configs using "DataInput" still deserialize correctly.
+InputTypesMap["DataInput"] = JSONInput
 
 
 def instantiate_input(input_type: str, data: dict) -> InputTypes:
