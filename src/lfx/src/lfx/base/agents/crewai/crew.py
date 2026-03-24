@@ -1,7 +1,6 @@
 from collections.abc import Callable
 from typing import Any, cast
 
-import litellm
 from pydantic import SecretStr
 
 from lfx.custom.custom_component.component import Component
@@ -223,7 +222,7 @@ class BaseCrewComponent(Component):
             crew = self.build_crew()
             result = await crew.kickoff_async()
             message = Message(text=result.raw, sender=MESSAGE_SENDER_AI)
-        except litellm.exceptions.BadRequestError as e:
+        except Exception as e:
             raise ValueError(e) from e
 
         self.status = message
