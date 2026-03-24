@@ -59,7 +59,7 @@ function AssistantLoadingStateComponent({
         )}
       </div>
 
-      <div className="px-4 pb-4">
+      <div className={showStreamingPreview || progress.error || progress.attempt > 0 || finalCode || isReady ? "px-4 pb-4" : ""}>
         {/* Live streaming — the main content while LLM generates */}
         {showStreamingPreview && (
           <pre

@@ -122,18 +122,12 @@ const CanvasControls = ({
         <CanvasControlsDropdown selectedNode={selectedNode} />
         <HelpDropdown />
         {children}
-      </Panel>
-      {ENABLE_INSPECTION_PANEL && (
-        <Panel
-          data-testid="canvas_controls_inspector"
-          className="react-flow__controls !left-auto !m-2 flex !flex-row rounded-md border border-border bg-background fill-foreground stroke-foreground text-primary [&>button]:border-0"
-          position="bottom-right"
-        >
+        {ENABLE_INSPECTION_PANEL && (
           <Button
             unstyled
             size="icon"
             data-testid="canvas_controls_toggle_inspector"
-            className={`group rounded-none px-2 py-2 flex items-center justify-center disabled:pointer-events-none disabled:opacity-50 ${inspectionPanelVisible ? "bg-accent" : "hover:bg-muted"}`}
+            className={`group flex h-8 w-8 items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-50 ${inspectionPanelVisible ? "bg-accent" : "hover:bg-muted"}`}
             title={
               !selectedNode
                 ? "Select a node to open the Inspector Panel"
@@ -149,8 +143,8 @@ const CanvasControls = ({
               className={`${inspectionPanelVisible ? "text-primary" : "text-muted-foreground group-hover:text-primary"} !h-5 !w-5`}
             />
           </Button>
-        </Panel>
-      )}
+        )}
+      </Panel>
     </>
   );
 };
