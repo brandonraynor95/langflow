@@ -8,7 +8,6 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from langflow.agentic.services.assistant_service import (
     execute_flow_with_validation_streaming,
 )
@@ -43,15 +42,12 @@ async def _collect_raw_events(gen) -> list[str]:
 
 class TestValidatingStepIncludesCode:
     """The 'validating' progress event must include component_code
-    so the frontend can show a live preview before validation completes."""
+    so the frontend can show a live preview before validation completes.
+    """
 
     @pytest.mark.asyncio
     async def test_should_include_component_code_in_validating_event(self):
-        component_code = (
-            "from langflow.custom import Component\n\n"
-            "class MyComp(Component):\n"
-            "    inputs = []\n"
-        )
+        component_code = "from langflow.custom import Component\n\nclass MyComp(Component):\n    inputs = []\n"
         mock_validation = MagicMock()
         mock_validation.is_valid = True
         mock_validation.class_name = "MyComp"
@@ -86,7 +82,8 @@ class TestValidatingStepIncludesCode:
     @pytest.mark.asyncio
     async def test_should_include_component_code_before_validation_result(self):
         """The validating event should arrive BEFORE the validated event,
-        giving the frontend time to show the code preview."""
+        giving the frontend time to show the code preview.
+        """
         component_code = "class PreviewComp(Component):\n    pass"
         mock_validation = MagicMock()
         mock_validation.is_valid = True
@@ -121,7 +118,8 @@ class TestValidatingStepIncludesCode:
 
 class TestValidationFailedIncludesDetails:
     """The 'validation_failed' progress event must include error,
-    class_name, and component_code for debugging in the UI."""
+    class_name, and component_code for debugging in the UI.
+    """
 
     @pytest.mark.asyncio
     async def test_should_include_error_and_code_in_validation_failed(self):
@@ -197,7 +195,8 @@ class TestValidationFailedIncludesDetails:
 
 class TestRetryingStepIncludesError:
     """The 'retrying' progress event must include the error that
-    caused the retry, so the UI can show why it's retrying."""
+    caused the retry, so the UI can show why it's retrying.
+    """
 
     @pytest.mark.asyncio
     async def test_should_include_error_in_retrying_event(self):
@@ -280,12 +279,14 @@ class TestRetryingStepIncludesError:
 
 class TestProgressEventSequence:
     """Tests for the correct ordering and completeness of progress events
-    in the component generation pipeline."""
+    in the component generation pipeline.
+    """
 
     @pytest.mark.asyncio
     async def test_should_emit_full_success_sequence(self):
         """Successful generation should emit:
-        generating_component → generation_complete → extracting_code → validating → validated → complete"""
+        generating_component → generation_complete → extracting_code → validating → validated → complete
+        """
         component_code = "class SeqComp(Component):\n    pass"
         mock_validation = MagicMock()
         mock_validation.is_valid = True
@@ -326,7 +327,8 @@ class TestProgressEventSequence:
     async def test_should_emit_retry_sequence_on_failure(self):
         """Failed validation with retry should emit:
         generating_component → generation_complete → extracting_code → validating →
-        validation_failed → retrying → generating_component → ..."""
+        validation_failed → retrying → generating_component → ...
+        """
         component_code = "class RetrySeq(Component): pass"
         mock_fail = MagicMock()
         mock_fail.is_valid = False
