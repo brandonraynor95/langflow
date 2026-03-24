@@ -1,8 +1,14 @@
 module.exports = {
   docs: [
     {
+      type: "html",
+      value: `<div class="sidebar-group-label">Build</div>`,
+      className: "sidebar-group-divider",
+    },
+    {
       type: "category",
       label: "Get started",
+      className: "sidebar-category-with-icon sidebar-icon-rocket",
       items: [
         {
           type: "doc",
@@ -34,6 +40,7 @@ module.exports = {
     {
       type: "category",
       label: "Flows",
+      className: "sidebar-category-with-icon sidebar-icon-workflow",
       items: [
         {
           type: "doc",
@@ -76,6 +83,7 @@ module.exports = {
     {
       type: "category",
       label: "Agents",
+      className: "sidebar-category-with-icon sidebar-icon-bot",
       items: [
         "Agents/agents",
         "Agents/agents-tools",
@@ -84,6 +92,7 @@ module.exports = {
     {
       type: "category",
       label: "Model Context Protocol (MCP)",
+      className: "sidebar-category-with-icon sidebar-icon-plug",
       items: [
         "Agents/mcp-client",
         "Agents/mcp-server",
@@ -91,8 +100,14 @@ module.exports = {
       ],
     },
     {
+      type: "html",
+      value: `<div class="sidebar-group-label">Develop & Deploy</div>`,
+      className: "sidebar-group-divider",
+    },
+    {
       type: "category",
       label: "Develop",
+      className: "sidebar-category-with-icon sidebar-icon-code",
       items: [
         "Develop/api-keys-and-authentication",
         "Develop/jwt-authentication",
@@ -169,6 +184,7 @@ module.exports = {
     {
       type: "category",
       label: "Deploy",
+      className: "sidebar-category-with-icon sidebar-icon-cloud",
       items: [
         {
           type:"doc",
@@ -262,8 +278,14 @@ module.exports = {
       ],
     },
     {
+      type: "html",
+      value: `<div class="sidebar-group-label">Reference</div>`,
+      className: "sidebar-group-divider",
+    },
+    {
       type: "category",
       label: "Components reference",
+      className: "sidebar-category-with-icon sidebar-icon-blocks",
       items: [
         "Components/concepts-components",
         {
@@ -435,6 +457,7 @@ module.exports = {
     {
       type: "category",
       label: "API reference",
+      className: "sidebar-category-with-icon sidebar-icon-fileCode",
       items: [
         {
           type: "doc",
@@ -515,8 +538,14 @@ module.exports = {
       ],
     },
     {
+      type: "html",
+      value: `<div class="sidebar-group-label">Community</div>`,
+      className: "sidebar-group-divider",
+    },
+    {
       type: "category",
       label: "Contribute",
+      className: "sidebar-category-with-icon sidebar-icon-gitPR",
       items: [
         "Contributing/contributing-community",
         "Contributing/contributing-how-to-contribute",
@@ -529,6 +558,7 @@ module.exports = {
     {
       type: "category",
       label: "Support",
+      className: "sidebar-category-with-icon sidebar-icon-helpCircle",
       items: [
         {
           type: "doc",
