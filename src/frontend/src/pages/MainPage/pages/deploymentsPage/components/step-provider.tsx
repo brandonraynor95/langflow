@@ -23,19 +23,23 @@ function ProviderCard({
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
+    <label
       data-testid={`provider-card-${provider.id}`}
-      onClick={onSelect}
       className={cn(
-        "flex h-[80px] items-center gap-3 rounded-lg border bg-muted p-3 text-left transition-colors",
+        "flex h-[80px] cursor-pointer items-center gap-3 rounded-lg border bg-muted p-3 text-left transition-colors",
         selected
           ? "border-2 border-foreground"
           : "border-border hover:border-muted-foreground",
       )}
     >
+      <input
+        type="radio"
+        name="provider"
+        value={provider.id}
+        checked={selected}
+        onChange={onSelect}
+        className="sr-only"
+      />
       <ForwardedIconComponent
         name={provider.icon}
         className={cn(
@@ -57,7 +61,7 @@ function ProviderCard({
           {provider.connected ? "Connected" : "Not Connected"}
         </span>
       </div>
-    </button>
+    </label>
   );
 }
 
