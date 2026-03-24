@@ -15,6 +15,7 @@ import json
 import subprocess
 import sys
 import textwrap
+import time
 from copy import deepcopy
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -1026,37 +1027,55 @@ class FileComponent(BaseFileComponent):
         if not isinstance(args["file_path"], str) or any(c in args["file_path"] for c in [";", "|", "&", "`"]):
             return Data(data={"error": "Unsafe file path detected.", "file_path": args["file_path"]})
 
-        # Timeout prevents the subprocess from blocking the worker thread indefinitely,
-        # which is critical in single-worker setups where thread pool exhaustion
-        # makes the entire server unresponsive.
+        # Use Popen with a polling loop instead of blocking subprocess.run().
+        # This lets us emit periodic log messages that keep the SSE event stream
+        # alive in multi-worker (Gunicorn) deployments, preventing the job queue
+        # from being cleaned up while Docling is still processing.
         docling_timeout = 600  # 10 minutes; large PDFs with OCR may need this
-        try:
-            proc = subprocess.run(  # noqa: S603
-                [sys.executable, "-u", "-c", child_script],
-                input=json.dumps(args).encode("utf-8"),
-                capture_output=True,
-                check=False,
-                timeout=docling_timeout,
-            )
-        except subprocess.TimeoutExpired:
-            return Data(
-                data={
-                    "error": (
-                        f"Docling processing timed out after {docling_timeout}s. "
-                        "Consider using the standalone Docling component for large documents."
-                    ),
-                    "file_path": original_file_path,
-                },
-            )
+        poll_interval = 5  # seconds between progress heartbeats
 
-        if not proc.stdout:
-            err_msg = proc.stderr.decode("utf-8", errors="replace") if proc.stderr else "no output from child process"
+        proc = subprocess.Popen(  # noqa: S603
+            [sys.executable, "-u", "-c", child_script],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        # Send input and close stdin so child can proceed
+        proc.stdin.write(json.dumps(args).encode("utf-8"))
+        proc.stdin.close()
+
+        start = time.monotonic()
+        while proc.poll() is None:
+            elapsed = time.monotonic() - start
+            if elapsed >= docling_timeout:
+                proc.kill()
+                proc.wait()
+                return Data(
+                    data={
+                        "error": (
+                            f"Docling processing timed out after {docling_timeout}s. "
+                            "Consider using the standalone Docling component for large documents."
+                        ),
+                        "file_path": original_file_path,
+                    },
+                )
+            # Heartbeat: emit a log so the graph event stream stays active
+            self.log(f"Docling processing in progress ({int(elapsed)}s elapsed)...")
+            time.sleep(poll_interval)
+
+        stdout_bytes = proc.stdout.read()
+        stderr_bytes = proc.stderr.read()
+        proc.stdout.close()
+        proc.stderr.close()
+
+        if not stdout_bytes:
+            err_msg = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else "no output from child process"
             return Data(data={"error": f"Docling subprocess error: {err_msg}", "file_path": original_file_path})
 
         try:
-            result = json.loads(proc.stdout.decode("utf-8"))
+            result = json.loads(stdout_bytes.decode("utf-8"))
         except Exception as e:  # noqa: BLE001
-            err_msg = proc.stderr.decode("utf-8", errors="replace")
+            err_msg = stderr_bytes.decode("utf-8", errors="replace")
             return Data(
                 data={
                     "error": f"Invalid JSON from Docling subprocess: {e}. stderr={err_msg}",

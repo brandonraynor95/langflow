@@ -1,16 +1,13 @@
-import multiprocessing
-import platform
-import queue
-import threading
+import json
+import subprocess
+import sys
+import textwrap
 import time
-from contextlib import suppress
 
 from lfx.base.data import BaseFileComponent
-from lfx.base.data.docling_utils import _serialize_pydantic_model, docling_worker
+from lfx.base.data.docling_utils import _serialize_pydantic_model
 from lfx.inputs import BoolInput, DropdownInput, HandleInput, StrInput
 from lfx.schema import Data
-
-_USE_SUBPROCESS = platform.system() == "Darwin"
 
 
 class DoclingInlineComponent(BaseFileComponent):
@@ -97,82 +94,153 @@ class DoclingInlineComponent(BaseFileComponent):
         *BaseFileComponent.get_base_outputs(),
     ]
 
-    def _wait_for_result_with_worker_monitoring(self, result_queue, worker, timeout: int = 300):
-        """Wait for result from queue while monitoring worker health.
+    # ------------------------------------------------------------------ #
+    # Child script that runs Docling in a separate OS process.            #
+    # Uses subprocess.Popen (same pattern as Read File advanced mode)     #
+    # instead of multiprocessing/threading so that:                       #
+    #   1. It works reliably under Gunicorn's fork-based workers          #
+    #   2. The parent's event loop stays free for SSE heartbeats          #
+    #   3. No pickling / signal-handler conflicts                         #
+    # ------------------------------------------------------------------ #
+    _CHILD_SCRIPT: str = textwrap.dedent(r"""
+        import json, sys
 
-        Works with both threading.Thread and multiprocessing.Process workers.
-        Handles cases where the worker crashes without sending a result.
-        """
-        start_time = time.time()
-
-        while time.time() - start_time < timeout:
-            if not worker.is_alive():
-                try:
-                    result = result_queue.get_nowait()
-                except queue.Empty:
-                    exit_code = getattr(worker, "exitcode", None)
-                    if exit_code is not None and exit_code != 0:
-                        msg = f"Worker process exited with code {exit_code}"
-                    else:
-                        msg = "Worker crashed unexpectedly without producing result."
-                    raise RuntimeError(msg) from None
-                else:
-                    self.log("Worker completed and result retrieved")
-                    return result
+        def main():
+            cfg = json.loads(sys.stdin.read())
+            file_paths      = cfg["file_paths"]
+            pipeline        = cfg["pipeline"]
+            ocr_engine      = cfg["ocr_engine"]
+            do_picture_cls  = cfg["do_picture_classification"]
+            pic_desc_config = cfg.get("pic_desc_config")
+            pic_desc_prompt = cfg.get("pic_desc_prompt", "")
 
             try:
-                result = result_queue.get(timeout=1)
-            except queue.Empty:
-                continue
-            except (EOFError, OSError):
-                # Queue pipe broken — worker likely crashed
-                if not worker.is_alive():
-                    msg = "Worker crashed and queue connection lost."
-                    raise RuntimeError(msg) from None
-                continue
-            else:
-                self.log("Result received from worker")
-                return result
+                from docling.datamodel.base_models import ConversionStatus, InputFormat
+                from docling.datamodel.pipeline_options import PdfPipelineOptions
+                from docling.document_converter import DocumentConverter, FormatOption, PdfFormatOption
+            except ImportError as e:
+                print(json.dumps({"ok": False, "error": f"Docling is not installed: {e}"}))
+                return
 
-        msg = f"Worker timed out after {timeout} seconds"
-        raise TimeoutError(msg)
+            # --- build converter ------------------------------------------------
+            try:
+                pipe = PdfPipelineOptions()
+                pipe.do_ocr = ocr_engine not in ("", "None")
+                if pipe.do_ocr:
+                    try:
+                        from docling.models.factories import get_ocr_factory
+                        fac = get_ocr_factory(allow_external_plugins=False)
+                        pipe.ocr_options = fac.create_options(kind=ocr_engine)
+                    except Exception:
+                        pipe.do_ocr = False
 
-    def _terminate_worker_gracefully(self, worker, timeout: int = 10):
-        """Terminate worker gracefully.
+                pipe.do_picture_classification = do_picture_cls
 
-        For processes: sends SIGTERM, waits, then SIGKILL if still alive.
-        For threads: waits for completion (threads cannot be forcefully killed).
-        """
-        if not worker.is_alive():
-            return
+                if pic_desc_config:
+                    try:
+                        import importlib
+                        from pydantic import TypeAdapter
+                        from langchain_docling.picture_description import (
+                            PictureDescriptionLangChainOptions,
+                        )
+                        mod_name, cls_name = pic_desc_config["__class_path__"].rsplit(".", 1)
+                        mod = importlib.import_module(mod_name)
+                        cls = getattr(mod, cls_name)
+                        adapter = TypeAdapter(cls)
+                        llm = adapter.validate_python(pic_desc_config["config"])
+                        pipe.do_picture_description = True
+                        pipe.allow_external_plugins = True
+                        pipe.picture_description_options = PictureDescriptionLangChainOptions(
+                            llm=llm, prompt=pic_desc_prompt,
+                        )
+                    except Exception as e:
+                        print(json.dumps({"ok": False, "error": f"Picture description setup failed: {e}"}))
+                        return
 
-        self.log("Waiting for worker to complete gracefully")
+                if pipeline == "vlm":
+                    try:
+                        from docling.datamodel.pipeline_options import VlmPipelineOptions
+                        from docling.pipeline.vlm_pipeline import VlmPipeline
+                        vlm_opts = VlmPipelineOptions()
+                        if sys.platform == "darwin":
+                            try:
+                                from docling.datamodel.vlm_model_specs import GRANITEDOCLING_MLX
+                                vlm_opts.vlm_options = GRANITEDOCLING_MLX
+                            except ImportError:
+                                from docling.datamodel.vlm_model_specs import GRANITEDOCLING_TRANSFORMERS
+                                vlm_opts.vlm_options = GRANITEDOCLING_TRANSFORMERS
+                        fmt = {}
+                        if hasattr(InputFormat, "PDF"):
+                            fmt[InputFormat.PDF] = PdfFormatOption(
+                                pipeline_cls=VlmPipeline, pipeline_options=vlm_opts,
+                            )
+                        if hasattr(InputFormat, "IMAGE"):
+                            fmt[InputFormat.IMAGE] = PdfFormatOption(
+                                pipeline_cls=VlmPipeline, pipeline_options=vlm_opts,
+                            )
+                        converter = DocumentConverter(format_options=fmt)
+                    except Exception as e:
+                        print(json.dumps({"ok": False, "error": f"VLM pipeline setup failed: {e}"}))
+                        return
+                else:
+                    pdf_opt = PdfFormatOption(pipeline_options=pipe)
+                    fmt = {}
+                    if hasattr(InputFormat, "PDF"):
+                        fmt[InputFormat.PDF] = pdf_opt
+                    if hasattr(InputFormat, "IMAGE"):
+                        fmt[InputFormat.IMAGE] = pdf_opt
+                    converter = DocumentConverter(format_options=fmt)
+            except Exception as e:
+                print(json.dumps({"ok": False, "error": f"Converter creation failed: {e}"}))
+                return
 
-        if hasattr(worker, "terminate"):
-            # multiprocessing.Process — can be forcefully terminated
-            worker.terminate()
-            worker.join(timeout=timeout)
-            if worker.is_alive():
-                self.log("Warning: Process still alive after timeout, killing")
-                worker.kill()
-                worker.join(timeout=5)
-        else:
-            # threading.Thread — can only wait
-            worker.join(timeout=timeout)
-            if worker.is_alive():
-                self.log("Warning: Thread still alive after timeout")
+            # --- process files --------------------------------------------------
+            results = []
+            for fp in file_paths:
+                try:
+                    res = converter.convert(fp)
+                    ok = False
+                    if hasattr(res, "status"):
+                        try:
+                            ok = res.status == ConversionStatus.SUCCESS
+                        except Exception:
+                            ok = str(res.status).lower() == "success"
+                    if not ok and getattr(res, "document", None) is not None:
+                        ok = True
+                    if ok and res.document is not None:
+                        doc_json = res.document.export_to_dict()
+                        results.append({
+                            "document": doc_json,
+                            "file_path": str(fp),
+                            "status": "SUCCESS",
+                        })
+                    else:
+                        results.append(None)
+                except Exception as e:
+                    sys.stderr.write(f"Error processing {fp}: {e}\n")
+                    results.append(None)
+
+            print(json.dumps({"ok": True, "results": results}))
+
+        if __name__ == "__main__":
+            main()
+    """)
 
     def process_files(self, file_list: list[BaseFileComponent.BaseFile]) -> list[BaseFileComponent.BaseFile]:
-        try:
-            from docling.document_converter import DocumentConverter  # noqa: F401
-        except ImportError as e:
+        # Check that docling is installed without actually importing it.
+        # The real import (PyTorch, transformers, etc.) happens in the child
+        # subprocess.  Importing it here would spike memory and get the
+        # Gunicorn worker SIGKILL'd by the OOM killer.
+        import importlib.util
+
+        if importlib.util.find_spec("docling") is None:
             msg = (
                 "Docling is an optional dependency. Install with `uv pip install 'langflow[docling]'` or refer to the "
                 "documentation on how to install optional dependencies."
             )
-            raise ImportError(msg) from e
+            raise ImportError(msg)
 
-        file_paths = [file.path for file in file_list if file.path]
+        file_paths = [str(file.path) for file in file_list if file.path]
 
         if not file_paths:
             self.log("No files to process.")
@@ -182,7 +250,7 @@ class DoclingInlineComponent(BaseFileComponent):
         if self.pic_desc_llm is not None:
             pic_desc_config = _serialize_pydantic_model(self.pic_desc_llm)
 
-        worker_kwargs = {
+        args = {
             "file_paths": file_paths,
             "pipeline": self.pipeline,
             "ocr_engine": self.ocr_engine,
@@ -191,70 +259,69 @@ class DoclingInlineComponent(BaseFileComponent):
             "pic_desc_prompt": self.pic_desc_prompt,
         }
 
-        if _USE_SUBPROCESS:
-            # Subprocess with "spawn" context keeps the parent's GIL free so
-            # Gunicorn heartbeats continue during heavy model loading.
-            ctx = multiprocessing.get_context("spawn")
-            result_queue = ctx.Queue()
-            worker = ctx.Process(
-                target=docling_worker,
-                kwargs={**worker_kwargs, "queue": result_queue},
-                daemon=False,
-            )
-        else:
-            # Threading shares the in-process DocumentConverter cache across runs.
-            result_queue = queue.Queue()
-            worker = threading.Thread(
-                target=docling_worker,
-                kwargs={**worker_kwargs, "queue": result_queue},
-                daemon=False,
-            )
+        # Use Popen with a polling loop (same pattern as Read File advanced mode).
+        # This avoids multiprocessing/threading issues under Gunicorn and keeps the
+        # SSE event stream alive via periodic heartbeat logs.
+        docling_timeout = 600  # 10 minutes
+        poll_interval = 5
 
-        result = None
-        worker.start()
+        proc = subprocess.Popen(  # noqa: S603
+            [sys.executable, "-u", "-c", self._CHILD_SCRIPT],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        proc.stdin.write(json.dumps(args).encode("utf-8"))
+        proc.stdin.close()
+
+        start = time.monotonic()
+        while proc.poll() is None:
+            elapsed = time.monotonic() - start
+            if elapsed >= docling_timeout:
+                proc.kill()
+                proc.wait()
+                msg = f"Docling processing timed out after {docling_timeout}s. Try processing fewer or smaller files."
+                raise TimeoutError(msg)
+            self.log(f"Docling processing in progress ({int(elapsed)}s elapsed)...")
+            time.sleep(poll_interval)
+
+        stdout_bytes = proc.stdout.read()
+        stderr_bytes = proc.stderr.read()
+        proc.stdout.close()
+        proc.stderr.close()
+
+        if not stdout_bytes:
+            err_msg = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else "no output"
+            msg = f"Docling subprocess error: {err_msg}"
+            raise RuntimeError(msg)
 
         try:
-            result = self._wait_for_result_with_worker_monitoring(result_queue, worker, timeout=300)
-        except KeyboardInterrupt:
-            self.log("Docling worker cancelled by user")
-            result = []
+            payload = json.loads(stdout_bytes.decode("utf-8"))
         except Exception as e:
-            self.log(f"Error during processing: {e}")
-            raise
-        finally:
-            self._terminate_worker_gracefully(worker)
-            if _USE_SUBPROCESS:
-                with suppress(Exception):
-                    result_queue.close()
-                    result_queue.join_thread()
+            err_msg = stderr_bytes.decode("utf-8", errors="replace")
+            msg = f"Invalid JSON from Docling subprocess: {e}. stderr={err_msg}"
+            raise RuntimeError(msg) from e
 
-        # Enhanced error checking with dependency-specific handling
-        if isinstance(result, dict) and "error" in result:
-            error_msg = result["error"]
-
-            # Handle dependency errors specifically
-            if result.get("error_type") == "dependency_error":
-                dependency_name = result.get("dependency_name", "Unknown dependency")
-                install_command = result.get("install_command", "Please check documentation")
-
-                # Create a user-friendly error message
-                user_message = (
-                    f"Missing OCR dependency: {dependency_name}. "
-                    f"{install_command} "
-                    f"Alternatively, you can set OCR Engine to 'None' to disable OCR processing."
-                )
-                raise ImportError(user_message)
-
-            # Handle other specific errors
-            if error_msg.startswith("Docling is not installed"):
+        if not payload.get("ok"):
+            error_msg = payload.get("error", "Unknown Docling error")
+            if "not installed" in error_msg.lower():
                 raise ImportError(error_msg)
+            raise RuntimeError(error_msg)
 
-            # Handle graceful shutdown
-            if "Worker interrupted by SIGINT" in error_msg or "shutdown" in result:
-                self.log("Docling process cancelled by user")
-                result = []
-            else:
-                raise RuntimeError(error_msg)
+        # Reconstruct DoclingDocument objects from JSON dicts returned by the child
+        from docling_core.types.doc import DoclingDocument
 
-        processed_data = [Data(data={"doc": r["document"], "file_path": r["file_path"]}) if r else None for r in result]
+        raw_results = payload.get("results", [])
+        processed_data: list[Data | None] = []
+        for r in raw_results:
+            if r is None:
+                processed_data.append(None)
+                continue
+            try:
+                doc = DoclingDocument.model_validate(r["document"])
+            except Exception:  # noqa: BLE001
+                # Fall back to keeping the raw dict if validation fails
+                doc = r["document"]
+            processed_data.append(Data(data={"doc": doc, "file_path": r["file_path"]}))
+
         return self.rollup_data(file_list, processed_data)
