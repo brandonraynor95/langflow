@@ -38,6 +38,8 @@ export const URLs = {
   RUN: `run`,
   RUN_SESSION: `run/session`,
   REGISTRATION: `registration`,
+  DEPLOYMENTS: `deployments`,
+  DEPLOYMENT_PROVIDER_ACCOUNTS: `deployments/providers`,
 } as const;
 
 // IMPORTANT: FOLDERS endpoint now points to 'projects' for backward compatibility

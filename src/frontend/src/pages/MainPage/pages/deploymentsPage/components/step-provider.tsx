@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Input } from "@/components/ui/input";
+import { useGetProviderAccounts } from "@/controllers/API/queries/deployment-provider-accounts";
 import { cn } from "@/utils/utils";
 import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
-import { MOCK_PROVIDER_INSTANCES, MOCK_PROVIDERS } from "../mock-data";
+import { MOCK_PROVIDERS } from "../mock-data";
 import type {
   DeploymentProvider,
   ProviderAccount,
@@ -219,8 +220,8 @@ export default function StepProvider() {
   } = useDeploymentStepper();
   // TODO: replace with real API data
   const providers = MOCK_PROVIDERS;
-  // TODO: replace with real API data
-  const environments = MOCK_PROVIDER_INSTANCES;
+  const { data: providerAccountsData } = useGetProviderAccounts({});
+  const environments = providerAccountsData?.providers ?? [];
 
   useEffect(() => {
     if (!selectedProvider && providers.length === 1) {

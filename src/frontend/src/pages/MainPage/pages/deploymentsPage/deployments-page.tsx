@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
+import { useGetDeployments } from "@/controllers/API/queries/deployments";
 import DeploymentStepperModal from "./components/deployment-stepper-modal";
 import DeploymentsEmptyState from "./components/deployments-empty-state";
 import DeploymentsLoadingSkeleton from "./components/deployments-loading-skeleton";
@@ -8,22 +9,17 @@ import DeploymentsTable from "./components/deployments-table";
 import SubTabToggle, {
   type DeploymentSubTab,
 } from "./components/sub-tab-toggle";
-// TODO: replace with real API data
-import { MOCK_DEPLOYMENTS } from "./mock-data";
 
 export default function DeploymentsPage() {
   const [activeSubTab, setActiveSubTab] =
     useState<DeploymentSubTab>("deployments");
-  const [isLoading, setIsLoading] = useState(true);
   const [stepperOpen, setStepperOpen] = useState(false);
 
-  // TODO: replace with real API loading state
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const deployments = MOCK_DEPLOYMENTS;
+  // TODO: replace "mock-provider-id" with a real selected provider_id
+  const { data, isLoading } = useGetDeployments({
+    provider_id: "mock-provider-id",
+  });
+  const deployments = data?.deployments ?? [];
   const isEmpty = deployments.length === 0;
 
   return (
