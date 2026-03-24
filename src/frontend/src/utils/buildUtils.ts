@@ -775,7 +775,14 @@ async function onEvent(
       useFlowStore.getState().updateBuildStatus([data.id], BuildStatus.BUILT);
       break;
     case "log": {
-      const { component_id, output, name, message, type: logType } = data;
+      const { component_id, output, name, message, type: logType } = data ?? {};
+      if (!component_id || !output) {
+        console.error(
+          "[buildUtils] Received malformed log event; missing component_id or output",
+          data,
+        );
+        break;
+      }
       useFlowStore.getState().appendLogToFlowPool(component_id, output, {
         name,
         message,

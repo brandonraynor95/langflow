@@ -199,7 +199,7 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
         data: {
           results: {},
           outputs: {},
-          logs: { [outputName]: [log] as any },
+          logs: { [outputName]: [log] },
           messages: [],
         },
         timestamp: new Date().toISOString(),
@@ -211,14 +211,14 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
     } else {
       const latest = prevEntries[prevEntries.length - 1];
       const existingLogs: LogsLogType[] =
-        (latest.data.logs[outputName] as any) ?? [];
+        latest.data.logs[outputName] ?? [];
       const updatedEntry: VertexBuildTypeAPI = {
         ...latest,
         data: {
           ...latest.data,
           logs: {
             ...latest.data.logs,
-            [outputName]: [...existingLogs, log] as any,
+            [outputName]: [...existingLogs, log],
           },
         },
       };

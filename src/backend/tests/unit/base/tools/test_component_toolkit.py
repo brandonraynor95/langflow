@@ -171,8 +171,9 @@ async def test_sql_component_to_toolkit(test_db):
 class TestComponentToolEventEmission:
     """Tests for event emission in component tools (tool mode logs visibility)."""
 
-    def test_emits_end_vertex_event_with_correct_structure(self):
-        """Verify end_vertex event is emitted with proper data structure when event_manager is present."""
+    def test_emits_build_events_with_correct_structure(self):
+        """Verify build_start and build_end events are emitted with the component ID when event_manager is present."""
+        import json
         from unittest.mock import MagicMock
 
         from lfx.events.event_manager import create_default_event_manager
@@ -194,67 +195,50 @@ class TestComponentToolEventEmission:
         # Verify send_event was called (via queue.put_nowait)
         assert mock_queue.put_nowait.called
 
-        # Find the end_vertex event
-        end_vertex_calls = [
-            call for call in mock_queue.put_nowait.call_args_list if b'"event": "end_vertex"' in call[0][0][1]
+        # Find the build_end event
+        build_end_calls = [
+            call for call in mock_queue.put_nowait.call_args_list if b'"event": "build_end"' in call[0][0][1]
         ]
-        assert len(end_vertex_calls) >= 1, "end_vertex event should be emitted"
+        assert len(build_end_calls) >= 1, "build_end event should be emitted"
 
-    def test_event_includes_logs_and_tool_info(self):
-        """Verify event data includes logs and tool metadata."""
+        event_data = json.loads(build_end_calls[0][0][0][1].decode("utf-8").strip())
+        assert event_data["data"]["id"] == "test-component-id"
+
+    def test_event_includes_logs_when_component_calls_log(self):
+        """Verify log events are emitted in real-time when component calls self.log() during execution."""
         import json
         from unittest.mock import MagicMock
 
         from lfx.base.tools.constants import TOOL_OUTPUT_NAME
         from lfx.events.event_manager import create_default_event_manager
-        from lfx.schema.log import Log
 
-        calculator_component = CalculatorToolComponent()
-        calculator_component._id = "test-component-id"
+        class LoggingCalculator(CalculatorToolComponent):
+            def run_model(self):
+                self.log("computing result", name="Computation Log")
+                return super().run_model()
 
-        # Add a log to the component
-        calculator_component._logs = [Log(name="Test Log", message="test message", type="info")]
+        logging_component = LoggingCalculator()
+        logging_component._id = "test-component-id"
 
         mock_queue = MagicMock()
         event_manager = create_default_event_manager(queue=mock_queue)
-        calculator_component.set_event_manager(event_manager)
+        logging_component.set_event_manager(event_manager)
 
-        component_toolkit = ComponentToolkit(component=calculator_component)
+        component_toolkit = ComponentToolkit(component=logging_component)
         component_tool = component_toolkit.get_tools()[0]
 
         component_tool.invoke(input={"expression": "3+3"})
 
-        # Find and parse the end_vertex event
-        end_vertex_calls = [
-            call for call in mock_queue.put_nowait.call_args_list if b'"event": "end_vertex"' in call[0][0][1]
+        # Find and parse the log event
+        log_calls = [
+            call for call in mock_queue.put_nowait.call_args_list if b'"event": "log"' in call[0][0][1]
         ]
-        assert len(end_vertex_calls) >= 1
+        assert len(log_calls) >= 1, "log event should be emitted when component calls self.log()"
 
-        # Parse the event data
-        event_data = json.loads(end_vertex_calls[0][0][0][1].decode("utf-8").strip())
-        build_data = event_data["data"]["build_data"]
-
-        # Verify structure
-        assert build_data["id"] == "test-component-id"
-        assert build_data["valid"] is True
-        assert "data" in build_data
-        assert "logs" in build_data["data"]
-        assert "outputs" in build_data["data"]
-
-        # Verify logs are included
-        assert TOOL_OUTPUT_NAME in build_data["data"]["logs"]
-        logs = build_data["data"]["logs"][TOOL_OUTPUT_NAME]
-        assert len(logs) == 1
-        assert logs[0]["name"] == "Test Log"
-
-        # Verify tool info is included
-        assert TOOL_OUTPUT_NAME in build_data["data"]["outputs"]
-        tool_output = build_data["data"]["outputs"][TOOL_OUTPUT_NAME]
-        assert tool_output["type"] == "tool_output"
-        assert "message" in tool_output
-        assert "name" in tool_output["message"]
-        assert "description" in tool_output["message"]
-        assert "tags" in tool_output["message"]
+        event_data = json.loads(log_calls[0][0][0][1].decode("utf-8").strip())
+        assert event_data["data"]["name"] == "Computation Log"
+        assert event_data["data"]["component_id"] == "test-component-id"
+        assert event_data["data"]["output"] == TOOL_OUTPUT_NAME
 
     def test_no_event_emission_without_event_manager(self):
         """Verify tool works correctly when no event_manager is set."""
@@ -271,17 +255,14 @@ class TestComponentToolEventEmission:
         assert isinstance(result[0], dict)
         assert result[0]["data"]["result"] == "10"
 
-    def test_empty_logs_when_component_has_no_logs(self):
-        """Verify empty log list is sent when component has no logs."""
-        import json
+    def test_no_log_events_when_component_does_not_call_log(self):
+        """Verify no log events are emitted when component does not call self.log() during execution."""
         from unittest.mock import MagicMock
 
-        from lfx.base.tools.constants import TOOL_OUTPUT_NAME
         from lfx.events.event_manager import create_default_event_manager
 
         calculator_component = CalculatorToolComponent()
         calculator_component._id = "test-component-id"
-        calculator_component._logs = []  # Explicitly empty
 
         mock_queue = MagicMock()
         event_manager = create_default_event_manager(queue=mock_queue)
@@ -292,15 +273,10 @@ class TestComponentToolEventEmission:
 
         component_tool.invoke(input={"expression": "4*4"})
 
-        # Find and parse the end_vertex event
-        end_vertex_calls = [
-            call for call in mock_queue.put_nowait.call_args_list if b'"event": "end_vertex"' in call[0][0][1]
+        log_calls = [
+            call for call in mock_queue.put_nowait.call_args_list if b'"event": "log"' in call[0][0][1]
         ]
-        assert len(end_vertex_calls) >= 1
-
-        event_data = json.loads(end_vertex_calls[0][0][0][1].decode("utf-8").strip())
-        logs = event_data["data"]["build_data"]["data"]["logs"][TOOL_OUTPUT_NAME]
-        assert logs == []
+        assert len(log_calls) == 0, "no log events should be emitted when component does not call self.log()"
 
     def test_build_start_and_end_events_are_emitted(self):
         """Verify both build_start and build_end events are emitted."""
@@ -337,8 +313,9 @@ class TestComponentToolEventEmission:
 class TestComponentToolAsyncEventEmission:
     """Tests for event emission in async component tools."""
 
-    async def test_async_emits_end_vertex_event(self):
-        """Verify end_vertex event is emitted for async tool execution."""
+    async def test_async_emits_build_end_event(self):
+        """Verify build_end event is emitted for async tool execution."""
+        import json
         from unittest.mock import MagicMock
 
         from lfx.base.tools.component_tool import _build_output_async_function
@@ -360,11 +337,14 @@ class TestComponentToolAsyncEventEmission:
         calculator_component.set(expression="7+7")
         await output_func()
 
-        # Verify end_vertex event was emitted
-        end_vertex_calls = [
-            call for call in mock_queue.put_nowait.call_args_list if b'"event": "end_vertex"' in call[0][0][1]
+        # Verify build_end event was emitted
+        build_end_calls = [
+            call for call in mock_queue.put_nowait.call_args_list if b'"event": "build_end"' in call[0][0][1]
         ]
-        assert len(end_vertex_calls) >= 1, "end_vertex event should be emitted for async execution"
+        assert len(build_end_calls) >= 1, "build_end event should be emitted for async execution"
+
+        event_data = json.loads(build_end_calls[0][0][0][1].decode("utf-8").strip())
+        assert event_data["data"]["id"] == "test-async-component-id"
 
     async def test_async_no_event_emission_without_event_manager(self):
         """Verify async tool works correctly when no event_manager is set."""

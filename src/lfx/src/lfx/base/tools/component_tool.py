@@ -10,6 +10,7 @@ from langchain_core.tools import BaseTool, ToolException
 from langchain_core.tools.structured import StructuredTool
 
 from lfx.base.tools.constants import TOOL_OUTPUT_NAME
+from lfx.log.logger import logger
 from lfx.schema.data import Data
 from lfx.schema.message import Message
 from lfx.serialization.serialization import serialize
@@ -83,7 +84,12 @@ def _patch_send_message_decorator(component, func):
     return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
 
 
-def _build_output_function(component: Component, output_method: Callable, event_manager: EventManager | None = None):
+def _build_output_function(
+    component: Component,
+    output_method: Callable,
+    event_manager: EventManager | None = None,
+    output_name: str = TOOL_OUTPUT_NAME,
+):
     method_name = output_method.__name__
 
     def output_function(*args, **kwargs):
@@ -96,14 +102,20 @@ def _build_output_function(component: Component, output_method: Callable, event_
                 event_manager.on_build_start(data={"id": comp.get_id()})
             comp.set(*args, **kwargs)
             comp._event_manager = event_manager
-            comp._current_output = TOOL_OUTPUT_NAME
+            comp._current_output = output_name
             result = local_method()
             comp._current_output = ""
             if event_manager:
                 event_manager.on_build_end(data={"id": comp.get_id()})
         except Exception as e:
             comp._current_output = ""
-            raise ToolException(e) from e
+            logger.error(
+                "Component %s failed during tool mode execution: %s",
+                comp.get_id(),
+                e,
+                exc_info=True,
+            )
+            raise ToolException(str(e)) from e
 
         if isinstance(result, Message):
             return result.get_text()
@@ -119,6 +131,7 @@ def _build_output_async_function(
     component: Component,
     output_method: Callable,
     event_manager: EventManager | None = None,
+    output_name: str = TOOL_OUTPUT_NAME,
 ):
     method_name = output_method.__name__
 
@@ -132,14 +145,20 @@ def _build_output_async_function(
                 await asyncio.to_thread(event_manager.on_build_start, data={"id": comp.get_id()})
             comp.set(*args, **kwargs)
             comp._event_manager = event_manager
-            comp._current_output = TOOL_OUTPUT_NAME
+            comp._current_output = output_name
             result = await local_method()
             comp._current_output = ""
             if event_manager:
                 await asyncio.to_thread(event_manager.on_build_end, data={"id": comp.get_id()})
         except Exception as e:
             comp._current_output = ""
-            raise ToolException(e) from e
+            logger.error(
+                "Component %s failed during tool mode execution: %s",
+                comp.get_id(),
+                e,
+                exc_info=True,
+            )
+            raise ToolException(str(e)) from e
         if isinstance(result, Message):
             return result.get_text()
         if isinstance(result, Data):
