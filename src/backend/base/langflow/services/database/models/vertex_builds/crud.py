@@ -3,12 +3,16 @@ from uuid import UUID
 from sqlmodel import col, delete, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from langflow.services.database.models.flow.model import Flow
 from langflow.services.database.models.vertex_builds.model import VertexBuildBase, VertexBuildTable
 from langflow.services.deps import get_settings_service
 
 
 async def get_vertex_builds_by_flow_id(
-    db: AsyncSession, flow_id: UUID, limit: int | None = 1000
+    db: AsyncSession,
+    flow_id: UUID,
+    limit: int | None = 1000,
+    user_id: UUID | None = None,
 ) -> list[VertexBuildTable]:
     """Get the most recent vertex builds for a given flow ID.
 
@@ -20,6 +24,8 @@ async def get_vertex_builds_by_flow_id(
         db (AsyncSession): The database session for executing queries.
         flow_id (UUID): The unique identifier of the flow to get builds for. Can be string or UUID.
         limit (int | None, optional): Maximum number of builds to return. Defaults to 1000.
+        user_id (UUID | None, optional): When provided, results are restricted to
+            flows owned by this user. Defaults to None.
 
     Returns:
         list[VertexBuildTable]: List of vertex builds, ordered chronologically by timestamp.
@@ -44,6 +50,9 @@ async def get_vertex_builds_by_flow_id(
         .order_by(col(VertexBuildTable.timestamp))
         .limit(limit)
     )
+
+    if user_id is not None:
+        stmt = stmt.join(Flow, VertexBuildTable.flow_id == Flow.id).where(Flow.user_id == user_id)
 
     builds = await db.exec(stmt)
     return list(builds)
@@ -130,18 +139,24 @@ async def log_vertex_build(
     return table
 
 
-async def delete_vertex_builds_by_flow_id(db: AsyncSession, flow_id: UUID) -> None:
+async def delete_vertex_builds_by_flow_id(db: AsyncSession, flow_id: UUID, user_id: UUID | None = None) -> None:
     """Delete all vertex builds associated with a specific flow ID.
 
     Args:
         db (AsyncSession): The database session for executing queries.
         flow_id (UUID): The unique identifier of the flow whose builds should be deleted.
+        user_id (UUID | None, optional): When provided, deletion is restricted
+            to flows owned by this user. Defaults to None.
 
     Note:
         This operation is permanent and cannot be undone. Use with caution.
         The function commits the transaction automatically.
     """
-    stmt = delete(VertexBuildTable).where(VertexBuildTable.flow_id == flow_id)
+    if user_id is None:
+        stmt = delete(VertexBuildTable).where(VertexBuildTable.flow_id == flow_id)
+    else:
+        owned_flow_subquery = select(Flow.id).where(Flow.id == flow_id, Flow.user_id == user_id)
+        stmt = delete(VertexBuildTable).where(VertexBuildTable.flow_id.in_(owned_flow_subquery))
     await db.exec(stmt)
 
 

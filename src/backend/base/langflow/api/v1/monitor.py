@@ -30,18 +30,30 @@ router = APIRouter(prefix="/monitor", tags=["Monitor"])
 
 
 @router.get("/builds", dependencies=[Depends(get_current_active_user)])
-async def get_vertex_builds(flow_id: Annotated[UUID, Query()], session: DbSession) -> VertexBuildMapModel:
+async def get_vertex_builds(
+    flow_id: Annotated[UUID, Query()],
+    session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) -> VertexBuildMapModel:
     try:
-        vertex_builds = await get_vertex_builds_by_flow_id(session, flow_id)
+        # Ownership is enforced in the data access layer.
+        # Foreign flow IDs intentionally resolve to an empty payload (200)
+        # to avoid leaking whether the target flow exists.
+        vertex_builds = await get_vertex_builds_by_flow_id(session, flow_id, user_id=current_user.id)
         return VertexBuildMapModel.from_list_of_dicts(vertex_builds)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/builds", status_code=204, dependencies=[Depends(get_current_active_user)])
-async def delete_vertex_builds(flow_id: Annotated[UUID, Query()], session: DbSession) -> None:
+async def delete_vertex_builds(
+    flow_id: Annotated[UUID, Query()],
+    session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) -> None:
     try:
-        await delete_vertex_builds_by_flow_id(session, flow_id)
+        # Keep endpoint idempotent while preventing cross-user deletion.
+        await delete_vertex_builds_by_flow_id(session, flow_id, user_id=current_user.id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -216,12 +228,18 @@ async def delete_messages_session(
 async def get_transactions(
     flow_id: Annotated[UUID, Query()],
     session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     params: Annotated[Params | None, Depends(custom_params)],
 ) -> Page[TransactionLogsResponse]:
     try:
+        # Flow ownership is part of the SQL filter.
+        # For foreign flow IDs, the endpoint returns an empty page (200)
+        # to preserve response shape and avoid existence leakage.
         stmt = (
             select(TransactionTable)
+            .join(Flow, TransactionTable.flow_id == Flow.id)
             .where(TransactionTable.flow_id == flow_id)
+            .where(Flow.user_id == current_user.id)
             .order_by(col(TransactionTable.timestamp).desc())
         )
         import warnings
