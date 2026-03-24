@@ -200,6 +200,9 @@ def requirements_command_wrapper(
     except ValueError as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1) from e
+    except Exception as e:
+        typer.echo(f"Error: Failed to generate requirements: {e}", err=True)
+        raise typer.Exit(1) from e
 
     if output:
         try:

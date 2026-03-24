@@ -911,6 +911,21 @@ class TestErrorHandling:
         with pytest.raises(ValueError, match="does not appear to be a valid Langflow flow"):
             generate_requirements_from_flow({"some": "json"}, pin_versions=False)
 
+    def test_non_dict_flow_raises(self):
+        """A JSON array or other non-dict should raise ValueError."""
+        with pytest.raises(ValueError, match="not a JSON object"):
+            generate_requirements_from_flow([1, 2, 3], pin_versions=False)
+
+    def test_flow_with_non_dict_data_raises(self):
+        """Flow where 'data' exists but is not a dict should raise ValueError."""
+        with pytest.raises(ValueError, match="does not appear to be a valid Langflow flow"):
+            generate_requirements_from_flow({"data": "not a dict"}, pin_versions=False)
+
+    def test_flow_with_data_but_no_nodes_raises(self):
+        """Flow with data dict but no 'nodes' key should raise ValueError."""
+        with pytest.raises(ValueError, match="does not appear to be a valid Langflow flow"):
+            generate_requirements_from_flow({"data": {"edges": []}}, pin_versions=False)
+
     def test_flow_with_empty_code_value(self):
         """A node with an empty code string should not crash."""
         node = _make_node("Empty", "")

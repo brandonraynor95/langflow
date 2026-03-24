@@ -508,7 +508,7 @@ def generate_requirements_from_flow(
     all_providers: set[str] = set()
 
     if not isinstance(flow, dict):
-        msg = "The input JSON does not appear to be a valid Langflow flow (missing 'data.nodes')."
+        msg = "The input JSON is not a JSON object. Expected a Langflow flow with 'data.nodes' structure."
         raise ValueError(msg)
     data = flow.get("data")
     if not isinstance(data, dict) or "nodes" not in data:
