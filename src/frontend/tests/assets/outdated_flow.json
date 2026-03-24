@@ -523,7 +523,7 @@
                 "show": true,
                 "title_case": false,
                 "type": "str",
-                "value": ""
+                "value": "sk-fake-key-for-outdated-test"
               },
               "code": {
                 "advanced": true,
