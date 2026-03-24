@@ -11,8 +11,8 @@ import {
 import type {
   DeploymentProvider,
   DeploymentType,
+  ProviderAccount,
   ProviderCredentials,
-  ProviderInstance,
 } from "../types";
 
 interface DeploymentStepperContextType {
@@ -25,8 +25,8 @@ interface DeploymentStepperContextType {
   // Step 1: Provider
   selectedProvider: DeploymentProvider | null;
   setSelectedProvider: (provider: DeploymentProvider) => void;
-  selectedInstance: ProviderInstance | null;
-  setSelectedInstance: (instance: ProviderInstance | null) => void;
+  selectedInstance: ProviderAccount | null;
+  setSelectedInstance: (instance: ProviderAccount | null) => void;
   credentials: ProviderCredentials;
   setCredentials: (credentials: ProviderCredentials) => void;
 
@@ -61,10 +61,11 @@ export function DeploymentStepperProvider({
   const [selectedProvider, setSelectedProviderState] =
     useState<DeploymentProvider | null>(null);
   const [selectedInstance, setSelectedInstance] =
-    useState<ProviderInstance | null>(null);
+    useState<ProviderAccount | null>(null);
   const [credentials, setCredentials] = useState<ProviderCredentials>({
-    apiKey: "",
-    serviceUrl: "",
+    provider_key: "",
+    provider_url: "",
+    api_key: "",
   });
   const [deploymentType, setDeploymentType] = useState<DeploymentType>("agent");
   const [deploymentName, setDeploymentName] = useState("");
@@ -93,7 +94,7 @@ export function DeploymentStepperProvider({
   const setSelectedProvider = useCallback((provider: DeploymentProvider) => {
     setSelectedProviderState(provider);
     setSelectedInstance(null);
-    setCredentials({ apiKey: "", serviceUrl: "" });
+    setCredentials({ provider_key: "", provider_url: "", api_key: "" });
   }, []);
 
   const handleSelectVersion = useCallback(

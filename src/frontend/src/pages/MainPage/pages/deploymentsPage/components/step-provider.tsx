@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/utils/utils";
@@ -6,11 +6,11 @@ import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
 import { MOCK_PROVIDER_INSTANCES, MOCK_PROVIDERS } from "../mock-data";
 import type {
   DeploymentProvider,
+  ProviderAccount,
   ProviderCredentials,
-  ProviderInstance,
 } from "../types";
 
-type InstanceTab = "existing" | "new";
+type EnvironmentTab = "existing" | "new";
 
 function ProviderCard({
   provider,
@@ -60,12 +60,12 @@ function ProviderCard({
   );
 }
 
-function InstanceTabToggle({
+function EnvironmentTabToggle({
   activeTab,
   onTabChange,
 }: {
-  activeTab: InstanceTab;
-  onTabChange: (tab: InstanceTab) => void;
+  activeTab: EnvironmentTab;
+  onTabChange: (tab: EnvironmentTab) => void;
 }) {
   return (
     <div className="rounded-xl border border-border bg-muted p-1">
@@ -83,8 +83,8 @@ function InstanceTabToggle({
             )}
           >
             {tab === "existing"
-              ? "Choose existing instance"
-              : "Add new instance"}
+              ? "Choose existing environment"
+              : "Add new environment"}
           </button>
         ))}
       </div>
@@ -92,27 +92,27 @@ function InstanceTabToggle({
   );
 }
 
-function InstanceList({
-  instances,
-  selectedInstance,
-  onSelectInstance,
+function EnvironmentList({
+  environments,
+  selectedEnvironment,
+  onSelectEnvironment,
 }: {
-  instances: ProviderInstance[];
-  selectedInstance: ProviderInstance | null;
-  onSelectInstance: (instance: ProviderInstance) => void;
+  environments: ProviderAccount[];
+  selectedEnvironment: ProviderAccount | null;
+  onSelectEnvironment: (environment: ProviderAccount) => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
       <span className="text-sm text-muted-foreground">
-        Select from your existing instances
+        Select from your existing environments
       </span>
-      {instances.map((instance) => {
-        const isSelected = selectedInstance?.id === instance.id;
+      {environments.map((environment) => {
+        const isSelected = selectedEnvironment?.id === environment.id;
         return (
           <button
-            key={instance.id}
+            key={environment.id}
             type="button"
-            onClick={() => onSelectInstance(instance)}
+            onClick={() => onSelectEnvironment(environment)}
             className={cn(
               "flex items-center gap-4 rounded-xl border bg-muted p-3 text-left transition-colors",
               isSelected
@@ -134,10 +134,13 @@ function InstanceList({
             </span>
             <span className="flex flex-col">
               <span className="text-sm font-medium leading-tight">
-                {instance.name}
+                {environment.provider_url}
               </span>
               <span className="text-sm leading-tight text-muted-foreground">
-                {instance.lastUsed}
+                {environment.provider_key}
+                {environment.provider_tenant_id
+                  ? ` · ${environment.provider_tenant_id}`
+                  : ""}
               </span>
             </span>
           </button>
@@ -147,7 +150,7 @@ function InstanceList({
   );
 }
 
-function NewInstanceForm({
+function NewEnvironmentForm({
   provider,
   credentials,
   onCredentialsChange,
@@ -174,28 +177,28 @@ function NewInstanceForm({
             type="password"
             placeholder="Enter your API key"
             className="bg-muted"
-            value={credentials.apiKey}
+            value={credentials.api_key}
             onChange={(e) =>
               onCredentialsChange({
                 ...credentials,
-                apiKey: e.target.value,
+                api_key: e.target.value,
               })
             }
           />
         </div>
         <div className="flex flex-col">
           <span className="pb-2 text-sm font-medium">
-            Service Instance URL <span className="text-destructive">*</span>
+            Service Environment URL <span className="text-destructive">*</span>
           </span>
           <Input
             type="url"
             placeholder="https://api.example.com"
             className="bg-muted"
-            value={credentials.serviceUrl}
+            value={credentials.provider_url}
             onChange={(e) =>
               onCredentialsChange({
                 ...credentials,
-                serviceUrl: e.target.value,
+                provider_url: e.target.value,
               })
             }
           />
@@ -217,11 +220,18 @@ export default function StepProvider() {
   // TODO: replace with real API data
   const providers = MOCK_PROVIDERS;
   // TODO: replace with real API data
-  const instances = MOCK_PROVIDER_INSTANCES;
-  const hasInstances = instances.length > 0;
+  const environments = MOCK_PROVIDER_INSTANCES;
 
-  const [instanceTab, setInstanceTab] = useState<InstanceTab>(
-    hasInstances ? "existing" : "new",
+  useEffect(() => {
+    if (!selectedProvider && providers.length === 1) {
+      setSelectedProvider(providers[0]);
+    }
+  }, [selectedProvider, setSelectedProvider]);
+
+  const hasEnvironments = environments.length > 0;
+
+  const [environmentTab, setEnvironmentTab] = useState<EnvironmentTab>(
+    hasEnvironments ? "existing" : "new",
   );
 
   return (
@@ -248,37 +258,34 @@ export default function StepProvider() {
         </div>
       </div>
 
-      {selectedProvider && (
-        <>
-          {hasInstances ? (
-            <div className="flex flex-col gap-4">
-              <InstanceTabToggle
-                activeTab={instanceTab}
-                onTabChange={setInstanceTab}
-              />
-              {instanceTab === "existing" ? (
-                <InstanceList
-                  instances={instances}
-                  selectedInstance={selectedInstance}
-                  onSelectInstance={setSelectedInstance}
-                />
-              ) : (
-                <NewInstanceForm
-                  provider={selectedProvider}
-                  credentials={credentials}
-                  onCredentialsChange={setCredentials}
-                />
-              )}
-            </div>
-          ) : (
-            <NewInstanceForm
-              provider={selectedProvider}
-              credentials={credentials}
-              onCredentialsChange={setCredentials}
+      {selectedProvider &&
+        (hasEnvironments ? (
+          <div className="flex flex-col gap-4">
+            <EnvironmentTabToggle
+              activeTab={environmentTab}
+              onTabChange={setEnvironmentTab}
             />
-          )}
-        </>
-      )}
+            {environmentTab === "existing" ? (
+              <EnvironmentList
+                environments={environments}
+                selectedEnvironment={selectedInstance}
+                onSelectEnvironment={setSelectedInstance}
+              />
+            ) : (
+              <NewEnvironmentForm
+                provider={selectedProvider}
+                credentials={credentials}
+                onCredentialsChange={setCredentials}
+              />
+            )}
+          </div>
+        ) : (
+          <NewEnvironmentForm
+            provider={selectedProvider}
+            credentials={credentials}
+            onCredentialsChange={setCredentials}
+          />
+        ))}
     </div>
   );
 }

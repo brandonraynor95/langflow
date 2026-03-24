@@ -8,15 +8,19 @@ export interface DeploymentProvider {
   connected: boolean;
 }
 
-export interface ProviderInstance {
+export interface ProviderAccount {
   id: string;
-  name: string;
-  lastUsed: string;
+  provider_tenant_id: string | null;
+  provider_key: string;
+  provider_url: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface ProviderCredentials {
-  apiKey: string;
-  serviceUrl: string;
+  provider_key: string;
+  provider_url: string;
+  api_key: string;
 }
 
 export type DeploymentType = "agent" | "mcp";

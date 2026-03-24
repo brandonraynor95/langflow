@@ -1,5 +1,5 @@
 import type { ConnectionItem } from "./components/step-attach-flows";
-import type { Deployment, DeploymentProvider, ProviderInstance } from "./types";
+import type { Deployment, DeploymentProvider, ProviderAccount } from "./types";
 
 export const MOCK_PROVIDERS: DeploymentProvider[] = [
   {
@@ -9,30 +9,33 @@ export const MOCK_PROVIDERS: DeploymentProvider[] = [
     icon: "Bot",
     connected: true,
   },
-  {
-    id: "kubernetes",
-    type: "kubernetes",
-    name: "Kubernetes",
-    icon: "Container",
-    connected: true,
-  },
 ];
 
-export const MOCK_PROVIDER_INSTANCES: ProviderInstance[] = [
+export const MOCK_PROVIDER_INSTANCES: ProviderAccount[] = [
   {
-    id: "inst-1",
-    name: "Production Instance",
-    lastUsed: "Last used 2 hours ago",
+    id: "550e8400-e29b-41d4-a716-446655440001",
+    provider_tenant_id: "tenant-prod",
+    provider_key: "watsonx_orchestrate",
+    provider_url: "https://api.us-south.assistant.watson.cloud.ibm.com/prod",
+    created_at: "2026-01-15T10:00:00Z",
+    updated_at: "2026-03-22T14:30:00Z",
   },
   {
-    id: "inst-2",
-    name: "Staging Instance",
-    lastUsed: "Last used 1 day ago",
+    id: "550e8400-e29b-41d4-a716-446655440002",
+    provider_tenant_id: "tenant-staging",
+    provider_key: "watsonx_orchestrate",
+    provider_url: "https://api.us-south.assistant.watson.cloud.ibm.com/staging",
+    created_at: "2026-01-20T09:00:00Z",
+    updated_at: "2026-03-21T11:00:00Z",
   },
   {
-    id: "inst-3",
-    name: "Development Instance",
-    lastUsed: "Last used 3 days ago",
+    id: "550e8400-e29b-41d4-a716-446655440003",
+    provider_tenant_id: null,
+    provider_key: "watsonx_orchestrate",
+    provider_url:
+      "https://api.us-south.assistant.watson.cloud.ibm.com/development",
+    created_at: "2026-02-01T08:00:00Z",
+    updated_at: "2026-03-20T16:45:00Z",
   },
 ];
 
