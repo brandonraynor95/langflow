@@ -303,9 +303,9 @@ async def test_empty_session_metadata():
 
 
 @pytest.mark.usefixtures("client")
-async def test_update_session_metadata():
-    """Test updating session_metadata on an existing message."""
-    session_id = f"update_metadata_session_{uuid4()}"
+async def test_session_metadata_retrieval():
+    """Test retrieving session_metadata from stored messages."""
+    session_id = f"retrieval_metadata_session_{uuid4()}"
 
     # Create initial message
     initial_metadata = {"tenant_id": "tenant-initial", "user_id": "user-initial"}
@@ -318,13 +318,7 @@ async def test_update_session_metadata():
     )
     await astore_message(message)
 
-    # Retrieve and update
+    # Retrieve and verify
     messages = await aget_messages(sender="User", session_id=session_id)
     assert len(messages) == 1
-
-    # Note: This test verifies the schema supports session_metadata
-    # Actual update functionality depends on aupdate_messages implementation
     assert messages[0].session_metadata == initial_metadata
-
-
-# Made with Bob
