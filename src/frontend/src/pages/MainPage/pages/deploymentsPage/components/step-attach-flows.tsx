@@ -518,7 +518,6 @@ function ConnectionPanel({
                 </span>
                 <div className="space-y-2">
                   {envVars.map((envVar, index) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: This is a simple form, using index as key is acceptable here
                     <div key={index} className="grid grid-cols-2 gap-2">
                       <Input
                         placeholder="Key"
