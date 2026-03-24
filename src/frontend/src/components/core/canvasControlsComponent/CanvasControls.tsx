@@ -127,7 +127,7 @@ const CanvasControls = ({
             unstyled
             size="icon"
             data-testid="canvas_controls_toggle_inspector"
-            className={`group flex h-8 w-8 items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-50 ${inspectionPanelVisible ? "bg-accent" : "hover:bg-muted"}`}
+            className="group flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
             title={
               !selectedNode
                 ? "Select a node to open the Inspector Panel"
@@ -135,12 +135,11 @@ const CanvasControls = ({
                   ? "Hide Inspector Panel"
                   : "Show Inspector Panel"
             }
-            disabled={!selectedNode}
             onClick={() => setInspectionPanelVisible(!inspectionPanelVisible)}
           >
             <ForwardedIconComponent
               name={inspectionPanelVisible ? "PanelRightClose" : "PanelRight"}
-              className={`${inspectionPanelVisible ? "text-primary" : "text-muted-foreground group-hover:text-primary"} !h-5 !w-5`}
+              className="!h-5 !w-5 text-muted-foreground group-hover:text-foreground"
             />
           </Button>
         )}
