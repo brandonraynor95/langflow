@@ -736,6 +736,19 @@ async def create_flows(
     current_user: CurrentActiveUser,
 ):
     """Create multiple new flows."""
+    # Guard against duplicate IDs up-front so callers get a clean 422 instead
+    # of an unhandled DB IntegrityError.  Use upload_file() for upsert semantics.
+    requested_ids = [f.id for f in flow_list.flows if f.id is not None]
+    if requested_ids:
+        existing_ids = (await session.exec(select(Flow.id).where(col(Flow.id).in_(requested_ids)))).all()
+        if existing_ids:
+            conflict = ", ".join(str(i) for i in existing_ids)
+            msg = (
+                f"Flow(s) with the following IDs already exist: {conflict}. "
+                "Use the update endpoint or upload_file() for upsert semantics."
+            )
+            raise HTTPException(status_code=422, detail=msg)
+
     db_flows = []
     for flow in flow_list.flows:
         flow.user_id = current_user.id
@@ -922,11 +935,12 @@ async def download_multiple_file(
             for flow in normalised_flows:
                 # Serialise with sorted keys and 2-space indent for stable diffs.
                 flow_json = orjson_dumps(flow, sort_keys=True)
-                # Sanitize the flow name to avoid path traversal in ZIP entries.
+                # Sanitize the flow name: keep only the basename (strips path
+                # separators and collapses ".." components) to prevent Zip Slip /
+                # path traversal while preserving non-ASCII characters (Cyrillic,
+                # CJK, etc.).  Matches the same logic used in projects.py.
                 raw_name = str(flow.get("name", "flow"))
-                safe_name = re.sub(r"[^A-Za-z0-9_.-]", "_", raw_name).strip(".")
-                if not safe_name:
-                    safe_name = str(flow.get("id", "flow"))
+                safe_name = StdlibPath(raw_name).name or str(flow.get("id", "flow"))
                 zip_file.writestr(f"{safe_name}.json", flow_json)
 
         # Seek to the beginning of the byte stream

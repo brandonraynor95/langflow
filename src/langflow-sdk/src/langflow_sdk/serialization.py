@@ -78,7 +78,7 @@ def _process_template_field(
     if code_as_lines and field.get("type") == "code":
         value = field.get("value")
         if isinstance(value, str) and value:
-            field["value"] = value.splitlines()
+            field["value"] = value.split("\n")
         elif isinstance(value, list):
             pass  # already lines -- leave as-is
 
