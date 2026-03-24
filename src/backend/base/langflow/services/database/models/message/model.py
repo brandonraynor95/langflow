@@ -153,7 +153,7 @@ class MessageTable(MessageBase, table=True):  # type: ignore[call-arg]
     session_metadata: dict | None = Field(
         default=None,
         sa_column=Column(JSON),
-        description="Enterprise session context including tenant_id, user_id, region, policies, retention, etc.",
+        description="Session context data (e.g., user roles, custom tags, or analytics data).",
     )
 
     @field_validator("flow_id", mode="before")
