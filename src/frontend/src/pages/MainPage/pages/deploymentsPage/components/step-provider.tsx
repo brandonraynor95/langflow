@@ -10,6 +10,7 @@ import type {
   ProviderAccount,
   ProviderCredentials,
 } from "../types";
+import { RadioSelectItem } from "./radio-select-item";
 
 type EnvironmentTab = "existing" | "new";
 
@@ -111,46 +112,36 @@ function EnvironmentList({
       <span className="text-sm text-muted-foreground">
         Select from your existing environments
       </span>
-      {environments.map((environment) => {
-        const isSelected = selectedEnvironment?.id === environment.id;
-        return (
-          <button
-            key={environment.id}
-            type="button"
-            onClick={() => onSelectEnvironment(environment)}
-            className={cn(
-              "flex items-center gap-4 rounded-xl border bg-muted p-3 text-left transition-colors",
-              isSelected
-                ? "border-primary"
-                : "border-transparent hover:border-border",
-            )}
-          >
-            <span
-              className={cn(
-                "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded",
-                isSelected
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-muted-foreground bg-background",
-              )}
+      <div
+        role="radiogroup"
+        aria-label="Existing environments"
+        className="flex flex-col gap-3"
+      >
+        {environments.map((environment) => {
+          const isSelected = selectedEnvironment?.id === environment.id;
+          return (
+            <RadioSelectItem
+              key={environment.id}
+              name="environment"
+              value={environment.id}
+              selected={isSelected}
+              onChange={() => onSelectEnvironment(environment)}
             >
-              {isSelected && (
-                <ForwardedIconComponent name="Check" className="h-3.5 w-3.5" />
-              )}
-            </span>
-            <span className="flex flex-col">
-              <span className="text-sm font-medium leading-tight">
-                {environment.provider_url}
+              <span className="flex flex-col">
+                <span className="text-sm font-medium leading-tight">
+                  {environment.provider_url}
+                </span>
+                <span className="text-sm leading-tight text-muted-foreground">
+                  {environment.provider_key}
+                  {environment.provider_tenant_id
+                    ? ` · ${environment.provider_tenant_id}`
+                    : ""}
+                </span>
               </span>
-              <span className="text-sm leading-tight text-muted-foreground">
-                {environment.provider_key}
-                {environment.provider_tenant_id
-                  ? ` · ${environment.provider_tenant_id}`
-                  : ""}
-              </span>
-            </span>
-          </button>
-        );
-      })}
+            </RadioSelectItem>
+          );
+        })}
+      </div>
     </div>
   );
 }

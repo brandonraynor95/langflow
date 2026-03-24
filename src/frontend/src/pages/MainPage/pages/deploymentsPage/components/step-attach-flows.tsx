@@ -12,6 +12,7 @@ import type { FlowVersionEntry } from "@/types/flow/version";
 import { cn } from "@/utils/utils";
 import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
 import { MOCK_CONNECTIONS } from "../mock-data";
+import { RadioSelectItem } from "./radio-select-item";
 
 export interface ConnectionItem {
   id: string;
@@ -60,9 +61,9 @@ export default function StepAttachFlows() {
   );
   const [newConnectionName, setNewConnectionName] = useState("");
   const [newConnectionDescription, setNewConnectionDescription] = useState("");
-  const [envVars, setEnvVars] = useState<{ key: string; value: string }[]>([
-    { key: "", value: "" },
-  ]);
+  const [envVars, setEnvVars] = useState<
+    { id: string; key: string; value: string }[]
+  >([{ id: crypto.randomUUID(), key: "", value: "" }]);
 
   useEffect(() => {
     if (!selectedFlowId && flows.length > 0) {
@@ -121,16 +122,16 @@ export default function StepAttachFlows() {
   };
 
   const handleAddEnvVar = () => {
-    setEnvVars([...envVars, { key: "", value: "" }]);
+    setEnvVars([...envVars, { id: crypto.randomUUID(), key: "", value: "" }]);
   };
 
   const handleEnvVarChange = (
-    index: number,
+    id: string,
     field: "key" | "value",
     val: string,
   ) => {
     setEnvVars((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: val } : item)),
+      prev.map((item) => (item.id === id ? { ...item, [field]: val } : item)),
     );
   };
 
@@ -217,9 +218,7 @@ export default function StepAttachFlows() {
               pendingVersion={pendingVersion}
               selectedVersionByFlow={selectedVersionByFlow}
               attachedConnectionByFlow={attachedConnectionByFlow}
-              onSelectPending={(id) =>
-                setPendingVersion(pendingVersion === id ? null : id)
-              }
+              onSelectPending={setPendingVersion}
               onAttach={handleAttachFlow}
             />
           ) : (
@@ -301,38 +300,16 @@ function VersionPanel({
           ) : (
             versions.map((version) => {
               const isAttachedVersion = attachedEntry?.versionId === version.id;
-              const isPending = pendingVersion === version.id;
-              const isSelected = isPending;
+              const isSelected = pendingVersion === version.id;
               return (
-                <button
+                <RadioSelectItem
                   key={version.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={pendingVersion === version.id}
+                  name="flow-version"
+                  value={version.id}
+                  selected={isSelected}
+                  onChange={() => onSelectPending(version.id)}
                   data-testid={`version-item-${version.id}`}
-                  onClick={() => onSelectPending(version.id)}
-                  className={cn(
-                    "flex w-full items-center gap-4 rounded-xl border bg-muted p-3 text-left transition-colors",
-                    isSelected
-                      ? "border-primary"
-                      : "border-transparent hover:border-border",
-                  )}
                 >
-                  <span
-                    className={cn(
-                      "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded",
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-muted-foreground bg-background",
-                    )}
-                  >
-                    {isSelected && (
-                      <ForwardedIconComponent
-                        name="Check"
-                        className="h-3.5 w-3.5"
-                      />
-                    )}
-                  </span>
                   <span className="flex flex-col">
                     <span className="flex items-center gap-2 text-sm font-medium leading-tight">
                       {version.version_tag}
@@ -351,7 +328,7 @@ function VersionPanel({
                       {new Date(version.created_at).toLocaleDateString()}
                     </span>
                   </span>
-                </button>
+                </RadioSelectItem>
               );
             })
           )}
@@ -395,8 +372,8 @@ function ConnectionPanel({
   onNameChange: (v: string) => void;
   newConnectionDescription: string;
   onDescriptionChange: (v: string) => void;
-  envVars: { key: string; value: string }[];
-  onEnvVarChange: (index: number, field: "key" | "value", val: string) => void;
+  envVars: { id: string; key: string; value: string }[];
+  onEnvVarChange: (id: string, field: "key" | "value", val: string) => void;
   onAddEnvVar: () => void;
   onChangeFlow: () => void;
   onAttachConnection: () => void;
@@ -446,37 +423,14 @@ function ConnectionPanel({
               {connections.map((conn) => {
                 const isSelected = selectedConnection === conn.id;
                 return (
-                  <button
+                  <RadioSelectItem
                     key={conn.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
+                    name="connection"
+                    value={conn.id}
+                    selected={isSelected}
+                    onChange={() => onSelectConnection(conn.id)}
                     data-testid={`connection-item-${conn.id}`}
-                    onClick={() =>
-                      onSelectConnection(isSelected ? null : conn.id)
-                    }
-                    className={cn(
-                      "flex w-full items-center gap-4 rounded-xl border bg-muted p-3 text-left transition-colors",
-                      isSelected
-                        ? "border-primary"
-                        : "border-transparent hover:border-border",
-                    )}
                   >
-                    <span
-                      className={cn(
-                        "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded",
-                        isSelected
-                          ? "bg-primary text-primary-foreground"
-                          : "border border-muted-foreground bg-background",
-                      )}
-                    >
-                      {isSelected && (
-                        <ForwardedIconComponent
-                          name="Check"
-                          className="h-3.5 w-3.5"
-                        />
-                      )}
-                    </span>
                     <span className="flex flex-col">
                       <span className="text-sm font-medium leading-tight">
                         {conn.name}
@@ -485,7 +439,7 @@ function ConnectionPanel({
                         {conn.variableCount} variables
                       </span>
                     </span>
-                  </button>
+                  </RadioSelectItem>
                 );
               })}
             </div>
@@ -517,14 +471,14 @@ function ConnectionPanel({
                   <span className="text-destructive">*</span>
                 </span>
                 <div className="space-y-2">
-                  {envVars.map((envVar, index) => (
-                    <div key={index} className="grid grid-cols-2 gap-2">
+                  {envVars.map((envVar) => (
+                    <div key={envVar.id} className="grid grid-cols-2 gap-2">
                       <Input
                         placeholder="Key"
                         className="bg-muted"
                         value={envVar.key}
                         onChange={(e) =>
-                          onEnvVarChange(index, "key", e.target.value)
+                          onEnvVarChange(envVar.id, "key", e.target.value)
                         }
                       />
                       <Input
@@ -532,7 +486,7 @@ function ConnectionPanel({
                         className="bg-muted"
                         value={envVar.value}
                         onChange={(e) =>
-                          onEnvVarChange(index, "value", e.target.value)
+                          onEnvVarChange(envVar.id, "value", e.target.value)
                         }
                       />
                     </div>

@@ -51,20 +51,24 @@ export default function StepType() {
           aria-label="Deployment type"
         >
           {TYPE_OPTIONS.map((option) => (
-            <button
+            <label
               key={option.type}
-              type="button"
-              role="radio"
-              aria-checked={deploymentType === option.type}
               data-testid={`deployment-type-${option.type}`}
-              onClick={() => setDeploymentType(option.type)}
               className={cn(
-                "flex items-start gap-3 rounded-lg border bg-muted p-3 text-left transition-colors",
+                "flex cursor-pointer items-start gap-3 rounded-lg border bg-muted p-3 text-left transition-colors",
                 deploymentType === option.type
                   ? "border-2 border-foreground"
                   : "border-border hover:border-muted-foreground",
               )}
             >
+              <input
+                type="radio"
+                name="deployment-type"
+                value={option.type}
+                checked={deploymentType === option.type}
+                onChange={() => setDeploymentType(option.type)}
+                className="sr-only"
+              />
               <div
                 className={cn(
                   "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border p-2",
@@ -82,7 +86,7 @@ export default function StepType() {
                   {option.description}
                 </p>
               </div>
-            </button>
+            </label>
           ))}
         </div>
       </div>
