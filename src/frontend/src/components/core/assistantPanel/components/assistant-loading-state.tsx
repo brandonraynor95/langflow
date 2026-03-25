@@ -122,6 +122,7 @@ function AssistantLoadingStateComponent({
         {isReady && (
           <button
             type="button"
+            data-testid="assistant-continue-button"
             onClick={() => onValidationComplete?.()}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-accent-emerald-foreground/10 px-4 py-2.5 text-sm font-medium text-accent-emerald-foreground transition-colors hover:bg-accent-emerald-foreground/20"
           >

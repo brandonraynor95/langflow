@@ -121,6 +121,7 @@ export function ModelSelector({
         <Button
           variant="ghost"
           size="sm"
+          data-testid="assistant-model-selector"
           className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground active:!scale-100"
         >
           <span className="flex items-center gap-1.5">

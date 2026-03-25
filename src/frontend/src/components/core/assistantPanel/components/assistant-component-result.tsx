@@ -103,7 +103,7 @@ export function AssistantComponentResult({
   };
 
   return (
-    <div className="max-w-[80%] rounded-lg border border-border bg-muted/30 p-4">
+    <div data-testid="assistant-component-result" className="max-w-[80%] rounded-lg border border-border bg-muted/30 p-4">
       {/* Component header */}
       <div className="mb-3 flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#0EA5E9]">
@@ -171,6 +171,7 @@ export function AssistantComponentResult({
         ) : (
           <button
             type="button"
+            data-testid="assistant-approve-button"
             className="h-8 rounded-[10px] bg-white px-4 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-100"
             onClick={handleApprove}
           >
@@ -179,6 +180,7 @@ export function AssistantComponentResult({
         )}
         <button
           type="button"
+          data-testid="assistant-view-code-button"
           className="h-8 rounded-[10px] bg-zinc-700 px-4 text-sm font-medium text-white transition-colors hover:bg-zinc-600"
           onClick={() => setIsViewCodeOpen(true)}
         >

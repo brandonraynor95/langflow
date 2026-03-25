@@ -20,6 +20,7 @@ export function AssistantHeader({
         <Button
           variant="ghost"
           size="sm"
+          data-testid="assistant-new-session"
           className="h-8 gap-1.5 px-2 text-sm text-muted-foreground hover:text-foreground"
           onClick={onNewSession}
           disabled={!hasMessages}
@@ -31,6 +32,7 @@ export function AssistantHeader({
         <Button
           variant="ghost"
           size="icon"
+          data-testid="assistant-close"
           className="h-8 w-8"
           title="Close"
           onClick={onClose}

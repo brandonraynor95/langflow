@@ -215,7 +215,7 @@ export function AssistantMessageItem({
   }
 
   return (
-    <div className="mb-6">
+    <div className="mb-6" data-testid={`assistant-message-${message.role}`}>
       <div className="flex items-start gap-3">
         {isUser ? (
           <img

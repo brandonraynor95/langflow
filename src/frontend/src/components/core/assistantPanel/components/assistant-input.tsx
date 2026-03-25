@@ -196,6 +196,7 @@ export function AssistantInput({
               type="button"
               onClick={onStop}
               title="Stop generation"
+              data-testid="assistant-stop-button"
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted-foreground/15 text-muted-foreground transition-colors hover:bg-muted-foreground/25"
             >
               <ForwardedIconComponent
@@ -206,6 +207,7 @@ export function AssistantInput({
           ) : (
             <Button
               size="icon"
+              data-testid="assistant-send-button"
               className="h-8 w-8 rounded-lg"
               onClick={handleSend}
               disabled={!canSend}

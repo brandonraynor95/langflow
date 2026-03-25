@@ -67,6 +67,7 @@ const CanvasControls = ({
           <Button
             unstyled
             size="icon"
+            data-testid="assistant-button"
             className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-md hover:bg-muted"
             onClick={handleAssistantClick}
           >
