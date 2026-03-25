@@ -118,7 +118,7 @@ def _render_results(results: list[PullResult]) -> None:
     table.add_column("File")
     table.add_column("Status")
 
-    _STATUS_STYLE = {
+    status_style = {
         "unchanged": ("dim", "UNCHANGED"),
         "updated": ("yellow", "UPDATED"),
         "created": ("green", "CREATED"),
@@ -126,7 +126,7 @@ def _render_results(results: list[PullResult]) -> None:
     }
 
     for r in results:
-        color, label = _STATUS_STYLE.get(r.status, ("white", r.status.upper()))
+        color, label = status_style.get(r.status, ("white", r.status.upper()))
         if r.error:
             label += f": {r.error}"
         table.add_row(r.flow_name, str(r.flow_id), str(r.path), f"[{color}]{label}[/{color}]")

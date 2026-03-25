@@ -152,7 +152,7 @@ def _upsert_single(
                 )
         except sdk.LangflowNotFoundError:
             pass  # Flow doesn't exist yet — fall through to create it
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass  # Comparison failure is non-fatal — proceed with push
 
     try:
@@ -315,7 +315,8 @@ def push_command(
     paths = _collect_flow_files(flow_paths, dir_path)
     if not paths:
         console.print(
-            "[red]Error:[/red] No *.json flow files found. Run [bold]lfx pull[/bold] first, or pass explicit file paths."
+            "[red]Error:[/red] No *.json flow files found. "
+            "Run [bold]lfx pull[/bold] first, or pass explicit file paths."
         )
         raise typer.Exit(1)
 
