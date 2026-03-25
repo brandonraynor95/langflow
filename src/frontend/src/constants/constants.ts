@@ -894,6 +894,11 @@ export const ALLOWED_CHAT_ATTACHMENT_INPUT_MIME_TYPES = [
   "text/html",
   "text/javascript",
   "application/javascript",
+  "text/typescript",
+  "text/x-typescript",
+  "text/x-tsx",
+  "application/sql",
+  "text/x-sql",
   "application/x-sh",
   "text/x-python",
 ];

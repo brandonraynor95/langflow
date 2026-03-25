@@ -54,8 +54,11 @@ export const useChatFileUpload = ({
                 return prev;
               }
 
-              newFiles[updatedIndex].loading = false;
-              newFiles[updatedIndex].path = data.file_path;
+              newFiles[updatedIndex] = {
+                ...newFiles[updatedIndex],
+                loading: false,
+                path: data.file_path,
+              };
               return newFiles;
             });
           },
@@ -68,8 +71,11 @@ export const useChatFileUpload = ({
                 return prev;
               }
 
-              newFiles[updatedIndex].loading = false;
-              newFiles[updatedIndex].error = true;
+              newFiles[updatedIndex] = {
+                ...newFiles[updatedIndex],
+                loading: false,
+                error: true,
+              };
               return newFiles;
             });
 
