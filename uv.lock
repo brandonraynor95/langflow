@@ -7035,7 +7035,7 @@ dev = [
 [[package]]
 name = "langflow-sdk"
 version = "0.1.0"
-source = { editable = "src/langflow-sdk" }
+source = { editable = "src/sdk" }
 dependencies = [
     { name = "httpx", extra = ["http2"] },
     { name = "pydantic" },
