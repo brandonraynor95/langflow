@@ -52,7 +52,8 @@ export const applySearch = (docs: MemoryDocumentItem[], search?: string) => {
 
 export const normalizeBatchSize = (n: unknown) => {
   const parsed = typeof n === "number" ? n : parseInt(String(n ?? ""), 10);
-  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+  const intVal = Number.isFinite(parsed) ? Math.trunc(parsed) : NaN;
+  return Number.isFinite(intVal) && intVal >= 1 ? intVal : 1;
 };
 
 export const setStatusAsync = (

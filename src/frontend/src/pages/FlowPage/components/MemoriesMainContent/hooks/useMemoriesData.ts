@@ -42,6 +42,12 @@ export function useMemoriesData({
     }
   }, [memories, selectedMemoryId, onSelectMemory]);
 
+  useEffect(() => {
+    setSelectedSession(null);
+    setSelectedDocument(null);
+    setDocumentPanelOpen(false);
+  }, [selectedMemoryId]);
+
   const filteredMemories = useMemo(() => {
     const list = memories ?? [];
     const q = memoriesSearch.trim().toLowerCase();

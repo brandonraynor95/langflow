@@ -30,38 +30,42 @@ jest.mock("@/modals/deleteConfirmationModal", () => ({
 }));
 
 describe("MemoryDetailsHeader", () => {
-  const baseProps = {
-    memory: {
-      id: "m1",
-      name: "Memory One",
-      description: "desc",
-      status: "idle",
-      is_active: true,
-    },
-    isProcessing: false,
-    deleteMutation: { mutate: jest.fn(), isPending: false },
-    updateMemoryMutation: { isPending: false },
-    handleToggleActive: jest.fn(),
-  } as any;
+  const makeProps = () =>
+    ({
+      memory: {
+        id: "m1",
+        name: "Memory One",
+        description: "desc",
+        status: "idle",
+        is_active: true,
+      },
+      isProcessing: false,
+      deleteMutation: { mutate: jest.fn(), isPending: false },
+      updateMemoryMutation: { isPending: false },
+      handleToggleActive: jest.fn(),
+    }) as any;
 
   it("renders memory information", () => {
-    render(<MemoryDetailsHeader {...baseProps} />);
+    const props = makeProps();
+    render(<MemoryDetailsHeader {...props} />);
     expect(screen.getByText("Memory One")).toBeInTheDocument();
     expect(screen.getByText("Enabled")).toBeInTheDocument();
   });
 
   it("calls mutate handlers for actions", () => {
-    render(<MemoryDetailsHeader {...baseProps} />);
+    const props = makeProps();
+    render(<MemoryDetailsHeader {...props} />);
 
     fireEvent.click(screen.getByText("confirm-delete"));
-    expect(baseProps.deleteMutation.mutate).toHaveBeenCalledWith({
+    expect(props.deleteMutation.mutate).toHaveBeenCalledWith({
       memoryId: "m1",
     });
   });
 
   it("toggles auto-capture", () => {
-    render(<MemoryDetailsHeader {...baseProps} />);
+    const props = makeProps();
+    render(<MemoryDetailsHeader {...props} />);
     fireEvent.click(screen.getByLabelText("enabled"));
-    expect(baseProps.handleToggleActive).toHaveBeenCalled();
+    expect(props.handleToggleActive).toHaveBeenCalled();
   });
 });

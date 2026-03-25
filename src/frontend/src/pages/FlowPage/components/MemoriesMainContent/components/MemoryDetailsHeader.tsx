@@ -38,6 +38,7 @@ export function MemoryDetailsHeader({
             checked={memory.is_active}
             onCheckedChange={handleToggleActive}
             disabled={updateMemoryMutation.isPending}
+            aria-label={`memory capture enabled for ${memory.name}`}
           />
           <span
             className={cn(

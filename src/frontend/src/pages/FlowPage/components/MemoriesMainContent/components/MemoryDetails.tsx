@@ -73,15 +73,6 @@ export function MemoryDetails({
 
         <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
           <span>
-            <span className="font-medium text-foreground">KB:</span>{" "}
-            <Link
-              to={`/assets/knowledge-bases/${encodeURIComponent(memory.kb_name)}/chunks`}
-            >
-              {memory.kb_name}
-            </Link>
-          </span>
-          <span>&middot;</span>
-          <span>
             <span className="font-medium text-foreground">Model:</span>{" "}
             {memory.embedding_model}
           </span>
