@@ -26,13 +26,14 @@ from lfx.interface.components import component_cache
 from lfx.log.logger import logger
 from lfx.schema.schema import InputValueRequest
 from lfx.services.settings.service import SettingsService
+from lfx.utils.flow_validation import (
+    code_hash_matches_any_template,
+    is_custom_component_validation_error_message,
+    validate_flow_for_current_settings,
+)
 from sqlmodel import select
 
 from langflow.api.utils import CurrentActiveUser, DbSession, extract_global_variables_from_headers, parse_value
-from langflow.api.utils.flow_validation import (
-    code_hash_matches_any_template,
-    validate_flow_custom_components,
-)
 from langflow.api.v1.schemas import (
     ConfigResponse,
     CustomComponentRequest,
@@ -453,11 +454,6 @@ async def _run_flow_internal(
     if flow is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flow not found")
 
-    try:
-        validate_flow_custom_components(flow.data)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-
     # Extract request-level variables from headers with prefix X-LANGFLOW-GLOBAL-VAR-*
     request_variables = extract_global_variables_from_headers(http_request.headers)
 
@@ -472,6 +468,11 @@ async def _run_flow_internal(
     start_time = time.perf_counter()
 
     if stream:
+        try:
+            validate_flow_for_current_settings(flow.data)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
         asyncio_queue: asyncio.Queue = asyncio.Queue()
         asyncio_queue_client_consumed: asyncio.Queue = asyncio.Queue()
         event_manager = create_stream_tokens_event_manager(queue=asyncio_queue)
@@ -531,6 +532,8 @@ async def _run_flow_internal(
         )
         if "badly formed hexadecimal UUID string" in str(exc):
             # This means the Flow ID is not a valid UUID which means it can't find the flow
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        if is_custom_component_validation_error_message(str(exc)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         if "not found" in str(exc):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -765,7 +768,7 @@ async def webhook_run_flow(
     error_msg = ""
 
     try:
-        validate_flow_custom_components(flow.data)
+        validate_flow_for_current_settings(flow.data)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -891,11 +894,6 @@ async def experimental_run_flow(
     # Get the flow from the id or name
     await check_flow_user_permission(flow=flow, api_key_user=api_key_user)
 
-    try:
-        validate_flow_custom_components(flow.data)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-
     session_service = get_session_service()
     flow_id_str = str(flow.id)
     if outputs is None:
@@ -906,6 +904,10 @@ async def experimental_run_flow(
     if session_id:
         try:
             session_data = await session_service.load_session(session_id, flow_id=flow_id_str)
+        except ValueError as exc:
+            if is_custom_component_validation_error_message(str(exc)):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
         except Exception as exc:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
         graph, _artifacts = session_data or (None, None)
@@ -939,6 +941,10 @@ async def experimental_run_flow(
             graph_data = flow.data
             graph_data = process_tweaks(graph_data, tweaks or {})
             graph = Graph.from_payload(graph_data, flow_id=flow_id_str)
+        except ValueError as exc:
+            if is_custom_component_validation_error_message(str(exc)):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
         except Exception as exc:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 

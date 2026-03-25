@@ -1,7 +1,9 @@
 """Unit tests for LFX flow validation helpers."""
 
+from types import SimpleNamespace
+
 import pytest
-from lfx.utils.flow_validation import validate_lfx_flow_custom_components
+from lfx.utils.flow_validation import ensure_component_hash_lookups_loaded, validate_flow_for_current_settings
 
 
 def _blocked_raw_graph() -> dict:
@@ -26,9 +28,18 @@ def _blocked_raw_graph() -> dict:
 
 
 @pytest.mark.asyncio
-async def test_validate_lfx_flow_custom_components_requires_settings_service(mocker):
-    """Validation should fail loudly when the settings service is unavailable."""
+async def test_ensure_component_hash_lookups_loaded_requires_settings_service(mocker):
+    """Hash warmup should fail loudly when the settings service is unavailable."""
     mocker.patch("lfx.services.deps.get_settings_service", return_value=None)
 
     with pytest.raises(RuntimeError, match="Settings service must be initialized"):
-        await validate_lfx_flow_custom_components(_blocked_raw_graph())
+        await ensure_component_hash_lookups_loaded()
+
+
+def test_validate_flow_for_current_settings_requires_settings_service(mocker):
+    """Unified validation should also require the settings service."""
+    mocker.patch("lfx.services.deps.get_settings_service", return_value=None)
+    graph = SimpleNamespace(raw_graph_data=_blocked_raw_graph())
+
+    with pytest.raises(RuntimeError, match="Settings service must be initialized"):
+        validate_flow_for_current_settings(graph)

@@ -14,6 +14,7 @@ from lfx.cli.script_loader import extract_structured_result
 from lfx.events.event_manager import EventManager, create_default_event_manager
 from lfx.log.logger import logger
 from lfx.schema.schema import InputValueRequest
+from lfx.utils.flow_validation import is_custom_component_validation_error_message
 
 from langflow.agentic.services.flow_types import (
     STREAMING_QUEUE_MAX_SIZE,
@@ -116,6 +117,11 @@ async def execute_flow_file(
 
     except HTTPException:
         raise
+    except ValueError as e:
+        if is_custom_component_validation_error_message(str(e)):
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        logger.error(f"Flow execution error: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while executing the flow.") from e
     except Exception as e:
         logger.error(f"Flow execution error: {e}")
         raise HTTPException(status_code=500, detail="An error occurred while executing the flow.") from e
@@ -165,7 +171,12 @@ async def execute_flow_file_streaming(
 
     try:
         graph = await load_graph_for_execution(flow_path, flow_type, provider, model_name, api_key_var)
-    except (json.JSONDecodeError, OSError, ValueError) as e:
+    except ValueError as e:
+        logger.error(f"Flow preparation error: {e}")
+        if is_custom_component_validation_error_message(str(e)):
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="An error occurred while preparing the flow.") from e
+    except (json.JSONDecodeError, OSError) as e:
         logger.error(f"Flow preparation error: {e}")
         raise HTTPException(status_code=500, detail="An error occurred while preparing the flow.") from e
 

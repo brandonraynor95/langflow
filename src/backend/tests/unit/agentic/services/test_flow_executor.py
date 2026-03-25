@@ -307,6 +307,28 @@ class TestExecuteFlowFile:
 
         assert exc_info.value.status_code == 500
 
+    @pytest.mark.asyncio
+    async def test_should_raise_400_for_custom_component_validation_error(self):
+        """Should return 400 when custom components are blocked during flow loading."""
+        validation_error = "Flow build blocked: custom components are not allowed: Bad (node)"
+
+        with (
+            patch(
+                "langflow.agentic.services.flow_executor.resolve_flow_path",
+                return_value=(Path("/fake/path/test.py"), "python"),
+            ),
+            patch(
+                "langflow.agentic.services.flow_executor.load_graph_for_execution",
+                new_callable=AsyncMock,
+                side_effect=ValueError(validation_error),
+            ),
+            pytest.raises(HTTPException) as exc_info,
+        ):
+            await execute_flow_file("test.py")
+
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.detail == validation_error
+
 
 class TestLoadAndPrepareFlow:
     """Tests for load_and_prepare_flow function."""
@@ -379,6 +401,29 @@ class TestExecuteFlowFileStreaming:
         ):
             # The streaming function is complex; for unit tests we verify setup
             pass
+
+    @pytest.mark.asyncio
+    async def test_should_raise_400_for_custom_component_validation_error(self):
+        """Should return 400 when custom components are blocked before streaming starts."""
+        validation_error = "Flow build blocked: custom components are not allowed: Bad (node)"
+
+        with (
+            patch(
+                "langflow.agentic.services.flow_executor.resolve_flow_path",
+                return_value=(Path("/fake/path/test.py"), "python"),
+            ),
+            patch(
+                "langflow.agentic.services.flow_executor.load_graph_for_execution",
+                new_callable=AsyncMock,
+                side_effect=ValueError(validation_error),
+            ),
+            pytest.raises(HTTPException) as exc_info,
+        ):
+            async for _ in execute_flow_file_streaming("test.py"):
+                pass
+
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.detail == validation_error
 
 
 class TestConstants:

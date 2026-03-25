@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from lfx.__main__ import app
+from lfx.interface.components import component_cache
 from typer.testing import CliRunner
 
 runner = CliRunner()
@@ -228,6 +229,7 @@ class TestExecuteRealFlows:
                 "lfx.utils.flow_validation.ensure_component_hash_lookups_loaded",
                 new=AsyncMock(return_value=_builtin_hashes_from_flow(flow)),
             ),
+            patch.object(component_cache, "type_to_current_hash", _builtin_hashes_from_flow(flow)),
         ):
             result = runner.invoke(
                 app,

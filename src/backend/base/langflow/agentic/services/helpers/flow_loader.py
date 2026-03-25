@@ -15,12 +15,19 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException
 from lfx.load import aload_flow_from_json
 from lfx.log.logger import logger
+from lfx.utils.flow_validation import validate_flow_for_current_settings
 
 from langflow.agentic.services.flow_preparation import load_and_prepare_flow
 from langflow.agentic.services.flow_types import FLOWS_BASE_PATH
 
 if TYPE_CHECKING:
     from lfx.graph.graph.base import Graph
+
+
+def _validate_loaded_graph(graph: "Graph") -> "Graph":
+    """Enforce custom-component policy for prebuilt graphs from Python flows."""
+    validate_flow_for_current_settings(graph)
+    return graph
 
 
 @contextmanager
@@ -158,7 +165,7 @@ async def _load_graph_from_python(
     if not hasattr(module, "get_graph"):
         # Fallback: check for 'graph' variable for backward compatibility
         if hasattr(module, "graph"):
-            graph = module.graph
+            graph = _validate_loaded_graph(module.graph)
             if module_name in sys.modules:
                 del sys.modules[module_name]
             return graph
@@ -190,7 +197,7 @@ async def _load_graph_from_python(
         if module_name in sys.modules:
             del sys.modules[module_name]
 
-    return graph
+    return _validate_loaded_graph(graph)
 
 
 async def load_graph_for_execution(

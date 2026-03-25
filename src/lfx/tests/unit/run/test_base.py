@@ -19,6 +19,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from lfx.interface.components import component_cache
 from lfx.run.base import RunError, output_error, run_flow
 
 
@@ -229,6 +230,7 @@ class TestRunFlowJsonInput:
                 "lfx.utils.flow_validation.ensure_component_hash_lookups_loaded",
                 new=AsyncMock(return_value={"ChatInput": "knownhash1234"}),
             ),
+            patch.object(component_cache, "type_to_current_hash", {"ChatInput": "knownhash1234"}),
             pytest.raises(
                 RunError,
                 match="custom components are not allowed",

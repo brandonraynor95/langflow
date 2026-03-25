@@ -15,7 +15,7 @@ from lfx.load.utils import replace_tweaks_with_env
 from lfx.log.logger import configure
 from lfx.processing.process import process_tweaks, run_graph
 from lfx.utils.async_helpers import run_until_complete
-from lfx.utils.flow_validation import validate_lfx_flow_custom_components
+from lfx.utils.flow_validation import ensure_component_hash_lookups_loaded
 from lfx.utils.util import update_settings
 
 
@@ -80,7 +80,7 @@ async def aload_flow_from_json(
     if tweaks is not None:
         graph_data = process_tweaks(graph_data, tweaks)
 
-    await validate_lfx_flow_custom_components(graph_data)
+    await ensure_component_hash_lookups_loaded()
 
     from lfx.graph.graph.base import Graph
 

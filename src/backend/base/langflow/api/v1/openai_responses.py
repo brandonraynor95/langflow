@@ -9,9 +9,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from lfx.log.logger import logger
 from lfx.schema.openai_responses_schemas import create_openai_error, create_openai_error_chunk
+from lfx.utils.flow_validation import (
+    is_custom_component_validation_error_message,
+    validate_flow_for_current_settings,
+)
 
 from langflow.api.utils import extract_global_variables_from_headers
-from langflow.api.utils.flow_validation import validate_flow_custom_components
 from langflow.api.v1.endpoints import consume_and_yield, run_flow_generator, simple_run_flow
 from langflow.api.v1.schemas import SimplifiedAPIRequest
 from langflow.events.event_manager import create_stream_tokens_event_manager
@@ -645,15 +648,20 @@ async def create_response(
         )
         return OpenAIErrorResponse(error=error_response["error"])
 
-    try:
-        validate_flow_custom_components(flow.data)
-    except ValueError as exc:
-        error_response = create_openai_error(
-            message=str(exc),
-            type_="invalid_request_error",
-            code="custom_components_blocked",
-        )
-        return OpenAIErrorResponse(error=error_response["error"])
+    if request.stream:
+        try:
+            validate_flow_for_current_settings(flow.data)
+        except ValueError as exc:
+            error_response = create_openai_error(
+                message=str(exc),
+                type_="invalid_request_error",
+                code=(
+                    "custom_components_blocked"
+                    if is_custom_component_validation_error_message(str(exc))
+                    else "invalid_flow_request"
+                ),
+            )
+            return OpenAIErrorResponse(error=error_response["error"])
 
     try:
         # Process the request
@@ -665,19 +673,17 @@ async def create_response(
             variables=variables,
         )
 
-        # Log telemetry for successful completion
-        if not request.stream:  # Only log for non-streaming responses
-            end_time = time.perf_counter()
-            background_tasks.add_task(
-                telemetry_service.log_package_run,
-                RunPayload(
-                    run_is_webhook=False,
-                    run_seconds=int(end_time - start_time),
-                    run_success=True,
-                    run_error_message="",
-                    run_id=None,  # OpenAI endpoint doesn't use simple_run_flow
-                ),
-            )
+    except ValueError as exc:
+        error_response = create_openai_error(
+            message=str(exc),
+            type_="invalid_request_error",
+            code=(
+                "custom_components_blocked"
+                if is_custom_component_validation_error_message(str(exc))
+                else "invalid_flow_request"
+            ),
+        )
+        return OpenAIErrorResponse(error=error_response["error"])
 
     except Exception as exc:  # noqa: BLE001
         logger.error(f"Error processing OpenAI Responses request: {exc}")
@@ -700,4 +706,19 @@ async def create_response(
             type_="processing_error",
         )
         return OpenAIErrorResponse(error=error_response["error"])
+
+    # Log telemetry for successful completion
+    if not request.stream:  # Only log for non-streaming responses
+        end_time = time.perf_counter()
+        background_tasks.add_task(
+            telemetry_service.log_package_run,
+            RunPayload(
+                run_is_webhook=False,
+                run_seconds=int(end_time - start_time),
+                run_success=True,
+                run_error_message="",
+                run_id=None,  # OpenAI endpoint doesn't use simple_run_flow
+            ),
+        )
+
     return result

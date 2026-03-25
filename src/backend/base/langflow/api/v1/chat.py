@@ -13,6 +13,7 @@ from lfx.graph.utils import log_vertex_build
 from lfx.log.logger import logger
 from lfx.schema.schema import InputValueRequest, OutputValue
 from lfx.services.cache.utils import CacheMiss
+from lfx.utils.flow_validation import validate_flow_for_current_settings
 
 from langflow.api.build import cancel_flow_build, get_flow_events_response, start_flow_build
 from langflow.api.limited_background_tasks import LimitVertexBuildBackgroundTasks
@@ -28,7 +29,6 @@ from langflow.api.utils import (
     parse_exception,
     verify_public_flow_and_get_user,
 )
-from langflow.api.utils.flow_validation import validate_flow_custom_components
 from langflow.api.v1.schemas import (
     CancelFlowResponse,
     FlowDataRequest,
@@ -95,17 +95,16 @@ async def retrieve_vertices_order(
     try:
         try:
             if data:
-                validate_flow_custom_components(data.model_dump())
+                validate_flow_for_current_settings(data.model_dump())
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         # If no client-side data was provided, load and validate the flow from the database
         if not data:
-            # Validate the DB flow before building (don't execute unvalidated code)
             flow = await session.get(Flow, flow_id)
             if flow and flow.data:
                 try:
-                    validate_flow_custom_components(flow.data)
+                    validate_flow_for_current_settings(flow.data)
                 except ValueError as exc:
                     raise HTTPException(status_code=400, detail=str(exc)) from exc
             graph = await build_graph_from_db(flow_id=flow_id, session=session, chat_service=chat_service)
@@ -133,6 +132,8 @@ async def retrieve_vertices_order(
         )
         return VerticesOrderResponse(ids=graph.first_layer, run_id=graph.run_id, vertices_to_run=vertices_to_run)
     except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise
         background_tasks.add_task(
             telemetry_service.log_package_playground,
             PlaygroundPayload(
@@ -195,9 +196,9 @@ async def build_flow(
 
     try:
         if data:
-            validate_flow_custom_components(data.model_dump())
+            validate_flow_for_current_settings(data.model_dump())
         if flow and flow.data:
-            validate_flow_custom_components(flow.data)
+            validate_flow_for_current_settings(flow.data)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -327,13 +328,11 @@ async def build_vertex(
         if isinstance(cache, CacheMiss):
             # If there's no cache
             await logger.awarning(f"No cache found for {flow_id_str}. Building graph starting at {vertex_id}")
-
-            # Validate the DB flow before building (don't execute unvalidated code)
             async with session_scope() as session:
                 flow = await session.get(Flow, flow_id)
                 if flow and flow.data:
                     try:
-                        validate_flow_custom_components(flow.data)
+                        validate_flow_for_current_settings(flow.data)
                     except ValueError as exc:
                         raise HTTPException(status_code=400, detail=str(exc)) from exc
                 graph = await build_graph_from_db(
@@ -344,10 +343,8 @@ async def build_vertex(
             run_id = str(uuid.uuid4())
             graph.set_run_id(run_id)
         else:
-            # SECURITY: cache hit — retrieve_vertices_order already validated this
-            # flow before caching. If that invariant changes, validation must be
-            # added here too.
             graph = cache.get("result")
+            validate_flow_for_current_settings(graph)
             await graph.initialize_run()
             run_id = graph.run_id
         vertex = graph.get_vertex(vertex_id)
@@ -482,6 +479,7 @@ async def _stream_vertex(flow_id: str, vertex_id: str, chat_service: ChatService
             return
         else:
             graph = cache.get("result")
+            validate_flow_for_current_settings(graph)
 
         try:
             vertex: InterfaceVertex = graph.get_vertex(vertex_id)
@@ -666,7 +664,7 @@ async def build_public_tmp(
         async with session_scope() as session:
             flow = await session.get(Flow, flow_id)
             if flow and flow.data:
-                validate_flow_custom_components(flow.data)
+                validate_flow_for_current_settings(flow.data)
 
         # Verify this is a public flow and get the associated user
         client_id = request.cookies.get("client_id")

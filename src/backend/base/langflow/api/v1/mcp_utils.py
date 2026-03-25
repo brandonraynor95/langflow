@@ -16,11 +16,11 @@ from uuid import uuid4
 from lfx.base.mcp.constants import MAX_MCP_TOOL_NAME_LENGTH
 from lfx.base.mcp.util import get_flow_snake_case, get_unique_name, sanitize_mcp_name
 from lfx.log.logger import logger
+from lfx.utils.flow_validation import is_custom_component_validation_error_message
 from lfx.utils.helpers import build_content_type_from_extension
 from mcp import types
 from sqlmodel import select
 
-from langflow.api.utils.flow_validation import validate_flow_custom_components
 from langflow.api.v1.endpoints import simple_run_flow
 from langflow.api.v1.schemas import SimplifiedAPIRequest
 from langflow.helpers.flow import json_schema_from_flow
@@ -267,13 +267,6 @@ async def handle_call_tool(
 
             try:
                 try:
-                    validate_flow_custom_components(flow.data)
-                except ValueError as exc:
-                    logger.warning(f"MCP tool call blocked for flow {flow.id}: {exc!s}")
-                    collected_results.append(types.TextContent(type="text", text=f"Flow build blocked: {exc!s}"))
-                    return collected_results
-
-                try:
                     result = await simple_run_flow(
                         flow=flow,
                         input_request=input_request,
@@ -300,6 +293,13 @@ async def handle_call_tool(
                                     add_result(value.get_text())
                                 else:
                                     add_result(str(value))
+                except ValueError as exc:
+                    if is_custom_component_validation_error_message(str(exc)):
+                        logger.warning(f"MCP tool call blocked for flow {flow.id}: {exc!s}")
+                        collected_results.append(types.TextContent(type="text", text=f"Flow build blocked: {exc!s}"))
+                    else:
+                        error_msg = f"Error Executing the {flow.name} tool. Error: {exc!s}"
+                        collected_results.append(types.TextContent(type="text", text=error_msg))
                 except Exception as e:  # noqa: BLE001
                     error_msg = f"Error Executing the {flow.name} tool. Error: {e!s}"
                     collected_results.append(types.TextContent(type="text", text=error_msg))

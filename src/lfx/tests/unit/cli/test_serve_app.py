@@ -17,6 +17,7 @@ from lfx.cli.serve_app import (
 )
 from lfx.graph import Graph
 from lfx.graph.schema import ResultData
+from lfx.interface.components import component_cache
 from lfx.schema.message import Message
 
 
@@ -47,6 +48,14 @@ def _blocked_raw_graph() -> dict:
         ],
         "edges": [],
     }
+
+
+@pytest.fixture(autouse=True)
+def allow_custom_components_by_default(monkeypatch):
+    """Keep constructor-level validation aligned with the serve_app test default path."""
+    from lfx.services.deps import get_settings_service
+
+    monkeypatch.setattr(get_settings_service().settings, "allow_custom_components", True)
 
 
 class TestSecurityFunctions:
@@ -389,6 +398,11 @@ class TestServeAppEndpoints:
             patch(
                 "lfx.utils.flow_validation.ensure_component_hash_lookups_loaded",
                 new=AsyncMock(return_value={"ChatInput": hashlib.sha256(b"known").hexdigest()[:12]}),
+            ),
+            patch.object(
+                component_cache,
+                "type_to_current_hash",
+                {"ChatInput": hashlib.sha256(b"known").hexdigest()[:12]},
             ),
             patch(
                 "lfx.cli.serve_app.execute_graph_with_capture",

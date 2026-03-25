@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from lfx.interface.components import component_cache
 from lfx.load import aload_flow_from_json
 from lfx.utils.flow_validation import collect_component_hash_lookups
 
@@ -58,7 +59,9 @@ async def test_aload_flow_from_json_fail_closed_when_hashes_are_unavailable():
             "lfx.utils.flow_validation.ensure_component_hash_lookups_loaded",
             new=AsyncMock(return_value=None),
         ),
-        patch("lfx.graph.graph.base.Graph.from_payload") as mock_from_payload,
+        patch.object(component_cache, "type_to_current_hash", None),
+        patch.object(component_cache, "all_types_dict", None),
+        patch("lfx.graph.graph.base.Graph.add_nodes_and_edges") as mock_add_nodes_and_edges,
         pytest.raises(
             ValueError,
             match="component templates are still initializing",
@@ -66,7 +69,7 @@ async def test_aload_flow_from_json_fail_closed_when_hashes_are_unavailable():
     ):
         await aload_flow_from_json(flow, disable_logs=True)
 
-    mock_from_payload.assert_not_called()
+    mock_add_nodes_and_edges.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -97,12 +100,11 @@ async def test_aload_flow_from_json_allows_legacy_url_aliases():
             "lfx.utils.flow_validation.ensure_component_hash_lookups_loaded",
             new=AsyncMock(return_value=type_to_current_hash),
         ),
-        patch(
-            "lfx.graph.graph.base.Graph.from_payload",
-            return_value="graph-sentinel",
-        ) as mock_from_payload,
+        patch.object(component_cache, "type_to_current_hash", type_to_current_hash),
+        patch.object(component_cache, "all_types_dict", None),
+        patch("lfx.graph.graph.base.Graph.add_nodes_and_edges") as mock_add_nodes_and_edges,
     ):
         graph = await aload_flow_from_json(flow, disable_logs=True)
 
-    assert graph == "graph-sentinel"
-    mock_from_payload.assert_called_once_with(flow["data"])
+    assert graph is not None
+    mock_add_nodes_and_edges.assert_called_once_with(flow["data"]["nodes"], flow["data"]["edges"])

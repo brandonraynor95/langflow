@@ -12,11 +12,49 @@ from lfx.utils.component_aliases import get_component_type_aliases
 INITIALIZING_COMPONENT_TEMPLATES_MESSAGE = (
     "Flow build blocked: component templates are still initializing. Please try again in a few seconds."
 )
+SETTINGS_SERVICE_REQUIRED_MESSAGE = "Settings service must be initialized before validating flows."
 
 
 def _compute_code_hash(code: str) -> str:
     """Compute the 12-char SHA256 prefix used by the component index."""
     return hashlib.sha256(code.encode("utf-8")).hexdigest()[:12]
+
+
+def _normalize_flow_data(flow_data: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    """Normalize wrapped flow payloads to the raw graph data shape."""
+    if flow_data is None:
+        return None
+
+    normalized: Mapping[str, Any] = flow_data
+    if "data" in normalized and isinstance(normalized["data"], Mapping):
+        normalized = normalized["data"]
+
+    return normalized if isinstance(normalized, dict) else dict(normalized)
+
+
+def _extract_graph_payload(graph: Any) -> Mapping[str, Any] | None:
+    """Extract a graph payload from a Graph-like object for policy validation."""
+    raw_graph_data = getattr(graph, "raw_graph_data", None)
+    if isinstance(raw_graph_data, Mapping) and raw_graph_data != {"nodes": [], "edges": []}:
+        return raw_graph_data
+
+    dump_graph = getattr(graph, "dump", None)
+    if callable(dump_graph):
+        dumped_graph = dump_graph()
+        if isinstance(dumped_graph, Mapping):
+            dumped_data = dumped_graph.get("data")
+            if isinstance(dumped_data, Mapping):
+                return dumped_data
+
+    return raw_graph_data
+
+
+def _extract_flow_data(target: Mapping[str, Any] | Any | None) -> dict[str, Any] | None:
+    """Normalize a flow payload or graph-like object to raw graph data."""
+    if isinstance(target, Mapping) or target is None:
+        return _normalize_flow_data(target)
+
+    return _normalize_flow_data(_extract_graph_payload(target))
 
 
 def collect_component_hash_lookups(
@@ -140,6 +178,49 @@ def check_flow_and_raise(
         raise ValueError(message)
 
 
+def is_custom_component_validation_error_message(message: str) -> bool:
+    """Return whether a message came from custom-component policy validation."""
+    return any(
+        marker in message
+        for marker in (
+            "component templates are still initializing",
+            "custom components are not allowed",
+            "outdated components must be updated before running",
+        )
+    )
+
+
+def _get_component_hash_lookups_for_validation() -> dict[str, str] | None:
+    """Return the cached component hashes, building them synchronously if possible."""
+    from lfx.interface.components import component_cache
+
+    if component_cache.type_to_current_hash is None and component_cache.all_types_dict is not None:
+        type_to_hash, all_hashes = collect_component_hash_lookups(component_cache.all_types_dict)
+        component_cache.type_to_current_hash = type_to_hash
+        component_cache.all_known_hashes = all_hashes
+
+    return component_cache.type_to_current_hash
+
+
+def validate_flow_for_current_settings(target: Mapping[str, Any] | Any | None) -> None:
+    """Enforce custom-component policy for a payload or graph-like object."""
+    from lfx.services.deps import get_settings_service
+
+    settings_service = get_settings_service()
+    if settings_service is None:
+        raise RuntimeError(SETTINGS_SERVICE_REQUIRED_MESSAGE)
+
+    normalized_flow_data = _extract_flow_data(target)
+    allow_custom_components = settings_service.settings.allow_custom_components
+    type_to_current_hash = _get_component_hash_lookups_for_validation() if not allow_custom_components else None
+
+    check_flow_and_raise(
+        normalized_flow_data,
+        allow_custom_components=allow_custom_components,
+        type_to_current_hash=type_to_current_hash,
+    )
+
+
 async def ensure_component_hash_lookups_loaded() -> dict[str, str] | None:
     """Ensure component hash lookups are available for CLI/runtime validation."""
     from lfx.interface.components import component_cache, get_and_cache_all_types_dict
@@ -147,7 +228,7 @@ async def ensure_component_hash_lookups_loaded() -> dict[str, str] | None:
 
     settings_service = get_settings_service()
     if settings_service is None:
-        return None
+        raise RuntimeError(SETTINGS_SERVICE_REQUIRED_MESSAGE)
 
     if not settings_service.settings.allow_custom_components and component_cache.type_to_current_hash is None:
         try:
@@ -156,27 +237,3 @@ async def ensure_component_hash_lookups_loaded() -> dict[str, str] | None:
             logger.warning("Failed to populate component template hash lookups", exc_info=exc)
 
     return component_cache.type_to_current_hash
-
-
-async def validate_lfx_flow_custom_components(flow_data: dict | None) -> None:
-    """Validate raw flow data using the active LFX settings."""
-    from lfx.services.deps import get_settings_service
-
-    settings_service = get_settings_service()
-    if settings_service is None:
-        msg = "Settings service must be initialized before validating LFX flows."
-        raise RuntimeError(msg)
-
-    allow_custom_components = settings_service.settings.allow_custom_components
-    type_to_current_hash = await ensure_component_hash_lookups_loaded() if not allow_custom_components else None
-
-    check_flow_and_raise(
-        flow_data,
-        allow_custom_components=allow_custom_components,
-        type_to_current_hash=type_to_current_hash,
-    )
-
-
-async def validate_lfx_graph_custom_components(graph: Any) -> None:
-    """Validate a prepared graph before execution."""
-    await validate_lfx_flow_custom_components(getattr(graph, "raw_graph_data", None))

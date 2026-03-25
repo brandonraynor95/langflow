@@ -1,4 +1,4 @@
-"""Tests for flow validation utilities (langflow.api.utils.flow_validation).
+"""Tests for flow validation utilities (lfx.utils.flow_validation).
 
 Covers:
 - Hash-based validation: blocked (unknown type) and outdated (hash mismatch)
@@ -7,22 +7,22 @@ Covers:
 - Nested/group node recursion
 - Security: edited=False with custom code still gets blocked
 - Shared alias generation for legacy built-in node types
-- Backend wrapper behavior when custom components are disabled
+- Unified flow validator behavior when custom components are disabled
 """
 
 import hashlib
 from types import SimpleNamespace
 
 import pytest
-from langflow.api.utils.flow_validation import (
+from lfx.interface.components import component_cache
+from lfx.utils.flow_validation import (
     _compute_code_hash,
     _get_invalid_components,
     check_flow_and_raise,
     code_hash_matches_any_template,
-    validate_flow_custom_components,
+    collect_component_hash_lookups,
+    validate_flow_for_current_settings,
 )
-from lfx.interface.components import component_cache
-from lfx.utils.flow_validation import collect_component_hash_lookups
 
 # ==================== Helpers ====================
 
@@ -253,8 +253,8 @@ class TestCheckFlowAndRaise:
             check_flow_and_raise(flow_data, allow_custom_components=False, type_to_current_hash=hash_dict)
 
 
-class TestValidateFlowCustomComponents:
-    def test_wrapper_blocks_unknown_type(self, monkeypatch):
+class TestValidateFlowForCurrentSettings:
+    def test_validator_blocks_unknown_type(self, monkeypatch):
         settings_service = SimpleNamespace(settings=SimpleNamespace(allow_custom_components=False))
         monkeypatch.setattr(
             "langflow.services.deps.get_settings_service",
@@ -277,9 +277,9 @@ class TestValidateFlowCustomComponents:
         }
 
         with pytest.raises(ValueError, match="custom components are not allowed"):
-            validate_flow_custom_components(flow_data)
+            validate_flow_for_current_settings(flow_data)
 
-    def test_wrapper_fail_closed_when_component_hashes_missing(self, monkeypatch):
+    def test_validator_fail_closed_when_component_hashes_missing(self, monkeypatch):
         settings_service = SimpleNamespace(settings=SimpleNamespace(allow_custom_components=False))
         monkeypatch.setattr(
             "langflow.services.deps.get_settings_service",
@@ -291,7 +291,7 @@ class TestValidateFlowCustomComponents:
             ValueError,
             match="component templates are still initializing",
         ):
-            validate_flow_custom_components({"nodes": [_make_node()]})
+            validate_flow_for_current_settings({"nodes": [_make_node()]})
 
 
 class TestBuildCodeHashLookups:

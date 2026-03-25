@@ -11,6 +11,7 @@ import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from lfx.cli.serve_app import FlowMeta, StreamRequest, create_multi_serve_app
+from lfx.interface.components import component_cache
 
 
 def _make_settings_service(*, allow_custom_components: bool = False):
@@ -460,6 +461,11 @@ class TestMultiServeStreaming:
                 patch(
                     "lfx.utils.flow_validation.ensure_component_hash_lookups_loaded",
                     new=AsyncMock(return_value={"ChatInput": hashlib.sha256(b"known").hexdigest()[:12]}),
+                ),
+                patch.object(
+                    component_cache,
+                    "type_to_current_hash",
+                    {"ChatInput": hashlib.sha256(b"known").hexdigest()[:12]},
                 ),
                 patch(
                     "lfx.cli.serve_app.run_flow_generator_for_serve",

@@ -1163,8 +1163,11 @@ class Graph:
         Returns:
             Graph: The created graph.
         """
+        from lfx.utils.flow_validation import validate_flow_for_current_settings
+
         if "data" in payload:
             payload = payload["data"]
+        validate_flow_for_current_settings(payload)
         try:
             vertices = payload["nodes"]
             edges = payload["edges"]
