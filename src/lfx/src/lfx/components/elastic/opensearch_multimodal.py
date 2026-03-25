@@ -154,7 +154,7 @@ class OpenSearchVectorStoreComponentMultimodalMultiEmbedding(LCVectorStoreCompon
                 },
             ],
             value=[],
-            input_types=["Data", "JSON"],
+            input_types=["Data"],
         ),
         StrInput(
             name="opensearch_url",
@@ -280,7 +280,7 @@ class OpenSearchVectorStoreComponentMultimodalMultiEmbedding(LCVectorStoreCompon
         DropdownInput(
             name="auth_mode",
             display_name="Authentication Mode",
-            value="basic",
+            value="jwt",
             options=["basic", "jwt"],
             info=(
                 "Authentication method: 'basic' for username/password authentication, "
@@ -322,7 +322,7 @@ class OpenSearchVectorStoreComponentMultimodalMultiEmbedding(LCVectorStoreCompon
         BoolInput(
             name="bearer_prefix",
             display_name="Prefix 'Bearer '",
-            value=True,
+            value=False,
             show=False,
             advanced=True,
         ),
@@ -413,6 +413,47 @@ class OpenSearchVectorStoreComponentMultimodalMultiEmbedding(LCVectorStoreCompon
         else:
             msg = f"Unsupported raw_search query type: {type(raw_query)!r}"
             raise TypeError(msg)
+
+        # Apply filter_expression if configured (same parsing as search())
+        filter_obj = None
+        if getattr(self, "filter_expression", "") and self.filter_expression.strip():
+            try:
+                filter_obj = json.loads(self.filter_expression)
+            except json.JSONDecodeError as e:
+                msg = f"Invalid filter_expression JSON: {e}"
+                raise ValueError(msg) from e
+
+        filter_clauses = self._coerce_filter_clauses(filter_obj)
+
+        if filter_clauses:
+            if "query" in query_body:
+                original_query = query_body["query"]
+                query_body["query"] = {
+                    "bool": {
+                        "must": [original_query],
+                        "filter": filter_clauses,
+                    }
+                }
+            else:
+                query_body["query"] = {
+                    "bool": {
+                        "must": [{"match_all": {}}],
+                        "filter": filter_clauses,
+                    }
+                }
+
+        if filter_obj:
+            # Apply limit if not already set in the raw query
+            if "size" not in query_body:
+                limit = filter_obj.get("limit")
+                if limit is not None:
+                    query_body["size"] = limit
+
+            # Apply score_threshold / scoreThreshold as min_score if not already set
+            if "min_score" not in query_body:
+                score_threshold = filter_obj.get("score_threshold") or filter_obj.get("scoreThreshold")
+                if isinstance(score_threshold, (int, float)) and score_threshold > 0:
+                    query_body["min_score"] = score_threshold
 
         client = self.build_client()
         logger.info(f"query: {query_body}")
