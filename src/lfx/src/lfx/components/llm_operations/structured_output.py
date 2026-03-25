@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, create_model
 from trustcall import create_extractor
 
+from lfx.base.agents.token_callback import TokenUsageCallbackHandler
 from lfx.base.models.chat_result import get_chat_result
 from lfx.base.models.unified_models import (
     get_llm,
@@ -20,7 +21,6 @@ from lfx.log.logger import logger
 from lfx.schema.data import Data
 from lfx.schema.dataframe import DataFrame
 from lfx.schema.table import EditMode
-from lfx.schema.token_usage import accumulate_usage, extract_usage_from_message
 
 
 class StructuredOutputComponent(Component):
@@ -167,16 +167,21 @@ class StructuredOutputComponent(Component):
                 ),
             ),
         )
-        # Tracing config
+        # Tracing config with token usage handler injected into the callbacks chain.
+        # get_chat_result() reads "get_langchain_callbacks" as a callable, so we wrap
+        # the list in a lambda to match its expected interface.
+        token_handler = TokenUsageCallbackHandler()
+        base_callbacks = self.get_langchain_callbacks()
         config_dict = {
-            "run_name": self.display_name,
-            "project_name": self.get_project_name(),
-            "callbacks": self.get_langchain_callbacks(),
+            "display_name": self.display_name,
+            "get_project_name": self.get_project_name,
+            "get_langchain_callbacks": lambda: [*base_callbacks, token_handler],
         }
         # Generate structured output using Trustcall first, then fallback to Langchain if it fails
         result = self._extract_output_with_trustcall(llm, output_model, config_dict)
         if result is None:
             result = self._extract_output_with_langchain(llm, output_model, config_dict)
+        self._token_usage = token_handler.get_usage()
 
         # OPTIMIZATION NOTE: Simplified processing based on trustcall response structure
         # Handle non-dict responses (shouldn't happen with trustcall, but defensive)
@@ -223,10 +228,6 @@ class StructuredOutputComponent(Component):
             return DataFrame(output)
         return DataFrame()
 
-    def _usage_callback(self, message):
-        """Accumulate token usage from get_chat_result() responses."""
-        self._token_usage = accumulate_usage(self._token_usage, extract_usage_from_message(message))
-
     def _extract_output_with_trustcall(self, llm, schema: BaseModel, config_dict: dict) -> list[BaseModel] | None:
         try:
             llm_with_structured_output = create_extractor(llm, tools=[schema], tool_choice=schema.__name__)
@@ -235,7 +236,6 @@ class StructuredOutputComponent(Component):
                 system_message=self.system_prompt,
                 input_value=self.input_value,
                 config=config_dict,
-                token_usage_callback=self._usage_callback,
             )
         except Exception as e:  # noqa: BLE001
             logger.warning(
@@ -254,7 +254,6 @@ class StructuredOutputComponent(Component):
                 system_message=self.system_prompt,
                 input_value=self.input_value,
                 config=config_dict,
-                token_usage_callback=self._usage_callback,
             )
             if isinstance(result, BaseModel):
                 result = result.model_dump()
