@@ -218,9 +218,7 @@ class TestRunFlowJsonInput:
             }
         )
 
-        settings_service = SimpleNamespace(
-            settings=SimpleNamespace(allow_custom_components=False)
-        )
+        settings_service = SimpleNamespace(settings=SimpleNamespace(allow_custom_components=False))
 
         with (
             patch(

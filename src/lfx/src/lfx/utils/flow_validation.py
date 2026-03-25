@@ -10,14 +10,12 @@ from lfx.log.logger import logger
 from lfx.utils.component_aliases import get_component_type_aliases
 
 INITIALIZING_COMPONENT_TEMPLATES_MESSAGE = (
-    "Flow build blocked: component templates are still initializing. "
-    "Please try again in a few seconds."
+    "Flow build blocked: component templates are still initializing. Please try again in a few seconds."
 )
 
 
 def _compute_code_hash(code: str) -> str:
     """Compute the 12-char SHA256 prefix used by the component index."""
-
     return hashlib.sha256(code.encode("utf-8")).hexdigest()[:12]
 
 
@@ -25,7 +23,6 @@ def collect_component_hash_lookups(
     all_types_dict: Mapping[str, Any],
 ) -> tuple[dict[str, str], set[str]]:
     """Build code-hash lookups for components and their aliases."""
-
     type_to_hash: dict[str, str] = {}
     all_hashes: set[str] = set()
 
@@ -57,7 +54,6 @@ def _get_invalid_components(
     type_to_current_hash: dict[str, str],
 ) -> tuple[list[str], list[str]]:
     """Walk nodes and classify invalid components."""
-
     blocked: list[str] = []
     outdated: list[str] = []
 
@@ -105,7 +101,6 @@ def _get_invalid_components(
 
 def code_hash_matches_any_template(code: str, all_known_hashes: set[str]) -> bool:
     """Check whether code matches any known component template hash."""
-
     return _compute_code_hash(code) in all_known_hashes
 
 
@@ -116,7 +111,6 @@ def check_flow_and_raise(
     type_to_current_hash: dict[str, str] | None = None,
 ) -> None:
     """Validate flow component code against known server templates."""
-
     if allow_custom_components or not flow_data:
         return
 
@@ -141,15 +135,11 @@ def check_flow_and_raise(
     if outdated:
         outdated_names = ", ".join(outdated)
         logger.warning(f"Flow build blocked: outdated components must be updated: {outdated_names}")
-        raise ValueError(
-            "Flow build blocked: outdated components must be updated before running: "
-            f"{outdated_names}"
-        )
+        raise ValueError(f"Flow build blocked: outdated components must be updated before running: {outdated_names}")
 
 
 async def ensure_component_hash_lookups_loaded() -> dict[str, str] | None:
     """Ensure component hash lookups are available for CLI/runtime validation."""
-
     from lfx.interface.components import component_cache, get_and_cache_all_types_dict
     from lfx.services.deps import get_settings_service
 
@@ -157,10 +147,7 @@ async def ensure_component_hash_lookups_loaded() -> dict[str, str] | None:
     if settings_service is None:
         return None
 
-    if (
-        not settings_service.settings.allow_custom_components
-        and component_cache.type_to_current_hash is None
-    ):
+    if not settings_service.settings.allow_custom_components and component_cache.type_to_current_hash is None:
         try:
             await get_and_cache_all_types_dict(settings_service)
         except Exception as exc:  # noqa: BLE001
@@ -171,13 +158,10 @@ async def ensure_component_hash_lookups_loaded() -> dict[str, str] | None:
 
 async def validate_lfx_flow_custom_components(flow_data: dict | None) -> None:
     """Validate raw flow data using the active LFX settings."""
-
     from lfx.services.deps import get_settings_service
 
     settings_service = get_settings_service()
-    allow_custom_components = (
-        settings_service.settings.allow_custom_components if settings_service else False
-    )
+    allow_custom_components = settings_service.settings.allow_custom_components if settings_service else False
     type_to_current_hash = await ensure_component_hash_lookups_loaded()
 
     check_flow_and_raise(
@@ -189,5 +173,4 @@ async def validate_lfx_flow_custom_components(flow_data: dict | None) -> None:
 
 async def validate_lfx_graph_custom_components(graph: Any) -> None:
     """Validate a prepared graph before execution."""
-
     await validate_lfx_flow_custom_components(getattr(graph, "raw_graph_data", None))

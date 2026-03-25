@@ -14,13 +14,8 @@ def get_component_type_aliases(
     component_data: Mapping[str, Any] | None,
 ) -> tuple[str, ...]:
     """Return the known aliases for a component type."""
-
     aliases: list[str] = [component_name]
-    aliases.extend(
-        old_name
-        for old_name, new_name in LEGACY_TYPE_ALIASES.items()
-        if new_name == component_name
-    )
+    aliases.extend(old_name for old_name, new_name in LEGACY_TYPE_ALIASES.items() if new_name == component_name)
 
     if component_data:
         for field_name in ("name", "display_name"):
@@ -46,7 +41,6 @@ def flatten_components_with_aliases(
     all_types_dict: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Flatten a categorized component dict and append derived aliases."""
-
     flattened: dict[str, Any] = {}
     aliased_entries: list[tuple[str, Mapping[str, Any], Any]] = []
 

@@ -376,9 +376,7 @@ class TestServeAppEndpoints:
             patch.dict(os.environ, {"LANGFLOW_API_KEY": "test-api-key"}),  # pragma: allowlist secret
             patch(
                 "lfx.services.deps.get_settings_service",
-                return_value=_make_settings_service(
-                    allow_custom_components=False
-                ),
+                return_value=_make_settings_service(allow_custom_components=False),
             ),
             patch(
                 "lfx.utils.flow_validation.ensure_component_hash_lookups_loaded",

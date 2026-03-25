@@ -780,9 +780,7 @@ def test_update_projects_resolves_url_via_component_type_alias():
         ]
     }
 
-    updated_project = update_projects_components_with_latest_component_versions(
-        project_data, all_types_dict
-    )
+    updated_project = update_projects_components_with_latest_component_versions(project_data, all_types_dict)
     updated_code = updated_project["nodes"][0]["data"]["node"]["template"]["code"]["value"]
     assert updated_code == "new_url_code_v2"
 

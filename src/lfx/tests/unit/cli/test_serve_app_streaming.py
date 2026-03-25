@@ -452,19 +452,11 @@ class TestMultiServeStreaming:
             with (
                 patch(
                     "lfx.services.deps.get_settings_service",
-                    return_value=_make_settings_service(
-                        allow_custom_components=False
-                    ),
+                    return_value=_make_settings_service(allow_custom_components=False),
                 ),
                 patch(
                     "lfx.utils.flow_validation.ensure_component_hash_lookups_loaded",
-                    new=AsyncMock(
-                        return_value={
-                            "ChatInput": hashlib.sha256(b"known").hexdigest()[
-                                :12
-                            ]
-                        }
-                    ),
+                    new=AsyncMock(return_value={"ChatInput": hashlib.sha256(b"known").hexdigest()[:12]}),
                 ),
                 patch(
                     "lfx.cli.serve_app.run_flow_generator_for_serve",

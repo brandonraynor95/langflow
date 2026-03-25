@@ -252,11 +252,10 @@ class TestCheckFlowAndRaise:
         with pytest.raises(ValueError, match="outdated components must be updated"):
             check_flow_and_raise(flow_data, allow_custom_components=False, type_to_current_hash=hash_dict)
 
+
 class TestValidateFlowCustomComponents:
     def test_wrapper_blocks_unknown_type(self, monkeypatch):
-        settings_service = SimpleNamespace(
-            settings=SimpleNamespace(allow_custom_components=False)
-        )
+        settings_service = SimpleNamespace(settings=SimpleNamespace(allow_custom_components=False))
         monkeypatch.setattr(
             "langflow.services.deps.get_settings_service",
             lambda: settings_service,
@@ -281,9 +280,7 @@ class TestValidateFlowCustomComponents:
             validate_flow_custom_components(flow_data)
 
     def test_wrapper_fail_closed_when_component_hashes_missing(self, monkeypatch):
-        settings_service = SimpleNamespace(
-            settings=SimpleNamespace(allow_custom_components=False)
-        )
+        settings_service = SimpleNamespace(settings=SimpleNamespace(allow_custom_components=False))
         monkeypatch.setattr(
             "langflow.services.deps.get_settings_service",
             lambda: settings_service,
@@ -438,9 +435,7 @@ class TestBuildCodeHashLookups:
             }
         }
 
-        type_to_current_hash, all_known_hashes = collect_component_hash_lookups(
-            all_types_dict
-        )
+        type_to_current_hash, all_known_hashes = collect_component_hash_lookups(all_types_dict)
 
         assert type_to_current_hash["URLComponent"] == _hash(current_code)
         assert type_to_current_hash["URL"] == _hash(current_code)
