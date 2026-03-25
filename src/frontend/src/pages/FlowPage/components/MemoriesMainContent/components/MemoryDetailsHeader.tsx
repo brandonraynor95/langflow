@@ -8,9 +8,6 @@ import type { MemoryDetailsHeaderProps } from "../types";
 
 export function MemoryDetailsHeader({
   memory,
-  isProcessing,
-  manualUpdateMutation,
-  handleManualUpdate,
   deleteMutation,
   updateMemoryMutation,
   handleToggleActive,
@@ -48,21 +45,12 @@ export function MemoryDetailsHeader({
               memory.is_active ? "text-primary" : "text-muted-foreground",
             )}
           >
-            {memory.is_active ? "Auto-capture on" : "Auto-capture off"}
+            {memory.is_active ? "Enabled" : "Disabled"}
           </span>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleManualUpdate}
-          disabled={isProcessing || manualUpdateMutation.isPending}
-        >
-          <IconComponent name="RefreshCw" className="mr-1.5 h-3.5 w-3.5" />
-          Update Memory
-        </Button>
         <DeleteConfirmationModal
           description={`memory \"${memory.name}\"`}
           onConfirm={(e) => {

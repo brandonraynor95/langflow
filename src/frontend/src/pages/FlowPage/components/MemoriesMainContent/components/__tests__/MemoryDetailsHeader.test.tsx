@@ -10,7 +10,7 @@ jest.mock("@/components/ui/switch", () => ({
   Switch: ({ onCheckedChange, checked }: any) => (
     <input
       type="checkbox"
-      aria-label="auto-capture"
+      aria-label="enabled"
       checked={checked}
       onChange={(e) => onCheckedChange(e.target.checked)}
     />
@@ -39,8 +39,6 @@ describe("MemoryDetailsHeader", () => {
       is_active: true,
     },
     isProcessing: false,
-    manualUpdateMutation: { mutate: jest.fn(), isPending: false },
-    handleManualUpdate: jest.fn(),
     deleteMutation: { mutate: jest.fn(), isPending: false },
     updateMemoryMutation: { isPending: false },
     handleToggleActive: jest.fn(),
@@ -49,14 +47,11 @@ describe("MemoryDetailsHeader", () => {
   it("renders memory information", () => {
     render(<MemoryDetailsHeader {...baseProps} />);
     expect(screen.getByText("Memory One")).toBeInTheDocument();
-    expect(screen.getByText("Auto-capture on")).toBeInTheDocument();
+    expect(screen.getByText("Enabled")).toBeInTheDocument();
   });
 
   it("calls mutate handlers for actions", () => {
     render(<MemoryDetailsHeader {...baseProps} />);
-
-    fireEvent.click(screen.getByText("Update Memory"));
-    expect(baseProps.handleManualUpdate).toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("confirm-delete"));
     expect(baseProps.deleteMutation.mutate).toHaveBeenCalledWith({
@@ -66,7 +61,7 @@ describe("MemoryDetailsHeader", () => {
 
   it("toggles auto-capture", () => {
     render(<MemoryDetailsHeader {...baseProps} />);
-    fireEvent.click(screen.getByLabelText("auto-capture"));
+    fireEvent.click(screen.getByLabelText("enabled"));
     expect(baseProps.handleToggleActive).toHaveBeenCalled();
   });
 });

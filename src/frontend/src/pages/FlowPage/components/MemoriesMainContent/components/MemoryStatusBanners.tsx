@@ -1,12 +1,9 @@
 import IconComponent from "@/components/common/genericIconComponent";
-import { Button } from "@/components/ui/button";
 import type { MemoryStatusBannersProps } from "../types";
 
 export function MemoryStatusBanners({
   memory,
   isProcessing,
-  manualUpdateMutation,
-  handleManualUpdate,
 }: MemoryStatusBannersProps) {
   return (
     <>
@@ -48,14 +45,6 @@ export function MemoryStatusBanners({
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleManualUpdate}
-              disabled={isProcessing || manualUpdateMutation.isPending}
-            >
-              Retry Update
-            </Button>
           </div>
         </div>
       )}

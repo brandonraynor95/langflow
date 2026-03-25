@@ -39,8 +39,6 @@ export default function MemoriesMainContent({
     selectedDocument,
     setSelectedDocument,
     handleOpenDocumentPanel,
-    manualUpdateMutation,
-    handleManualUpdate,
     deleteMutation,
     updateMemoryMutation,
     handleToggleActive,
@@ -88,8 +86,6 @@ export default function MemoriesMainContent({
             handleSearch={handleSearch}
             groupedBySession={groupedBySession}
             handleOpenDocumentPanel={handleOpenDocumentPanel}
-            manualUpdateMutation={manualUpdateMutation}
-            handleManualUpdate={handleManualUpdate}
             deleteMutation={deleteMutation}
             updateMemoryMutation={updateMemoryMutation}
             handleToggleActive={handleToggleActive}

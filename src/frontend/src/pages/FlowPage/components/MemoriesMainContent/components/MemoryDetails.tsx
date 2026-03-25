@@ -19,8 +19,6 @@ export function MemoryDetails({
   handleSearch,
   groupedBySession,
   handleOpenDocumentPanel,
-  manualUpdateMutation,
-  handleManualUpdate,
   deleteMutation,
   updateMemoryMutation,
   handleToggleActive,
@@ -33,8 +31,6 @@ export function MemoryDetails({
       <MemoryDetailsHeader
         memory={memory}
         isProcessing={isProcessing}
-        manualUpdateMutation={manualUpdateMutation}
-        handleManualUpdate={handleManualUpdate}
         deleteMutation={deleteMutation}
         updateMemoryMutation={updateMemoryMutation}
         handleToggleActive={handleToggleActive}
@@ -44,8 +40,6 @@ export function MemoryDetails({
         <MemoryStatusBanners
           memory={memory}
           isProcessing={isProcessing}
-          manualUpdateMutation={manualUpdateMutation}
-          handleManualUpdate={handleManualUpdate}
         />
 
         <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">

@@ -54,15 +54,8 @@ jest.mock("@/controllers/API/queries/memories/use-get-memory", () => ({
   }),
 }));
 
-const manualUpdateMutation = { mutate: jest.fn(), isPending: false };
 const deleteMutation = { mutate: jest.fn(), isPending: false };
 const updateMemoryMutation = { mutate: jest.fn(), isPending: false };
-jest.mock(
-  "@/controllers/API/queries/memories/use-add-messages-to-memory",
-  () => ({
-    useAddMessagesToMemory: () => manualUpdateMutation,
-  }),
-);
 jest.mock("@/controllers/API/queries/memories/use-delete-memory", () => ({
   useDeleteMemory: () => deleteMutation,
 }));
@@ -154,25 +147,6 @@ describe("useMemoriesData", () => {
 
     expect(result.current.documentPanelOpen).toBe(true);
     expect(result.current.selectedDocument?.message_id).toBe("msg1");
-  });
-
-  it("runs manual update with mock message ids", () => {
-    const { result } = renderHook(() =>
-      useMemoriesData({
-        currentFlowId: "flow-1",
-        selectedMemoryId: "m1",
-        onSelectMemory: jest.fn(),
-      }),
-    );
-
-    act(() => {
-      result.current.handleManualUpdate();
-    });
-
-    expect(manualUpdateMutation.mutate).toHaveBeenCalledWith({
-      memoryId: "m1",
-      message_ids: ["mock-msg-1", "mock-msg-2", "mock-msg-3"],
-    });
   });
 
   it("toggles active state through update mutation", () => {

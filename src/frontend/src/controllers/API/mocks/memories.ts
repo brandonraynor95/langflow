@@ -85,8 +85,18 @@ export const mockMemoriesApi = {
       document_sessions: [],
     };
 
+    const seededDocs: MemoryDocumentItem[] = [
+      {
+        message_id: randomId("msg"),
+        session_id: randomId("sess"),
+        sender: "system",
+        content: `Seeded memory: ${name}`,
+        timestamp: created_at,
+      },
+    ];
+
     db.memories[id] = mem;
-    db.documents[id] = [];
+    db.documents[id] = seededDocs;
     setDb(db);
     return mem;
   },
@@ -263,6 +273,13 @@ export const mockMemoriesApi = {
 };
 
 export const isMockMemoriesEnabled = () => {
-  const flag = (import.meta as any).env?.VITE_MOCK_MEMORIES_API;
+  // NOTE: Jest in this repo isn't configured for `import.meta`, so we must not
+  // reference it directly at parse-time.
+  let flag: unknown;
+  try {
+    flag = Function("return import.meta && import.meta.env && import.meta.env.VITE_MOCK_MEMORIES_API")();
+  } catch {
+    flag = undefined;
+  }
   return true || flag === "true" || flag === true;
 };

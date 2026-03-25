@@ -42,8 +42,6 @@ export type MemoryDetailsProps = {
   handleSearch: () => void;
   groupedBySession: Map<string, MemoryDocumentItem[]>;
   handleOpenDocumentPanel: (doc: MemoryDocumentItem) => void;
-  manualUpdateMutation: { isPending: boolean };
-  handleManualUpdate: () => void;
   deleteMutation: MemoryActionMutation;
   updateMemoryMutation: { isPending: boolean };
   handleToggleActive: () => void;
@@ -88,15 +86,11 @@ export type MemoryKnowledgeBaseSectionProps = {
 export type MemoryStatusBannersProps = {
   memory: MemoryInfo;
   isProcessing: boolean;
-  manualUpdateMutation: { isPending: boolean };
-  handleManualUpdate: () => void;
 };
 
 export type MemoryDetailsHeaderProps = {
   memory: MemoryInfo;
   isProcessing: boolean;
-  manualUpdateMutation: { isPending: boolean };
-  handleManualUpdate: () => void;
   deleteMutation: MemoryActionMutation;
   updateMemoryMutation: { isPending: boolean };
   handleToggleActive: () => void;

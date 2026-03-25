@@ -78,8 +78,6 @@ describe("MemoriesMainContent", () => {
       selectedDocument: { message_id: "m1" },
       setSelectedDocument: mockSetSelectedDocument,
       handleOpenDocumentPanel: jest.fn(),
-      manualUpdateMutation: { isPending: false },
-      handleManualUpdate: jest.fn(),
       deleteMutation: { mutate: jest.fn(), isPending: false },
       updateMemoryMutation: { isPending: false },
       handleToggleActive: jest.fn(),

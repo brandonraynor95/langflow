@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryStatusBanners } from "../MemoryStatusBanners";
 
 jest.mock("@/components/common/genericIconComponent", () => ({
@@ -20,8 +20,6 @@ describe("MemoryStatusBanners", () => {
       <MemoryStatusBanners
         memory={{ ...baseMemory, status: "generating" }}
         isProcessing
-        manualUpdateMutation={{ isPending: false }}
-        handleManualUpdate={jest.fn()}
       />,
     );
 
@@ -29,19 +27,14 @@ describe("MemoryStatusBanners", () => {
     expect(screen.getByText("3 message(s) processed")).toBeInTheDocument();
   });
 
-  it("renders failed banner and retries", () => {
-    const handleManualUpdate = jest.fn();
+  it("renders failed banner", () => {
     render(
       <MemoryStatusBanners
         memory={{ ...baseMemory, status: "failed", error_message: "boom" }}
         isProcessing={false}
-        manualUpdateMutation={{ isPending: false }}
-        handleManualUpdate={handleManualUpdate}
       />,
     );
 
     expect(screen.getByText("Update Failed")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Retry Update"));
-    expect(handleManualUpdate).toHaveBeenCalled();
   });
 });

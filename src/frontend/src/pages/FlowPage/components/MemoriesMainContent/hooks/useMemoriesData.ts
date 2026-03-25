@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import useAlertStore from "@/stores/alertStore";
 import { useGetMemories } from "@/controllers/API/queries/memories/use-get-memories";
 import { useGetMemory } from "@/controllers/API/queries/memories/use-get-memory";
-import { useAddMessagesToMemory } from "@/controllers/API/queries/memories/use-add-messages-to-memory";
 import { useDeleteMemory } from "@/controllers/API/queries/memories/use-delete-memory";
 import { useUpdateMemory } from "@/controllers/API/queries/memories/use-update-memory";
 import { UseMemoriesDataProps } from "../types";
@@ -112,25 +111,6 @@ export function useMemoriesData({
 
   const docsLoading = isLoading;
 
-  const manualUpdateMutation = useAddMessagesToMemory({
-    onSuccess: () => setSuccessData({ title: "Memory updated" }),
-    onError: (error: any) =>
-      setErrorData({
-        title: "Failed to update memory",
-        list: [error?.response?.data?.detail || error?.message],
-      }),
-  });
-
-  // Trigger a manual memory update by sending a batch of the current flow's session messages.
-  // The BE handles vectorization; on the mock layer addMessages returns enriched memory state.
-  const handleManualUpdate = () => {
-    if (!memory) return;
-    manualUpdateMutation.mutate({
-      memoryId: memory.id,
-      message_ids: ["mock-msg-1", "mock-msg-2", "mock-msg-3"],
-    });
-  };
-
   const deleteMutation = useDeleteMemory({
     onSuccess: () => {
       setSuccessData({ title: "Memory deleted" });
@@ -204,8 +184,6 @@ export function useMemoriesData({
     selectedDocument,
     setSelectedDocument,
     handleOpenDocumentPanel,
-    manualUpdateMutation,
-    handleManualUpdate,
     deleteMutation,
     updateMemoryMutation,
     handleToggleActive,

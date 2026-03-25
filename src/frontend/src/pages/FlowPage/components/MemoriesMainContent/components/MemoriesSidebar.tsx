@@ -96,8 +96,8 @@ export function MemoriesSidebar({
                       {memoryItem.is_active && (
                         <span
                           className="h-2 w-2 shrink-0 rounded-full bg-accent-emerald-foreground"
-                          aria-label="Auto-capture enabled"
-                          title="Auto-capture enabled"
+                          aria-label="enabled"
+                          title="enabled"
                         />
                       )}
                       <div className="truncate text-sm font-medium">
