@@ -1,8 +1,12 @@
+import type { APIObjectType } from "@/types/api";
 import { templatesGenerator } from "../reactflowUtils";
+
+const asApiObject = (data: Record<string, unknown>) =>
+  data as unknown as APIObjectType;
 
 describe("templatesGenerator", () => {
   it("should create templates indexed by component key", () => {
-    const data = {
+    const data = asApiObject({
       models: {
         ChatInput: {
           template: { code: { value: "chat_code" } },
@@ -13,7 +17,7 @@ describe("templatesGenerator", () => {
           display_name: "Chat Output",
         },
       },
-    };
+    });
 
     const templates = templatesGenerator(data);
     expect(templates).toHaveProperty("ChatInput");
@@ -22,7 +26,7 @@ describe("templatesGenerator", () => {
   });
 
   it("should skip components with flow property", () => {
-    const data = {
+    const data = asApiObject({
       models: {
         GroupNode: {
           template: {},
@@ -32,76 +36,85 @@ describe("templatesGenerator", () => {
           template: { code: { value: "code" } },
         },
       },
-    };
+    });
 
     const templates = templatesGenerator(data);
     expect(templates).not.toHaveProperty("GroupNode");
     expect(templates).toHaveProperty("Regular");
   });
 
-  describe("LEGACY_TYPE_ALIASES", () => {
-    it("should add 'Prompt' alias pointing to 'Prompt Template'", () => {
-      const data = {
+  describe("derived template aliases", () => {
+    it("should derive a 'Prompt' alias from template._type", () => {
+      const data = asApiObject({
         models_and_agents: {
           "Prompt Template": {
-            template: { code: { value: "prompt_v2_code" } },
+            template: {
+              code: { value: "prompt_v2_code" },
+              _type: "PromptComponent",
+            },
             display_name: "Prompt Template",
           },
         },
-      };
+      });
 
       const templates = templatesGenerator(data);
 
       // Primary key
       expect(templates).toHaveProperty("Prompt Template");
-      // Alias from LEGACY_TYPE_ALIASES: "Prompt" -> "Prompt Template"
+      // Alias derived from _type: "PromptComponent" -> "Prompt"
       expect(templates).toHaveProperty("Prompt");
       // Both should point to the same data
       expect(templates["Prompt"]).toBe(templates["Prompt Template"]);
     });
 
     it("should not overwrite existing direct key with alias", () => {
-      const data = {
+      const data = asApiObject({
         category: {
           Prompt: {
             template: { code: { value: "direct_code" } },
             display_name: "Prompt",
           },
           "Prompt Template": {
-            template: { code: { value: "renamed_code" } },
+            template: {
+              code: { value: "renamed_code" },
+              _type: "PromptComponent",
+            },
             display_name: "Prompt Template",
           },
         },
-      };
+      });
 
       const templates = templatesGenerator(data);
-      // "Prompt" exists as a direct key, so the alias should NOT overwrite it
+      // "Prompt" exists as a direct key, so the derived alias should NOT overwrite it
       expect(templates["Prompt"].template.code.value).toBe("direct_code");
     });
 
-    it("should not add alias when target does not exist", () => {
-      const data = {
+    it("should derive a 'URL' alias from URLComponent", () => {
+      const data = asApiObject({
         category: {
-          ChatInput: {
-            template: { code: { value: "code" } },
+          URLComponent: {
+            template: {
+              code: { value: "url_code" },
+              _type: "URLComponent",
+            },
           },
         },
-      };
+      });
 
       const templates = templatesGenerator(data);
-      // "Prompt Template" doesn't exist, so "Prompt" alias should not be added
-      expect(templates).not.toHaveProperty("Prompt");
-      expect(templates).toHaveProperty("ChatInput");
+      expect(templates).toHaveProperty("URLComponent");
+      expect(templates).toHaveProperty("URL");
+      expect(templates["URL"]).toBe(templates["URLComponent"]);
     });
 
     it("should handle components without metadata gracefully", () => {
-      const data = {
+      const data = asApiObject({
         category: {
           SimpleComponent: {
             template: { code: { value: "simple_code" } },
           },
         },
-      };
+      });
 
       const templates = templatesGenerator(data);
       expect(templates).toHaveProperty("SimpleComponent");

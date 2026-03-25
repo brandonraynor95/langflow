@@ -91,7 +91,7 @@ export async function waitForNodeUpdates(
   timeoutMs: number = 10_000,
 ): Promise<void> {
   if (pendingNodeUpdates.size === 0) return;
-  const pendingIds = [...pendingNodeUpdates.keys()];
+  const pendingIds = Array.from(pendingNodeUpdates.keys());
   const promises = Array.from(pendingNodeUpdates.values()).map(
     (e) => e.promise,
   );
@@ -151,12 +151,13 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
     nodes.forEach((node) => {
       if (node.type === "genericNode") {
         const codeValidity = checkCodeValidity(node.data, templates);
-        if (codeValidity && codeValidity.outdated)
+        if (codeValidity && (codeValidity.outdated || codeValidity.blocked))
           outdatedNodes.push({
             id: node.id,
             icon: node.data.node?.icon,
             display_name: node.data.node?.display_name,
             outdated: codeValidity.outdated,
+            blocked: codeValidity.blocked,
             breakingChange: codeValidity.breakingChange,
             userEdited: codeValidity.userEdited,
           });
@@ -848,17 +849,39 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
     const allowCustomComponents =
       useUtilityStore.getState().allowCustomComponents;
     if (!allowCustomComponents && get().componentsToUpdate.length > 0) {
-      const outdatedNames = get()
-        .componentsToUpdate.map((c) => c.display_name ?? c.id)
-        .join(", ");
+      const blockedComponents = get().componentsToUpdate.filter((component) => component.blocked);
+      const outdatedComponents = get().componentsToUpdate.filter((component) => component.outdated);
+      const errorList: string[] = [];
+
+      if (blockedComponents.length > 0) {
+        errorList.push(
+          `The following custom components cannot run while custom components are disabled: ${blockedComponents
+            .map((component) => component.display_name ?? component.id)
+            .join(", ")}`,
+        );
+      }
+
+      if (outdatedComponents.length > 0) {
+        errorList.push(
+          `The following components are outdated and must be updated: ${outdatedComponents
+            .map((component) => component.display_name ?? component.id)
+            .join(", ")}`,
+        );
+      }
+
       setErrorData({
-        title: "Outdated components must be updated before building",
-        list: [
-          `The following components are outdated and must be updated: ${outdatedNames}`,
-        ],
+        title:
+          blockedComponents.length > 0
+            ? "Custom components are blocked while custom components are disabled"
+            : "Outdated components must be updated before building",
+        list: errorList,
       });
       get().setIsBuilding(false);
-      throw new Error("Outdated components must be updated");
+      throw new Error(
+        blockedComponents.length > 0
+          ? "Custom components are blocked while custom components are disabled"
+          : "Outdated components must be updated",
+      );
     }
 
     function validateSubgraph() {}
@@ -1000,7 +1023,7 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
         if (!isCustomComponentBlocked && get().componentsToUpdate.length > 0)
           setErrorData({
             title:
-              "There are outdated components in the flow. The error could be related to them.",
+              "There are blocked or outdated components in the flow. The error could be related to them.",
           });
         get().updateEdgesRunningByNodes(
           get().nodes.map((n) => n.id),

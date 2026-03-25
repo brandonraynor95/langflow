@@ -3,6 +3,7 @@ import { cn } from "@/utils/utils";
 
 export default function NodeUpdateComponent({
   hasBreakingChange,
+  blocked = false,
   showNode,
   handleUpdateCode,
   loadingUpdate,
@@ -11,6 +12,7 @@ export default function NodeUpdateComponent({
   isRequired = false,
 }: {
   hasBreakingChange: boolean;
+  blocked?: boolean;
   showNode: boolean;
   handleUpdateCode: () => void;
   loadingUpdate: boolean;
@@ -18,6 +20,8 @@ export default function NodeUpdateComponent({
   dismissed?: boolean;
   isRequired?: boolean;
 }) {
+  const showUpdateAction = !blocked;
+
   if (dismissed && isRequired) {
     return (
       <div
@@ -27,31 +31,38 @@ export default function NodeUpdateComponent({
       >
         <div className={cn("h-2.5 w-2.5 rounded-full", "bg-accent-amber")} />
         <div className="mb-px flex-1 truncate text-mmd font-medium">
-          {showNode && "Upgrade is required to execute flow"}
+          {showNode &&
+            (blocked
+              ? "Custom component cannot run while custom components are disabled"
+              : "Upgrade is required to execute flow")}
         </div>
-        <Button
-          size="sm"
-          className="!h-8 shrink-0 !text-mmd"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleUpdateCode();
-          }}
-          loading={loadingUpdate}
-          data-testid={hasBreakingChange ? "review-button" : "update-button"}
-        >
-          {hasBreakingChange ? "Review" : "Update"}
-        </Button>
+        {showUpdateAction && (
+          <Button
+            size="sm"
+            className="!h-8 shrink-0 !text-mmd"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUpdateCode();
+            }}
+            loading={loadingUpdate}
+            data-testid={hasBreakingChange ? "review-button" : "update-button"}
+          >
+            {hasBreakingChange ? "Review" : "Update"}
+          </Button>
+        )}
       </div>
     );
   }
 
-  const dotColor = isRequired
+  const dotColor = blocked || isRequired
     ? "bg-accent-amber"
     : hasBreakingChange
       ? "bg-warning"
       : "bg-status-green";
 
-  const label = isRequired
+  const label = blocked
+    ? "Custom component blocked"
+    : isRequired
     ? "Update required"
     : hasBreakingChange
       ? "Update available"
@@ -81,18 +92,20 @@ export default function NodeUpdateComponent({
       >
         Dismiss
       </Button>
-      <Button
-        size="sm"
-        className="!h-8 shrink-0 !text-mmd"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleUpdateCode();
-        }}
-        loading={loadingUpdate}
-        data-testid={hasBreakingChange ? "review-button" : "update-button"}
-      >
-        {hasBreakingChange ? "Review" : "Update"}
-      </Button>
+      {showUpdateAction && (
+        <Button
+          size="sm"
+          className="!h-8 shrink-0 !text-mmd"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleUpdateCode();
+          }}
+          loading={loadingUpdate}
+          data-testid={hasBreakingChange ? "review-button" : "update-button"}
+        >
+          {hasBreakingChange ? "Review" : "Update"}
+        </Button>
+      )}
     </div>
   );
 }

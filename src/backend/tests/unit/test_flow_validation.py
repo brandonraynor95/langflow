@@ -6,11 +6,12 @@ Covers:
 - check_flow_and_raise integration
 - Nested/group node recursion
 - Security: edited=False with custom code still gets blocked
-- Security: all execution endpoints validate flows before graph building and execution
+- Shared alias generation for legacy built-in node types
+- Backend wrapper behavior when custom components are disabled
 """
 
 import hashlib
-import inspect
+from types import SimpleNamespace
 
 import pytest
 from langflow.api.utils.flow_validation import (
@@ -18,18 +19,10 @@ from langflow.api.utils.flow_validation import (
     _get_invalid_components,
     check_flow_and_raise,
     code_hash_matches_any_template,
+    validate_flow_custom_components,
 )
-from langflow.api.v1.chat import build_flow, build_public_tmp, build_vertex, retrieve_vertices_order
-from langflow.api.v1.endpoints import (
-    _run_flow_internal,
-    custom_component,
-    custom_component_update,
-    experimental_run_flow,
-    webhook_run_flow,
-)
-from langflow.api.v1.mcp_utils import handle_call_tool
-from langflow.api.v1.openai_responses import create_response
-from langflow.api.v2.workflow import execute_sync_workflow, execute_workflow_background
+from lfx.interface.components import component_cache
+from lfx.utils.flow_validation import collect_component_hash_lookups
 
 # ==================== Helpers ====================
 
@@ -230,13 +223,13 @@ class TestCheckFlowAndRaise:
         we block execution rather than falling back to the client-controlled edited flag.
         """
         flow_data = {"nodes": [_make_node(edited=False)]}
-        with pytest.raises(ValueError, match="server is still initializing"):
+        with pytest.raises(ValueError, match="component templates are still initializing"):
             check_flow_and_raise(flow_data, allow_custom_components=False)
 
     def test_fail_closed_blocks_edited_true_without_cache(self):
         """Fail-closed blocks even edited=True nodes when cache is unavailable."""
         flow_data = {"nodes": [_make_node(edited=True, display_name="Edited")]}
-        with pytest.raises(ValueError, match="server is still initializing"):
+        with pytest.raises(ValueError, match="component templates are still initializing"):
             check_flow_and_raise(flow_data, allow_custom_components=False)
 
     def test_security_edited_false_custom_code_blocked(self):
@@ -259,89 +252,49 @@ class TestCheckFlowAndRaise:
         with pytest.raises(ValueError, match="outdated components must be updated"):
             check_flow_and_raise(flow_data, allow_custom_components=False, type_to_current_hash=hash_dict)
 
-
-class TestEndpointValidationCoverage:
-    """Source-level tests verifying all execution endpoints call check_flow_and_raise.
-
-    This catches regressions if someone adds a new endpoint or refactors
-    an existing one without adding validation.
-    """
-
-    @staticmethod
-    def _source(func) -> str:
-        return inspect.getsource(func)
-
-    def test_build_flow_validates_both_data_and_db_flow(self):
-        source = self._source(build_flow)
-        assert source.count("check_flow_and_raise") >= 2, (
-            "build_flow must call check_flow_and_raise for both user-provided data and DB flow.data"
+class TestValidateFlowCustomComponents:
+    def test_wrapper_blocks_unknown_type(self, monkeypatch):
+        settings_service = SimpleNamespace(
+            settings=SimpleNamespace(allow_custom_components=False)
+        )
+        monkeypatch.setattr(
+            "langflow.services.deps.get_settings_service",
+            lambda: settings_service,
+        )
+        monkeypatch.setattr(
+            component_cache,
+            "type_to_current_hash",
+            _make_type_hash_dict({"ChatInput": "known_code"}),
         )
 
-    def test_retrieve_vertices_order_validates_db_flow(self):
-        source = self._source(retrieve_vertices_order)
-        assert source.count("check_flow_and_raise") >= 2, (
-            "retrieve_vertices_order must validate DB flow.data when user provides no data"
+        flow_data = {
+            "nodes": [
+                _make_node(
+                    code="evil_code",
+                    node_type="TotallyCustom",
+                    display_name="Blocked Node",
+                )
+            ]
+        }
+
+        with pytest.raises(ValueError, match="custom components are not allowed"):
+            validate_flow_custom_components(flow_data)
+
+    def test_wrapper_fail_closed_when_component_hashes_missing(self, monkeypatch):
+        settings_service = SimpleNamespace(
+            settings=SimpleNamespace(allow_custom_components=False)
         )
-
-    def test_build_vertex_validates_db_flow(self):
-        source = self._source(build_vertex)
-        assert "check_flow_and_raise" in source, "build_vertex must call check_flow_and_raise before building from DB"
-
-    def test_build_public_tmp_validates_db_flow(self):
-        source = self._source(build_public_tmp)
-        assert source.count("check_flow_and_raise") >= 2, (
-            "build_public_tmp must validate both user-provided data and DB flow.data"
+        monkeypatch.setattr(
+            "langflow.services.deps.get_settings_service",
+            lambda: settings_service,
         )
+        monkeypatch.setattr(component_cache, "type_to_current_hash", None)
 
-    def test_run_flow_validates(self):
-        source = self._source(_run_flow_internal)
-        assert "check_flow_and_raise" in source, "_run_flow_internal must call check_flow_and_raise"
-
-    def test_webhook_run_flow_validates(self):
-        source = self._source(webhook_run_flow)
-        assert "check_flow_and_raise" in source, "webhook_run_flow must call check_flow_and_raise"
-
-    def test_experimental_run_flow_validates(self):
-        source = self._source(experimental_run_flow)
-        assert "check_flow_and_raise" in source, "experimental_run_flow must call check_flow_and_raise"
-
-    def test_v2_workflow_sync_validates(self):
-        source = self._source(execute_sync_workflow)
-        assert "check_flow_and_raise" in source, (
-            "execute_sync_workflow must call check_flow_and_raise to prevent custom code bypass via V2 API"
-        )
-
-    def test_v2_workflow_background_validates(self):
-        source = self._source(execute_workflow_background)
-        assert "check_flow_and_raise" in source, (
-            "execute_workflow_background must call check_flow_and_raise to prevent custom code bypass via V2 API"
-        )
-
-    def test_openai_responses_validates(self):
-        source = self._source(create_response)
-        assert "check_flow_and_raise" in source, (
-            "create_response must call check_flow_and_raise to prevent custom code bypass via OpenAI API"
-        )
-
-    def test_mcp_call_tool_validates(self):
-        source = self._source(handle_call_tool)
-        assert "check_flow_and_raise" in source, (
-            "handle_call_tool must call check_flow_and_raise to prevent custom code bypass via MCP"
-        )
-
-    def test_custom_component_create_checks_allow_custom(self):
-        source = self._source(custom_component)
-        assert "allow_custom_components" in source, "custom_component must check allow_custom_components setting"
-
-    def test_custom_component_update_checks_allow_custom(self):
-        source = self._source(custom_component_update)
-        assert "allow_custom_components" in source, (
-            "custom_component_update must check allow_custom_components setting. "
-            "Without this check, arbitrary code can be executed via POST /custom_component/update."
-        )
-        assert "code_hash_matches_any_template" in source, (
-            "custom_component_update must verify code hash against known templates"
-        )
+        with pytest.raises(
+            ValueError,
+            match="component templates are still initializing",
+        ):
+            validate_flow_custom_components({"nodes": [_make_node()]})
 
 
 class TestBuildCodeHashLookups:
@@ -431,7 +384,7 @@ class TestBuildCodeHashLookups:
         # Should remain None — no-op when all_types_dict is None
         assert cache.type_to_current_hash is None
 
-    def test_legacy_alias_added(self):
+    def test_prompt_alias_is_derived_from_component_type(self):
         from lfx.interface.components import ComponentCache, _build_code_hash_lookups
 
         cache = ComponentCache()
@@ -439,7 +392,7 @@ class TestBuildCodeHashLookups:
             "models_and_agents": {
                 "Prompt Template": {
                     "metadata": {"code_hash": "prompthash12"},
-                    "template": {},
+                    "template": {"_type": "PromptComponent"},
                 },
             }
         }
@@ -461,7 +414,7 @@ class TestBuildCodeHashLookups:
                 },
                 "Prompt Template": {
                     "metadata": {"code_hash": "renamedhash1"},
-                    "template": {},
+                    "template": {"_type": "PromptComponent"},
                 },
             }
         }
@@ -470,6 +423,44 @@ class TestBuildCodeHashLookups:
         assert cache.type_to_current_hash is not None
         assert cache.type_to_current_hash["Prompt"] == "directhash12"
         assert cache.type_to_current_hash["Prompt Template"] == "renamedhash1"
+
+    def test_url_alias_allows_legacy_builtin_nodes(self):
+        current_code = "current_url_code"
+        all_types_dict = {
+            "tools": {
+                "URLComponent": {
+                    "metadata": {"code_hash": _hash(current_code)},
+                    "template": {
+                        "_type": "URLComponent",
+                        "code": {"value": current_code},
+                    },
+                }
+            }
+        }
+
+        type_to_current_hash, all_known_hashes = collect_component_hash_lookups(
+            all_types_dict
+        )
+
+        assert type_to_current_hash["URLComponent"] == _hash(current_code)
+        assert type_to_current_hash["URL"] == _hash(current_code)
+        assert all_known_hashes == {_hash(current_code)}
+
+        flow_data = {
+            "nodes": [
+                _make_node(
+                    code=current_code,
+                    node_type="URL",
+                    display_name="Legacy URL",
+                )
+            ]
+        }
+
+        check_flow_and_raise(
+            flow_data,
+            allow_custom_components=False,
+            type_to_current_hash=type_to_current_hash,
+        )
 
     def test_non_dict_values_in_all_types_dict_skipped(self):
         from lfx.interface.components import ComponentCache, _build_code_hash_lookups

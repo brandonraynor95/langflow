@@ -28,6 +28,7 @@ from lfx.base.constants import (
 )
 from lfx.log.logger import logger
 from lfx.template.field.prompt import DEFAULT_PROMPT_INTUT_TYPES
+from lfx.utils.component_aliases import flatten_components_with_aliases
 from lfx.utils.util import escape_json_dump
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
@@ -37,7 +38,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from langflow.initial_setup.constants import (
     ASSISTANT_FOLDER_DESCRIPTION,
     ASSISTANT_FOLDER_NAME,
-    LEGACY_TYPE_ALIASES,
     STARTER_FOLDER_DESCRIPTION,
     STARTER_FOLDER_NAME,
 )
@@ -62,29 +62,17 @@ from langflow.services.deps import (
 
 
 def update_projects_components_with_latest_component_versions(project_data, all_types_dict):
-    # Flatten the all_types_dict for easy access
-    all_types_dict_flat = {
-        key: component for category in all_types_dict.values() for key, component in category.items()
-    }
-
-    # Legacy type aliases: maps old flow node type names to current all_types_dict keys.
-    # PromptComponent was renamed from "Prompt" to "Prompt Template" but starter projects
-    # still reference the old "Prompt" type. Add aliases so those nodes get their code updated.
-    for old_name, new_name in LEGACY_TYPE_ALIASES.items():
-        if old_name not in all_types_dict_flat and new_name in all_types_dict_flat:
-            all_types_dict_flat[old_name] = all_types_dict_flat[new_name]
-
-    # Add display_name aliases so node types like "URL" resolve to "URLComponent"
-    display_name_aliases = {}
-    for comp in all_types_dict_flat.values():
-        if isinstance(comp, dict):
-            display_name = comp.get("display_name")
-            if display_name and display_name not in all_types_dict_flat:
-                display_name_aliases[display_name] = comp
-    all_types_dict_flat.update(display_name_aliases)
+    all_types_dict_flat = flatten_components_with_aliases(all_types_dict)
 
     node_changes_log = defaultdict(list)
     project_data_copy = deepcopy(project_data)
+
+    def sanitize_metadata(metadata):
+        if not isinstance(metadata, dict):
+            return metadata
+        sanitized = deepcopy(metadata)
+        sanitized.pop("hash_history", None)
+        return sanitized
 
     for node in project_data_copy.get("nodes", []):
         node_data = node.get("data").get("node")
@@ -169,19 +157,26 @@ def update_projects_components_with_latest_component_versions(project_data, all_
                 )
             else:
                 for attr in NODE_FORMAT_ATTRIBUTES:
+                    latest_attr_value = latest_node.get(attr)
+                    current_attr_value = node_data.get(attr)
+
+                    if attr == "metadata":
+                        latest_attr_value = sanitize_metadata(latest_attr_value)
+                        current_attr_value = sanitize_metadata(current_attr_value)
+
                     if (
                         attr in latest_node
                         # Check if it needs to be updated
-                        and latest_node[attr] != node_data.get(attr)
+                        and latest_attr_value != current_attr_value
                     ):
                         node_changes_log[node_type].append(
                             {
                                 "attr": attr,
-                                "old_value": node_data.get(attr),
-                                "new_value": latest_node[attr],
+                                "old_value": current_attr_value,
+                                "new_value": latest_attr_value,
                             }
                         )
-                        node_data[attr] = deepcopy(latest_node[attr])
+                        node_data[attr] = deepcopy(latest_attr_value)
 
                 for field_name, field_dict in latest_template.items():
                     if field_name not in node_data["template"]:

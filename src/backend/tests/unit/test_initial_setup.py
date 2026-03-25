@@ -615,12 +615,12 @@ def test_update_projects_preserves_other_metadata():
         ]
     }
 
-    update_projects_components_with_latest_component_versions(project_data, all_types_dict)
+    updated_project = update_projects_components_with_latest_component_versions(project_data, all_types_dict)
 
-    # Verify hash_history is stripped but other metadata is preserved
-    # Note: The function doesn't copy metadata to nodes, it only updates template
-    # This test verifies the internal flattened dict doesn't have hash_history
-    # The actual metadata preservation happens in the template update logic
+    node_metadata = updated_project["nodes"][0]["data"]["node"]["metadata"]
+    assert node_metadata["code_hash"] == "abc123"
+    assert node_metadata["module"] == "test.module"
+    assert "hash_history" not in node_metadata
 
 
 def test_update_projects_handles_components_without_metadata():
@@ -660,19 +660,19 @@ def test_update_projects_handles_components_without_metadata():
     assert updated_project["nodes"][0]["data"]["node"]["template"]["code"]["value"] == "test code"
 
 
-def test_update_projects_resolves_prompt_via_legacy_alias():
-    """Test that 'Prompt' type nodes get updated via the _LEGACY_TYPE_ALIASES mapping.
+def test_update_projects_resolves_prompt_via_component_type_alias():
+    """Test that legacy Prompt nodes resolve via the component class alias.
 
-    PromptComponent was renamed from 'Prompt' to 'Prompt Template', but 19 starter projects
-    still reference the old 'Prompt' type. The _LEGACY_TYPE_ALIASES dict maps old names to
-    current names so these nodes get their code updated at startup.
+    PromptComponent is keyed as "Prompt Template" in the component dictionary,
+    but starter projects may still reference the legacy "Prompt" type. The
+    alias is derived from template._type, not a hardcoded mapping table.
     """
     all_types_dict = {
         "models_and_agents": {
             "Prompt Template": {
                 "template": {
                     "code": {"value": "new_prompt_code_v2"},
-                    "_type": "Component",
+                    "_type": "PromptComponent",
                 },
                 "display_name": "Prompt Template",
             }
@@ -700,12 +700,12 @@ def test_update_projects_resolves_prompt_via_legacy_alias():
     updated_code = updated_project["nodes"][0]["data"]["node"]["template"]["code"]["value"]
     assert updated_code == "new_prompt_code_v2", (
         f"Expected code to be updated to 'new_prompt_code_v2' but got '{updated_code}'. "
-        "The 'Prompt' type should resolve via _LEGACY_TYPE_ALIASES to 'Prompt Template'."
+        "The legacy 'Prompt' type should resolve via template._type to 'Prompt Template'."
     )
 
 
 def test_update_projects_direct_key_takes_precedence_over_alias():
-    """Test that a direct key match is preferred over the legacy alias."""
+    """Test that a direct key match is preferred over the derived alias."""
     all_types_dict = {
         "category": {
             "Prompt": {
@@ -718,7 +718,7 @@ def test_update_projects_direct_key_takes_precedence_over_alias():
             "Prompt Template": {
                 "template": {
                     "code": {"value": "renamed_code"},
-                    "_type": "Component",
+                    "_type": "PromptComponent",
                 },
                 "display_name": "Prompt Template",
             },
@@ -745,8 +745,46 @@ def test_update_projects_direct_key_takes_precedence_over_alias():
     updated_project = update_projects_components_with_latest_component_versions(project_data, all_types_dict)
     updated_code = updated_project["nodes"][0]["data"]["node"]["template"]["code"]["value"]
     assert updated_code == "direct_match_code", (
-        "Direct key match ('Prompt') should take precedence over the alias to 'Prompt Template'"
+        "Direct key match ('Prompt') should take precedence over the derived alias to 'Prompt Template'"
     )
+
+
+def test_update_projects_resolves_url_via_component_type_alias():
+    """Test that legacy URL nodes resolve via the component class alias."""
+    all_types_dict = {
+        "tools": {
+            "URLComponent": {
+                "template": {
+                    "code": {"value": "new_url_code_v2"},
+                    "_type": "URLComponent",
+                },
+                "display_name": "URL",
+            }
+        }
+    }
+
+    project_data = {
+        "nodes": [
+            {
+                "data": {
+                    "type": "URL",
+                    "node": {
+                        "template": {
+                            "code": {"value": "old_url_code_v1"},
+                            "_type": "Component",
+                        },
+                        "outputs": [],
+                    },
+                }
+            }
+        ]
+    }
+
+    updated_project = update_projects_components_with_latest_component_versions(
+        project_data, all_types_dict
+    )
+    updated_code = updated_project["nodes"][0]["data"]["node"]["template"]["code"]["value"]
+    assert updated_code == "new_url_code_v2"
 
 
 def test_update_projects_handles_components_without_hash_history():

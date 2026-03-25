@@ -14,6 +14,7 @@ let mockComponentsToUpdate: Array<{
   id: string;
   display_name: string;
   outdated: boolean;
+  blocked: boolean;
   breakingChange: boolean;
   userEdited: boolean;
 }> = [];
@@ -514,6 +515,7 @@ describe("refreshAllModelInputs — outdated component guard", () => {
         id: "node-1",
         display_name: "OpenAI Chat",
         outdated: true,
+        blocked: false,
         breakingChange: false,
         userEdited: false,
       },
@@ -535,6 +537,7 @@ describe("refreshAllModelInputs — outdated component guard", () => {
         id: "node-1",
         display_name: "OpenAI Chat",
         outdated: true,
+        blocked: false,
         breakingChange: false,
         userEdited: false,
       },
@@ -565,11 +568,17 @@ describe("refreshAllModelInputs — outdated component guard", () => {
     const modelNode = createMockModelNode("node-1");
     mockNodes = [modelNode];
     mockAllowCustomComponents = false;
+    mockTemplates = {
+      ChatOpenAI: {
+        template: { code: { value: "test code" } },
+      },
+    };
     mockComponentsToUpdate = [
       {
         id: "node-1",
         display_name: "OpenAI Chat",
         outdated: true,
+        blocked: false,
         breakingChange: false,
         userEdited: true,
       },
@@ -601,11 +610,17 @@ describe("refreshAllModelInputs — outdated component guard", () => {
     const freshNode = createMockModelNode("node-fresh");
     mockNodes = [outdatedNode, freshNode];
     mockAllowCustomComponents = false;
+    mockTemplates = {
+      ChatOpenAI: {
+        template: { code: { value: "test code" } },
+      },
+    };
     mockComponentsToUpdate = [
       {
         id: "node-outdated",
         display_name: "Outdated",
         outdated: true,
+        blocked: false,
         breakingChange: false,
         userEdited: false,
       },
@@ -649,12 +664,33 @@ describe("refreshAllModelInputs — outdated component guard", () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it("should suppress 403 as fallback when guards miss (templates not loaded)", async () => {
+  it("should skip API calls for blocked nodes when custom components are disabled", async () => {
     const modelNode = createMockModelNode("node-1");
     mockNodes = [modelNode];
     mockAllowCustomComponents = false;
+    mockComponentsToUpdate = [
+      {
+        id: "node-1",
+        display_name: "Unknown Custom Node",
+        outdated: false,
+        blocked: true,
+        breakingChange: false,
+        userEdited: false,
+      },
+    ];
+
+    await refreshAllModelInputs(mockQueryClient as any);
+
+    expect(api.post).not.toHaveBeenCalled();
+    expect(mockSetNode).not.toHaveBeenCalled();
+  });
+
+  it("should suppress 403 as fallback when guards miss due to missing node code", async () => {
+    const modelNode = createMockModelNode("node-1");
+    delete (modelNode.data.node.template as Record<string, unknown>).code;
+    mockNodes = [modelNode];
+    mockAllowCustomComponents = false;
     mockComponentsToUpdate = [];
-    mockTemplates = {}; // Not loaded yet
 
     const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
     (api.post as jest.Mock).mockRejectedValue({
@@ -664,11 +700,9 @@ describe("refreshAllModelInputs — outdated component guard", () => {
       },
     });
 
-    // Should not throw — 403 is silently suppressed
     await refreshAllModelInputs(mockQueryClient as any);
 
     expect(api.post).toHaveBeenCalledTimes(1);
-    // The per-node catch logs a warning but doesn't propagate
     consoleWarnSpy.mockRestore();
   });
 });

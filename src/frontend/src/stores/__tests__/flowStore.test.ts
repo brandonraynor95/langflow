@@ -244,6 +244,7 @@ describe("useFlowStore", () => {
           icon: "icon-1",
           display_name: "Component 1",
           outdated: true,
+          blocked: false,
           breakingChange: false,
           userEdited: true,
         },
@@ -264,6 +265,7 @@ describe("useFlowStore", () => {
           icon: "icon-1",
           display_name: "Component 1",
           outdated: true,
+          blocked: false,
           breakingChange: false,
           userEdited: true,
         },
@@ -283,6 +285,7 @@ describe("useFlowStore", () => {
             icon: "icon-2",
             display_name: "Component 2",
             outdated: false,
+            blocked: false,
             breakingChange: true,
             userEdited: false,
           },
@@ -563,11 +566,21 @@ describe("useFlowStore", () => {
   });
 
   describe("componentsToUpdate staleness — setNode vs updateComponentsToUpdate", () => {
+    const updatedCodeField = {
+      type: "code",
+      value: "new_code",
+      required: false,
+      list: false,
+      show: false,
+      readonly: true,
+    };
+
     const outdatedEntry = {
       id: "node-1",
       icon: "icon-1",
       display_name: "Outdated Component",
       outdated: true,
+      blocked: false,
       breakingChange: false,
       userEdited: false,
     };
@@ -577,9 +590,13 @@ describe("useFlowStore", () => {
       type: "genericNode",
       position: { x: 0, y: 0 },
       data: {
+        id: "node-1",
+        type: "UpdatedComponent",
         node: {
           display_name: "Updated Component",
-          template: { code: { value: "new_code" } },
+          description: "",
+          documentation: "",
+          template: { code: updatedCodeField },
         },
       },
     } as AllNodeType;
@@ -597,16 +614,24 @@ describe("useFlowStore", () => {
 
       // Update the node via setNode (singular) — simulates useUpdateNodeCode path
       act(() => {
-        result.current.setNode("node-1", (old) => ({
-          ...old,
-          data: {
-            ...old.data,
-            node: {
-              ...old.data.node,
-              template: { code: { value: "new_code" } },
-            },
-          },
-        }));
+        result.current.setNode(
+          "node-1",
+          (old) =>
+            ({
+              ...old,
+              data: {
+                ...old.data,
+                node: {
+                  ...(old.data.node as Record<string, unknown>),
+                  template: {
+                    ...(((old.data.node as { template?: Record<string, unknown> })
+                      .template ?? {}) as Record<string, unknown>),
+                    code: { ...updatedCodeField },
+                  },
+                },
+              },
+            }) as unknown as AllNodeType,
+        );
       });
 
       // componentsToUpdate is still stale — setNode does not recalculate it
@@ -627,6 +652,7 @@ describe("useFlowStore", () => {
       // checkCodeValidity returns not-outdated for the updated node
       mockedCheckCodeValidity.mockReturnValue({
         outdated: false,
+        blocked: false,
         breakingChange: false,
         userEdited: false,
       });
@@ -652,6 +678,7 @@ describe("useFlowStore", () => {
       // checkCodeValidity returns outdated
       mockedCheckCodeValidity.mockReturnValue({
         outdated: true,
+        blocked: false,
         breakingChange: false,
         userEdited: false,
       });
@@ -663,6 +690,36 @@ describe("useFlowStore", () => {
       expect(result.current.componentsToUpdate).toHaveLength(1);
       expect(result.current.componentsToUpdate[0].id).toBe("node-1");
       expect(result.current.componentsToUpdate[0].outdated).toBe(true);
+    });
+
+    it("updateComponentsToUpdate should populate blocked entries for unknown custom nodes", () => {
+      const { result } = renderHook(() => useFlowStore());
+      const mockedCheckCodeValidity = checkCodeValidity as jest.Mock;
+
+      act(() => {
+        useFlowStore.setState({
+          nodes: [updatedNode],
+          componentsToUpdate: [],
+        });
+      });
+
+      mockedCheckCodeValidity.mockReturnValue({
+        outdated: false,
+        blocked: true,
+        breakingChange: false,
+        userEdited: false,
+      });
+
+      act(() => {
+        result.current.updateComponentsToUpdate(result.current.nodes);
+      });
+
+      expect(result.current.componentsToUpdate).toHaveLength(1);
+      expect(result.current.componentsToUpdate[0]).toMatchObject({
+        id: "node-1",
+        blocked: true,
+        outdated: false,
+      });
     });
   });
 
@@ -779,7 +836,7 @@ describe("useFlowStore", () => {
             createEdge("e2", "n2"),
             createEdge("e3", "n3"),
           ],
-          stopNodeId: null,
+          stopNodeId: undefined,
         });
       });
 
@@ -836,7 +893,7 @@ describe("useFlowStore", () => {
       const originalEdge = createEdge("e1", "n1");
 
       act(() => {
-        useFlowStore.setState({ edges: [originalEdge], stopNodeId: null });
+        useFlowStore.setState({ edges: [originalEdge], stopNodeId: undefined });
       });
 
       const edgeBefore = result.current.edges[0];

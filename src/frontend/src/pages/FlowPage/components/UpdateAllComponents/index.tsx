@@ -70,10 +70,22 @@ export default function UpdateAllComponents() {
       allowCustomComponents
         ? componentsToUpdate.filter(
             (component) =>
-              !dismissedNodes.includes(component.id) && !component.userEdited,
+              !component.blocked &&
+              !dismissedNodes.includes(component.id) &&
+              !component.userEdited,
           )
         : componentsToUpdate,
     [componentsToUpdate, dismissedNodes, allowCustomComponents],
+  );
+
+  const blockedComponents = useMemo(
+    () => componentsToUpdateFiltered.filter((component) => component.blocked),
+    [componentsToUpdateFiltered],
+  );
+
+  const updatableComponents = useMemo(
+    () => componentsToUpdateFiltered.filter((component) => !component.blocked),
+    [componentsToUpdateFiltered],
   );
 
   const edgesUpdateRef = useRef({
@@ -102,11 +114,14 @@ export default function UpdateAllComponents() {
     }`;
   };
 
-  const breakingChanges = componentsToUpdateFiltered.filter(
+  const breakingChanges = updatableComponents.filter(
     (component) => component.breakingChange,
   );
 
   const handleUpdateAllComponents = (confirmed?: boolean, ids?: string[]) => {
+    if (updatableComponents.length === 0) {
+      return;
+    }
     if (!confirmed && breakingChanges.length > 0) {
       setIsOpen(true);
       return;
@@ -119,7 +134,7 @@ export default function UpdateAllComponents() {
     let updatedCount = 0;
     const updates: UpdateNodesType[] = [];
 
-    const nodesToUpdate = componentsToUpdateFiltered.filter(
+    const nodesToUpdate = updatableComponents.filter(
       (component) => ids?.includes(component.id) ?? true,
     );
 
@@ -242,6 +257,17 @@ export default function UpdateAllComponents() {
     buildInfo?.success;
 
   const showDismissedWarning = !allowCustomComponents && allDismissed;
+  const summaryMessage = showDismissedWarning
+    ? blockedComponents.length > 0
+      ? "Custom components remain blocked while custom components are disabled"
+      : "Upgrade is required to execute flow"
+    : !allowCustomComponents
+      ? blockedComponents.length > 0 && updatableComponents.length > 0
+        ? `${blockedComponents.length} custom component${blockedComponents.length > 1 ? "s cannot" : " cannot"} run and ${updatableComponents.length} component${updatableComponents.length > 1 ? "s must" : " must"} be updated before this flow can run`
+        : blockedComponents.length > 0
+          ? `${blockedComponents.length} custom component${blockedComponents.length > 1 ? "s cannot" : " cannot"} run while custom components are disabled`
+          : `${updatableComponents.length} component${updatableComponents.length > 1 ? "s must" : " must"} be updated before this flow can run`
+      : `Update${updatableComponents.length > 1 ? "s are" : " is"} available for ${updatableComponents.length} component${updatableComponents.length > 1 ? "s" : ""}`;
 
   return (
     <AnimatePresence mode="wait">
@@ -257,20 +283,14 @@ export default function UpdateAllComponents() {
               "flex items-center justify-between gap-8 rounded-lg border bg-background px-4 py-2 text-sm font-medium shadow-md",
               (showDismissedWarning ||
                 !allowCustomComponents ||
-                componentsToUpdateFiltered.some(
+                updatableComponents.some(
                   (component) => component.breakingChange,
                 )) &&
                 "border-accent-amber-foreground",
             )}
           >
             <div className="flex items-center gap-3">
-              <span>
-                {showDismissedWarning
-                  ? "Upgrade is required to execute flow"
-                  : !allowCustomComponents
-                    ? `${componentsToUpdateFiltered.length} component${componentsToUpdateFiltered.length > 1 ? "s" : ""} must be updated before this flow can run`
-                    : `Update${componentsToUpdateFiltered.length > 1 ? "s are" : " is"} available for ${componentsToUpdateFiltered.length} component${componentsToUpdateFiltered.length > 1 ? "s" : ""}`}
-              </span>
+              <span>{summaryMessage}</span>
             </div>
             <div className="flex items-center gap-4">
               {!allDismissed && (
@@ -283,22 +303,24 @@ export default function UpdateAllComponents() {
                   Dismiss {componentsToUpdateFiltered.length > 1 ? "All" : ""}
                 </Button>
               )}
-              <Button
-                size="sm"
-                className="shrink-0"
-                onClick={() => handleUpdateAllComponents()}
-                loading={loadingUpdate}
-                data-testid="update-all-button"
-              >
-                {breakingChanges.length > 0 ? "Review All" : "Update All"}
-              </Button>
+              {updatableComponents.length > 0 && (
+                <Button
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => handleUpdateAllComponents()}
+                  loading={loadingUpdate}
+                  data-testid="update-all-button"
+                >
+                  {breakingChanges.length > 0 ? "Review All" : "Update All"}
+                </Button>
+              )}
             </div>
             <UpdateComponentModal
               isMultiple={true}
               open={isOpen}
               setOpen={setIsOpen}
               onUpdateNode={(ids) => handleUpdateAllComponents(true, ids)}
-              components={componentsToUpdateFiltered}
+              components={updatableComponents}
             />
           </motion.div>
         </div>

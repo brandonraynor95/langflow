@@ -138,10 +138,12 @@ function GenericNode({
 
   const {
     outdated: isOutdated,
+    blocked: isBlocked,
     breakingChange: hasBreakingChange,
     userEdited: isUserEdited,
   } = componentUpdate ?? {
     outdated: false,
+    blocked: false,
     breakingChange: false,
     userEdited: false,
   };
@@ -375,9 +377,10 @@ function GenericNode({
   const shouldShowUpdateComponent = useMemo(
     () =>
       !allowCustomComponents
-        ? isOutdated || hasBreakingChange
+        ? isBlocked || isOutdated || hasBreakingChange
         : (isOutdated || hasBreakingChange) && !isUserEdited && !dismissAll,
     [
+      isBlocked,
       isOutdated,
       hasBreakingChange,
       isUserEdited,
@@ -529,6 +532,7 @@ function GenericNode({
         {shouldShowUpdateComponent ? (
           <NodeUpdateComponent
             hasBreakingChange={hasBreakingChange}
+            blocked={isBlocked}
             showNode={showNode}
             handleUpdateCode={() => handleUpdateCode()}
             loadingUpdate={loadingUpdate}

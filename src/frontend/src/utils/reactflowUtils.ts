@@ -2128,27 +2128,42 @@ export function typesGenerator(data: APIObjectType) {
     }, {});
 }
 
-// Legacy type aliases: maps old flow node type names to current component keys.
-// PromptComponent was renamed from "Prompt" to "Prompt Template" but existing flows
-// still reference the old "Prompt" type.
-// SYNC: Keep in sync with backend api/utils/flow_validation.py and initial_setup/setup.py
-const LEGACY_TYPE_ALIASES: Record<string, string> = {
-  Prompt: "Prompt Template",
+const getTemplateAliases = (
+  componentKey: string,
+  component: Record<string, any>,
+): string[] => {
+  const aliases = [componentKey, component?.name, component?.display_name];
+  const componentType = component?.template?._type;
+
+  if (
+    typeof componentType === "string" &&
+    componentType.endsWith("Component")
+  ) {
+    aliases.push(componentType.replace(/Component$/, ""));
+  }
+
+  return Array.from(new Set(aliases.filter(Boolean)));
 };
 
 export function templatesGenerator(data: APIObjectType) {
-  const templates = Object.keys(data).reduce((acc, curr) => {
-    Object.keys(data[curr]).forEach((c: keyof APIKindType) => {
-      //prevent wrong overwriting of the component template by a group of the same type
-      if (!data[curr][c].flow) acc[c] = cloneDeep(data[curr][c]);
-    });
-    return acc;
-  }, {});
+  const templates = Object.entries(data).reduce<Record<string, APIClassType>>(
+    (acc, [, kind]) => {
+      Object.entries(kind).forEach(([componentKey, component]) => {
+        //prevent wrong overwriting of the component template by a group of the same type
+        if (!(component as APIClassType).flow) {
+          acc[componentKey] = cloneDeep(component as APIClassType);
+        }
+      });
+      return acc;
+    },
+    {},
+  );
 
-  // Add aliases so old flow nodes (e.g., type="Prompt") can find the current template
-  for (const [oldName, newName] of Object.entries(LEGACY_TYPE_ALIASES)) {
-    if (!(oldName in templates) && newName in templates) {
-      templates[oldName] = templates[newName];
+  for (const [componentKey, component] of Object.entries(templates)) {
+    for (const alias of getTemplateAliases(componentKey, component)) {
+      if (!(alias in templates)) {
+        templates[alias] = component;
+      }
     }
   }
 

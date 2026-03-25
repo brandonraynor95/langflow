@@ -1,9 +1,17 @@
 import useFlowStore from "@/stores/flowStore";
 import { useTypesStore } from "@/stores/typesStore";
 
+function getStoredNode(nodeId: string) {
+  const flowState = useFlowStore.getState();
+  if (typeof flowState.getNode === "function") {
+    return flowState.getNode(nodeId);
+  }
+  return flowState.nodes?.find((node) => node.id === nodeId);
+}
+
 /**
- * Checks whether a node is outdated (stale code) and should be skipped
- * for API calls when custom components are not allowed.
+ * Checks whether a node is blocked by the custom-component policy and
+ * should be skipped for API calls when custom components are not allowed.
  *
  * Two-layer check:
  * 1. Fast path via componentsToUpdate state
@@ -16,16 +24,20 @@ export function isNodeOutdated(
 ): boolean {
   // Fast path: check componentsToUpdate
   const componentsToUpdate = useFlowStore.getState().componentsToUpdate;
-  const outdatedEntry = componentsToUpdate.some(
-    (c) => c.id === nodeId && c.outdated && !c.userEdited,
+  const blockedEntry = componentsToUpdate.some(
+    (c) => c.id === nodeId && (c.outdated || c.blocked) && !c.userEdited,
   );
-  if (outdatedEntry) return true;
+  if (blockedEntry) return true;
 
-  // Slow path: compare code against server templates
-  const nodeType = useFlowStore.getState().getNode(nodeId)?.data?.type;
+  // Slow path: compare node code against server templates
+  const nodeType = getStoredNode(nodeId)?.data?.type;
   if (nodeType && currentCodeValue !== undefined) {
     const templates = useTypesStore.getState().templates;
-    const serverCode = templates[nodeType]?.template?.code?.value;
+    const serverTemplate = templates[nodeType]?.template;
+    if (!serverTemplate && currentCodeValue) {
+      return true;
+    }
+    const serverCode = serverTemplate?.code?.value;
     if (serverCode && serverCode !== currentCodeValue) {
       return true;
     }

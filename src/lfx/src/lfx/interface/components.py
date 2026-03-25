@@ -14,6 +14,7 @@ import orjson
 from lfx.constants import BASE_COMPONENTS_PATH
 from lfx.custom.utils import abuild_custom_components, create_component_template
 from lfx.log.logger import logger
+from lfx.utils.flow_validation import collect_component_hash_lookups
 from lfx.utils.validate_cloud import (
     filter_disabled_components_from_dict,
     is_component_disabled_in_astra_cloud,
@@ -612,26 +613,7 @@ def _build_code_hash_lookups(cache: ComponentCache) -> None:
     if not cache.all_types_dict:
         return
 
-    type_to_hash: dict[str, str] = {}
-    all_hashes: set[str] = set()
-
-    for category_components in cache.all_types_dict.values():
-        if not isinstance(category_components, dict):
-            continue
-        for component_name, component_data in category_components.items():
-            if not isinstance(component_data, dict):
-                continue
-            code_hash = component_data.get("metadata", {}).get("code_hash")
-            if code_hash:
-                type_to_hash[component_name] = code_hash
-                all_hashes.add(code_hash)
-
-    # Add legacy aliases so old flow node types resolve correctly
-    from langflow.initial_setup.constants import LEGACY_TYPE_ALIASES
-
-    for old_name, new_name in LEGACY_TYPE_ALIASES.items():
-        if old_name not in type_to_hash and new_name in type_to_hash:
-            type_to_hash[old_name] = type_to_hash[new_name]
+    type_to_hash, all_hashes = collect_component_hash_lookups(cache.all_types_dict)
 
     cache.type_to_current_hash = type_to_hash
     cache.all_known_hashes = all_hashes
