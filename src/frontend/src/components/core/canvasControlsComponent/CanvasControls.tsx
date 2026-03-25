@@ -1,12 +1,11 @@
 import { Panel, useStoreApi } from "@xyflow/react";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import langflowAssistantIcon from "@/assets/langflow_assistant.svg";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
 import { ENABLE_INSPECTION_PANEL } from "@/customization/feature-flags";
 import useAssistantManagerStore from "@/stores/assistantManagerStore";
-import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import useFlowStore from "@/stores/flowStore";
 import type { AllNodeType } from "@/types/flow";
 import CanvasControlsDropdown from "./CanvasControlsDropdown";
@@ -23,8 +22,6 @@ const CanvasControls = ({
   const isFlowLocked = useFlowStore(
     useShallow((state) => state.currentFlow?.locked),
   );
-  const undo = useFlowsManagerStore((state) => state.undo);
-  const redo = useFlowsManagerStore((state) => state.redo);
   const setAssistantSidebarOpen = useAssistantManagerStore(
     (state) => state.setAssistantSidebarOpen,
   );
@@ -41,6 +38,19 @@ const CanvasControls = ({
   const handleAssistantClick = () => {
     setAssistantSidebarOpen(!assistantSidebarOpen);
   };
+
+  const [isAddNoteActive, setIsAddNoteActive] = useState(false);
+
+  const handleAddNote = useCallback(() => {
+    window.dispatchEvent(new Event("lf:start-add-note"));
+    setIsAddNoteActive(true);
+  }, []);
+
+  useEffect(() => {
+    const onEnd = () => setIsAddNoteActive(false);
+    window.addEventListener("lf:end-add-note", onEnd);
+    return () => window.removeEventListener("lf:end-add-note", onEnd);
+  }, []);
 
   useEffect(() => {
     reactFlowStoreApi.setState({
@@ -96,31 +106,24 @@ const CanvasControls = ({
             />
           </Button>
         </div>
-        <Button
-          unstyled
-          size="icon"
-          className="group flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
-          title="Undo"
-          onClick={undo}
-        >
-          <ForwardedIconComponent
-            name="Undo2"
-            className="h-[18px] w-[18px] text-muted-foreground group-hover:text-foreground"
-          />
-        </Button>
-        <Button
-          unstyled
-          size="icon"
-          className="group flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
-          title="Redo"
-          onClick={redo}
-        >
-          <ForwardedIconComponent
-            name="Redo2"
-            className="h-[18px] w-[18px] text-muted-foreground group-hover:text-foreground"
-          />
-        </Button>
         <CanvasControlsDropdown selectedNode={selectedNode} />
+        <Button
+          unstyled
+          size="icon"
+          data-testid="canvas-add-note-button"
+          className="group flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
+          title="Add Sticky Note"
+          onClick={handleAddNote}
+        >
+          <ForwardedIconComponent
+            name="sticky-note"
+            className={`h-[18px] w-[18px] transition-colors ${
+              isAddNoteActive
+                ? "text-foreground"
+                : "text-muted-foreground group-hover:text-foreground"
+            }`}
+          />
+        </Button>
         <HelpDropdown />
         {children}
         {ENABLE_INSPECTION_PANEL && (

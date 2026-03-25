@@ -1,9 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import CanvasControls from "../CanvasControls";
 
-const mockUndo = jest.fn();
-const mockRedo = jest.fn();
-
 const reactFlowFns = {
   fitView: jest.fn(),
   zoomIn: jest.fn(),
@@ -35,10 +32,7 @@ jest.mock("@/stores/flowStore", () => ({
 jest.mock("@/stores/flowsManagerStore", () => ({
   __esModule: true,
   default: jest.fn((selector) => {
-    const state = {
-      undo: mockUndo,
-      redo: mockRedo,
-    };
+    const state = {};
     return selector(state);
   }),
 }));
@@ -89,8 +83,16 @@ jest.mock("zustand/react/shallow", () => ({
 }));
 
 describe("CanvasControls", () => {
+  const mockDispatchEvent = jest.fn();
+  const originalDispatchEvent = window.dispatchEvent;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    window.dispatchEvent = mockDispatchEvent;
+  });
+
+  afterEach(() => {
+    window.dispatchEvent = originalDispatchEvent;
   });
 
   it("should_render_panel_with_all_controls_when_mounted", () => {
@@ -98,6 +100,7 @@ describe("CanvasControls", () => {
 
     expect(screen.getByTestId("main_canvas_controls")).toBeInTheDocument();
     expect(screen.getByTestId("controls-dropdown")).toBeInTheDocument();
+    expect(screen.getByTestId("help-dropdown")).toBeInTheDocument();
   });
 
   it("should_render_assistant_button_with_new_badge", () => {
@@ -107,36 +110,22 @@ describe("CanvasControls", () => {
     expect(screen.getByAltText("Langflow Assistant")).toBeInTheDocument();
   });
 
-  it("should_render_undo_button_with_icon", () => {
+  it("should_render_sticky_note_button", () => {
     render(<CanvasControls selectedNode={null} />);
 
-    expect(screen.getByTitle("Undo")).toBeInTheDocument();
-    expect(screen.getByTestId("icon-Undo2")).toBeInTheDocument();
+    expect(screen.getByTitle("Add Sticky Note")).toBeInTheDocument();
+    expect(screen.getByTestId("icon-sticky-note")).toBeInTheDocument();
   });
 
-  it("should_render_redo_button_with_icon", () => {
+  it("should_dispatch_add_note_event_when_sticky_note_clicked", () => {
     render(<CanvasControls selectedNode={null} />);
 
-    expect(screen.getByTitle("Redo")).toBeInTheDocument();
-    expect(screen.getByTestId("icon-Redo2")).toBeInTheDocument();
-  });
+    const stickyNoteButton = screen.getByTitle("Add Sticky Note");
+    fireEvent.click(stickyNoteButton);
 
-  it("should_call_undo_when_undo_button_clicked", () => {
-    render(<CanvasControls selectedNode={null} />);
-
-    const undoButton = screen.getByTitle("Undo");
-    fireEvent.click(undoButton);
-
-    expect(mockUndo).toHaveBeenCalledTimes(1);
-  });
-
-  it("should_call_redo_when_redo_button_clicked", () => {
-    render(<CanvasControls selectedNode={null} />);
-
-    const redoButton = screen.getByTitle("Redo");
-    fireEvent.click(redoButton);
-
-    expect(mockRedo).toHaveBeenCalledTimes(1);
+    expect(mockDispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "lf:start-add-note" }),
+    );
   });
 
   it("should_render_children_when_provided", () => {
