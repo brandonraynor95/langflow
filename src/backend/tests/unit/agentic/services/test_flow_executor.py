@@ -135,7 +135,7 @@ class TestRunGraphWithEvents:
 
         mock_graph.async_start = mock_async_start
 
-        event_queue = asyncio.Queue()
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
         event_manager = MagicMock()
         execution_result = FlowExecutionResult()
 
@@ -165,7 +165,7 @@ class TestRunGraphWithEvents:
 
         mock_graph.async_start = mock_async_start
 
-        event_queue = asyncio.Queue()
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
         execution_result = FlowExecutionResult()
 
         await _run_graph_with_events(
@@ -195,7 +195,7 @@ class TestRunGraphWithEvents:
 
         mock_graph.async_start = mock_async_start
 
-        event_queue = asyncio.Queue()
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
         execution_result = FlowExecutionResult()
 
         await _run_graph_with_events(
@@ -226,7 +226,7 @@ class TestRunGraphWithEvents:
 
         mock_graph.async_start = mock_async_start
 
-        event_queue = asyncio.Queue()
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
         execution_result = FlowExecutionResult()
 
         await _run_graph_with_events(
@@ -516,7 +516,7 @@ class TestBugsAndEdgeCases:
 
         mock_graph.async_start = empty_gen
 
-        event_queue = asyncio.Queue()
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
         execution_result = FlowExecutionResult()
 
         await _run_graph_with_events(
@@ -545,7 +545,7 @@ class TestBugsAndEdgeCases:
 
         mock_graph.async_start = empty_gen
 
-        event_queue = asyncio.Queue()
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
         execution_result = FlowExecutionResult()
 
         with patch(f"{MODULE}.extract_structured_result", return_value={}):

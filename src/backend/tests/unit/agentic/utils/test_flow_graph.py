@@ -59,7 +59,7 @@ def _make_graph(vertex_ids=None, edge_pairs=None):
         edges.append(e)
     graph.edges = edges
 
-    graph.__repr__ = lambda _self: "Graph(vertices=2, edges=1)"
+    graph.__repr__ = MagicMock(return_value="Graph(vertices=2, edges=1)")  # type: ignore[method-assign]
     return graph
 
 

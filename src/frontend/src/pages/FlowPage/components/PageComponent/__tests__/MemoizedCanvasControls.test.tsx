@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 
-const mockSaveFlow = jest.fn(() => Promise.resolve());
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSaveFlow: jest.Mock<Promise<void>, any[]> = jest.fn(() => Promise.resolve());
 const mockSetCurrentFlow = jest.fn();
 
 const mockCurrentFlow = {
@@ -102,6 +103,7 @@ describe("MemoizedCanvasControls", () => {
     setIsAddingNote: jest.fn(),
     shadowBoxWidth: 100,
     shadowBoxHeight: 100,
+    selectedNode: null,
   };
 
   beforeEach(() => {
@@ -148,8 +150,8 @@ describe("MemoizedCanvasControls", () => {
     expect(mockSaveFlow).toHaveBeenCalledTimes(1);
     expect(mockSetCurrentFlow).toHaveBeenCalledTimes(1);
 
-    const savedFlow = mockSaveFlow.mock.calls[0][0];
-    expect(savedFlow.locked).toBe(true);
+    const savedFlow = (mockSaveFlow.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown> | undefined;
+    expect(savedFlow?.locked).toBe(true);
   });
 
   it("should_toggle_lock_state_from_locked_to_unlocked", () => {
@@ -160,8 +162,8 @@ describe("MemoizedCanvasControls", () => {
     const lockButton = screen.getByTestId("lock-status");
     fireEvent.click(lockButton);
 
-    const savedFlow = mockSaveFlow.mock.calls[0][0];
-    expect(savedFlow.locked).toBe(false);
+    const savedFlow = (mockSaveFlow.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown> | undefined;
+    expect(savedFlow?.locked).toBe(false);
   });
 
   it("should_apply_destructive_color_class_when_flow_is_locked", () => {

@@ -428,9 +428,10 @@ class TestValidationRetryBehavior:
 
         assert len(captured_inputs) == 2
         assert captured_inputs[0] == "create a component"
-        assert "error" in captured_inputs[1].lower()
-        assert "fix" in captured_inputs[1].lower() or "correct" in captured_inputs[1].lower()
-        assert INVALID_COMPONENT_CODE.strip() in captured_inputs[1] or "BrokenComponent" in captured_inputs[1]
+        retry_input = str(captured_inputs[1])
+        assert "error" in retry_input.lower()
+        assert "fix" in retry_input.lower() or "correct" in retry_input.lower()
+        assert INVALID_COMPONENT_CODE.strip() in retry_input or "BrokenComponent" in retry_input
 
 
 class TestNonStreamingValidation:

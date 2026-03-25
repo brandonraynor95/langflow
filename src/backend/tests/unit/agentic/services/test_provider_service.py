@@ -387,8 +387,8 @@ class TestBugsAndEdgeCases:
             await get_enabled_providers_for_user("user-1", mock_session)
 
     @pytest.mark.asyncio
-    async def test_get_enabled_providers_with_none_var_name_in_mapping(self):
-        """Mapping with None var_name: 'None in credential_names' returns False."""
+    async def test_get_enabled_providers_with_no_required_keys(self):
+        """Provider with no required keys is enabled (vacuous truth on empty list)."""
         from langflow.services.variable.service import DatabaseVariableService
 
         mock_cred = MagicMock()
@@ -404,13 +404,17 @@ class TestBugsAndEdgeCases:
             patch("langflow.agentic.services.provider_service.get_variable_service", return_value=mock_db_service),
             patch(
                 "langflow.agentic.services.provider_service.get_model_provider_variable_mapping",
-                return_value={"BrokenProvider": None, "Anthropic": "ANTHROPIC_API_KEY"},
+                return_value={"NoKeysProvider": None, "Anthropic": "ANTHROPIC_API_KEY"},
+            ),
+            patch(
+                "langflow.agentic.services.provider_service.get_provider_required_variable_keys",
+                side_effect=lambda p: [] if p == "NoKeysProvider" else ["ANTHROPIC_API_KEY"],
             ),
         ):
             enabled, status = await get_enabled_providers_for_user("user-1", mock_session)
 
-        assert "BrokenProvider" not in enabled
-        assert status["BrokenProvider"] is False
+        assert "NoKeysProvider" in enabled
+        assert status["NoKeysProvider"] is True
         assert "Anthropic" in enabled
 
     def test_get_default_model_returns_none_for_model_without_name_key(self):
