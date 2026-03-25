@@ -103,7 +103,10 @@ export function AssistantComponentResult({
   };
 
   return (
-    <div data-testid="assistant-component-result" className="max-w-[80%] rounded-lg border border-border bg-muted/30 p-4">
+    <div
+      data-testid="assistant-component-result"
+      className="max-w-[80%] rounded-lg border border-border bg-muted/30 p-4"
+    >
       {/* Component header */}
       <div className="mb-3 flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#0EA5E9]">

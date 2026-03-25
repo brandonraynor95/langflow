@@ -95,10 +95,7 @@ export function useAssistantChat(): UseAssistantChatReturn {
           {
             onProgress: (event) => {
               // When transitioning to a new step, mark the previous one as completed
-              if (
-                currentStepTracked &&
-                event.step !== currentStepTracked
-              ) {
+              if (currentStepTracked && event.step !== currentStepTracked) {
                 completedSteps.push(currentStepTracked);
               }
               currentStepTracked = event.step;
@@ -113,8 +110,7 @@ export function useAssistantChat(): UseAssistantChatReturn {
                   error: event.error,
                   // Preserve componentCode and className from previous
                   // progress if the new event doesn't include them
-                  className:
-                    event.class_name ?? msg.progress?.className,
+                  className: event.class_name ?? msg.progress?.className,
                   componentCode:
                     event.component_code ?? msg.progress?.componentCode,
                 },

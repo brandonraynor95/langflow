@@ -97,9 +97,7 @@ test.describe("Assistant Panel Integration", { tag: ["@release"] }, () => {
       await expect(
         page.getByTestId("assistant-view-code-button"),
       ).toBeVisible();
-      await expect(
-        page.getByTestId("assistant-approve-button"),
-      ).toBeVisible();
+      await expect(page.getByTestId("assistant-approve-button")).toBeVisible();
 
       // Approve adds to canvas and closes panel
       await page.getByTestId("assistant-approve-button").click();
@@ -118,9 +116,7 @@ test.describe("Assistant Panel Integration", { tag: ["@release"] }, () => {
     test.setTimeout(180_000);
 
     const textarea = page.getByTestId("assistant-input-textarea");
-    await textarea.fill(
-      "Create a component that reverses a string input",
-    );
+    await textarea.fill("Create a component that reverses a string input");
     await page.getByTestId("assistant-send-button").click();
 
     await page.waitForFunction(
@@ -213,9 +209,7 @@ test.describe("Assistant Panel Integration", { tag: ["@release"] }, () => {
     // Clear history
     await page.getByTestId("assistant-new-session").click();
 
-    await expect(
-      page.getByTestId("assistant-message-user"),
-    ).not.toBeVisible();
+    await expect(page.getByTestId("assistant-message-user")).not.toBeVisible();
     await expect(
       page.getByTestId("assistant-message-assistant"),
     ).not.toBeVisible();

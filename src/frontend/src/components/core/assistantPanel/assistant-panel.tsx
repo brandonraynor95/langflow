@@ -215,7 +215,12 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
       };
 
   return (
-    <div ref={panelRef} data-testid="assistant-panel" className={containerClasses} style={containerStyle}>
+    <div
+      ref={panelRef}
+      data-testid="assistant-panel"
+      className={containerClasses}
+      style={containerStyle}
+    >
       <div className="absolute inset-0 rounded-2xl bg-background" />
 
       <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden">

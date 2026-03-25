@@ -6,7 +6,10 @@ import { adjustScreenView } from "../../utils/adjust-screen-view";
 import { awaitBootstrapTest } from "../../utils/await-bootstrap-test";
 import { ensureCheckboxChecked } from "../../utils/ensure-checkbox-checked";
 import { generateRandomFilename } from "../../utils/generate-filename";
-import { disableInspectPanel, enableInspectPanel } from "../../utils/open-advanced-options";
+import {
+  disableInspectPanel,
+  enableInspectPanel,
+} from "../../utils/open-advanced-options";
 
 // Run tests in this file serially to avoid database conflicts with shared file state
 test.describe.configure({ mode: "serial" });
@@ -35,11 +38,9 @@ test(
     });
     await page.getByTestId("blank-flow").click();
 
-        await disableInspectPanel(page);
-    
+    await disableInspectPanel(page);
 
     await addLegacyComponents(page);
-    
 
     await page.getByTestId("sidebar-search-input").click();
     await page.getByTestId("sidebar-search-input").fill("file");
@@ -438,7 +439,6 @@ test(
 
     await disableInspectPanel(page);
 
-
     await addLegacyComponents(page);
 
     await page.getByTestId("sidebar-search-input").click();
@@ -820,7 +820,6 @@ test(
     await page.getByTestId("blank-flow").click();
 
     await disableInspectPanel(page);
-
 
     await addLegacyComponents(page);
 

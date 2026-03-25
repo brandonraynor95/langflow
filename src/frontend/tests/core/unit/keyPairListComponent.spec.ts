@@ -36,7 +36,6 @@ test(
       .getByTestId("amazonAmazon Bedrock")
       .dragTo(page.locator('//*[@id="react-flow-id"]'));
 
-
     await disableInspectPanel(page);
 
     await page.getByTestId("div-generic-node").click();
@@ -50,7 +49,6 @@ test(
     await adjustScreenView(page, {
       numberOfZoomOut: 2,
     });
-
 
     await page.locator('//*[@id="keypair0"]').click();
     await page.locator('//*[@id="keypair0"]').fill("testtesttesttest");

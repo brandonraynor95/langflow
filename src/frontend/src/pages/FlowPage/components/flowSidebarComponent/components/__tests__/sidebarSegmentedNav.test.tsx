@@ -431,5 +431,4 @@ describe("SidebarSegmentedNav", () => {
     expect(mockUseSidebar.setActiveSection).toHaveBeenCalledWith("components");
     expect(mockUseSidebar.toggleSidebar).not.toHaveBeenCalled();
   });
-
 });
