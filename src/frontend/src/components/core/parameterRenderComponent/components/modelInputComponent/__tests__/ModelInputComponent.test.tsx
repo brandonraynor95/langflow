@@ -523,6 +523,43 @@ describe("ModelInputComponent", () => {
       mockCloudOnly = false;
     });
 
+    it("should show a cloud-specific empty state when every provider is filtered out", async () => {
+      mockCloudOnly = true;
+      const user = userEvent.setup();
+      const handleOnNewValue = jest.fn();
+
+      renderWithQueryClient(
+        <ModelInputComponent
+          {...defaultProps}
+          options={[
+            {
+              id: "llama3",
+              name: "llama3",
+              icon: "Ollama",
+              provider: "Ollama",
+              metadata: {},
+            },
+          ]}
+          value={[]}
+          handleOnNewValue={handleOnNewValue}
+        />,
+      );
+
+      expect(
+        screen.getByText("No cloud-compatible models"),
+      ).toBeInTheDocument();
+      expect(handleOnNewValue).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("combobox"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("refresh-model-list")).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("llama3-option")).not.toBeInTheDocument();
+
+      mockCloudOnly = false;
+    });
+
     it("should show all providers when cloud mode is inactive", () => {
       mockCloudOnly = false;
 

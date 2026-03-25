@@ -298,15 +298,16 @@ export function ParameterRenderComponent({
       case "sortableList": {
         // Filter out cloud-incompatible options when cloud mode is active
         let sortableOptions = templateData?.options;
+        let cloudIncompatibleOptions: unknown[] = [];
         if (cloudOnly && nodeMetadata?.cloud_incompatible_options) {
           const incompatible = nodeMetadata.cloud_incompatible_options[name];
           if (incompatible && Array.isArray(incompatible)) {
+            cloudIncompatibleOptions = incompatible;
             sortableOptions = sortableOptions?.filter((opt: unknown) => {
               const optionName =
                 typeof opt === "object" && opt !== null && "name" in opt
                   ? ((opt as { name?: unknown }).name ?? opt)
                   : opt;
-
               return !incompatible.includes(optionName);
             });
           }
@@ -317,6 +318,7 @@ export function ParameterRenderComponent({
             helperText={templateData?.helper_text}
             helperMetadata={templateData?.helper_text_metadata}
             options={sortableOptions}
+            cloudIncompatibleOptions={cloudIncompatibleOptions}
             searchCategory={templateData?.search_category}
             limit={templateData?.limit}
             id={`sortablelist_${id}`}

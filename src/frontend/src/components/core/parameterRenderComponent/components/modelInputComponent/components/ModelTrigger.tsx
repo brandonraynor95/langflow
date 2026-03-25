@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { RECEIVING_INPUT_VALUE } from "@/constants/constants";
 import { cn } from "@/utils/utils";
-import { ModelOption, SelectedModel } from "../types";
+import type { SelectedModel } from "../types";
 
 interface ModelTriggerProps {
   open: boolean;
   disabled: boolean;
-  options: ModelOption[];
+  visibleOptionsCount: number;
   selectedModel: SelectedModel | null;
   showCloudIncompatibleWarning?: boolean;
   placeholder?: string;
@@ -18,12 +18,13 @@ interface ModelTriggerProps {
   id: string;
   refButton: RefObject<HTMLButtonElement | null>;
   showEmptyState?: boolean;
+  emptyStateLabel?: string;
 }
 
 const ModelTrigger = ({
   open,
   disabled,
-  options,
+  visibleOptionsCount,
   selectedModel,
   showCloudIncompatibleWarning = false,
   placeholder = "Setup Provider",
@@ -32,9 +33,12 @@ const ModelTrigger = ({
   id,
   refButton,
   showEmptyState = false,
+  emptyStateLabel = "No models enabled",
 }: ModelTriggerProps) => {
+  const hasVisibleOptions = visibleOptionsCount > 0;
+
   const renderSelectedIcon = () => {
-    if (disabled || options.length === 0) {
+    if (disabled) {
       return null;
     }
 
@@ -47,9 +51,9 @@ const ModelTrigger = ({
   };
 
   // Check if we're in empty state mode (showEmptyState=true and no options)
-  const isEmptyStateMode = showEmptyState && options.length === 0;
+  const isEmptyStateMode = showEmptyState && !hasVisibleOptions;
 
-  if (!hasEnabledProviders && !showEmptyState && options.length === 0) {
+  if (!hasEnabledProviders && !showEmptyState && !hasVisibleOptions) {
     return (
       <Button
         variant="default"
@@ -67,7 +71,10 @@ const ModelTrigger = ({
     <div className="flex w-full flex-col">
       <PopoverTrigger asChild>
         <Button
-          disabled={disabled || (options.length === 0 && !showEmptyState)}
+          disabled={
+            disabled ||
+            (!hasVisibleOptions && !isEmptyStateMode && !selectedModel)
+          }
           variant="primary"
           size="xs"
           role="combobox"
@@ -89,7 +96,7 @@ const ModelTrigger = ({
                 RECEIVING_INPUT_VALUE
               ) : isEmptyStateMode ? (
                 <div className="truncate text-muted-foreground">
-                  No models enabled
+                  {emptyStateLabel}
                 </div>
               ) : (
                 <div className="flex min-w-0 flex-col items-start">

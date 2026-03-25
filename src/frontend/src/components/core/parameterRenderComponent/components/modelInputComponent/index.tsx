@@ -162,6 +162,16 @@ export default function ModelInputComponent({
     [cloudOnly, selectedModel?.provider],
   );
 
+  const showNoCompatibleCloudModels = useMemo(
+    () => cloudOnly && options.length > 0 && flatOptions.length === 0 && !selectedModel,
+    [cloudOnly, options.length, flatOptions.length, selectedModel],
+  );
+
+  const effectiveShowEmptyState = showEmptyState || showNoCompatibleCloudModels;
+  const emptyStateLabel = showNoCompatibleCloudModels
+    ? "No cloud-compatible models"
+    : "No models enabled";
+
   useEffect(() => {
     // Only proceed if we have options and haven't selected a value
     if (flatOptions.length > 0 && (!value || value.length === 0)) {
@@ -333,7 +343,7 @@ export default function ModelInputComponent({
 
   // Loading state (skip if showEmptyState is true - we want to show the empty dropdown instead)
   if (
-    ((!options || options.length === 0) && !showEmptyState) ||
+    ((!options || options.length === 0) && !effectiveShowEmptyState) ||
     isRefreshingAfterClose ||
     refreshOptions
   ) {
@@ -348,7 +358,7 @@ export default function ModelInputComponent({
           <ModelTrigger
             open={open}
             disabled={disabled}
-            options={options}
+            visibleOptionsCount={flatOptions.length}
             selectedModel={selectedModel}
             showCloudIncompatibleWarning={showCloudIncompatibleWarning}
             placeholder={placeholder}
@@ -356,7 +366,8 @@ export default function ModelInputComponent({
             onOpenManageProviders={() => setOpenManageProvidersDialog(true)}
             id={id}
             refButton={refButton}
-            showEmptyState={showEmptyState}
+            showEmptyState={effectiveShowEmptyState}
+            emptyStateLabel={emptyStateLabel}
           />
         </div>
         {renderPopoverContent()}

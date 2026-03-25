@@ -14,6 +14,7 @@ type SortableListComponentProps = {
   helperText?: string;
   helperMetadata?: any;
   options?: any[];
+  cloudIncompatibleOptions?: unknown[];
   searchCategory?: string[];
   icon?: string;
   limit?: number;
@@ -25,16 +26,23 @@ const SortableListItem = memo(
     index,
     onRemove,
     limit = 1,
+    showCloudIncompatibleWarning = false,
   }: {
     data: any;
     index: number;
     onRemove: () => void;
     limit?: number;
+    showCloudIncompatibleWarning?: boolean;
   }) => (
     <li
       className={cn(
-        "inline-flex h-12 w-full items-center gap-2 text-sm font-medium",
-        limit === 1 ? "h-6 rounded-md bg-muted" : "group cursor-grab",
+        "inline-flex w-full items-center gap-2 text-sm font-medium",
+        limit === 1
+          ? cn(
+              "rounded-md bg-muted",
+              showCloudIncompatibleWarning ? "min-h-10 py-1" : "h-6",
+            )
+          : "group min-h-12 cursor-grab",
       )}
     >
       {limit !== 1 && (
@@ -51,14 +59,22 @@ const SortableListItem = memo(
           </div>
         )}
 
-        <span
-          className={cn(
-            "truncate text-xxs font-medium text-muted-foreground",
-            limit === 1 ? "max-w-56 pl-2" : "max-w-48",
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span
+            className={cn(
+              "truncate text-xxs font-medium text-muted-foreground",
+              limit === 1 ? "max-w-56 pl-2" : "max-w-48",
+            )}
+          >
+            {data.name}
+          </span>
+          {showCloudIncompatibleWarning && (
+            <div className="flex items-center gap-1 pl-2 text-[11px] text-accent-emerald-foreground">
+              <ForwardedIconComponent name="CloudOff" className="h-3 w-3" />
+              <span>Not available in cloud</span>
+            </div>
           )}
-        >
-          {data.name}
-        </span>
+        </div>
       </div>
       <Button
         size="icon"
@@ -84,6 +100,7 @@ const SortableListComponent = ({
   helperText = "",
   helperMetadata = { icon: undefined, variant: "muted-foreground" },
   options = [],
+  cloudIncompatibleOptions = [],
   searchCategory = [],
   limit,
   id,
@@ -95,6 +112,18 @@ const SortableListComponent = ({
 
   // Convert value to an array if it exists, otherwise use empty array
   const listData = useMemo(() => (Array.isArray(value) ? value : []), [value]);
+
+  const isCloudIncompatibleOption = useCallback(
+    (item: unknown) => {
+      const itemName =
+        typeof item === "object" && item !== null && "name" in item
+          ? (item as { name?: unknown }).name ?? item
+          : item;
+
+      return cloudIncompatibleOptions.some((option) => option === itemName);
+    },
+    [cloudIncompatibleOptions],
+  );
 
   const createRemoveHandler = useCallback(
     (index: number) => () => {
@@ -195,6 +224,7 @@ const SortableListComponent = ({
                 index={index}
                 onRemove={createRemoveHandler(index)}
                 limit={limit}
+                showCloudIncompatibleWarning={isCloudIncompatibleOption(data)}
               />
             ))}
           </ReactSortable>
