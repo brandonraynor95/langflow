@@ -277,7 +277,9 @@ export const isMockMemoriesEnabled = () => {
   // reference it directly at parse-time.
   let flag: unknown;
   try {
-    flag = Function("return import.meta && import.meta.env && import.meta.env.VITE_MOCK_MEMORIES_API")();
+    flag = Function(
+      "return import.meta && import.meta.env && import.meta.env.VITE_MOCK_MEMORIES_API",
+    )();
   } catch {
     flag = undefined;
   }

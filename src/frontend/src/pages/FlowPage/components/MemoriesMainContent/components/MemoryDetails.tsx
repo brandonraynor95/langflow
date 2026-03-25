@@ -37,10 +37,7 @@ export function MemoryDetails({
       />
 
       <div className="flex flex-1 flex-col overflow-auto p-4">
-        <MemoryStatusBanners
-          memory={memory}
-          isProcessing={isProcessing}
-        />
+        <MemoryStatusBanners memory={memory} isProcessing={isProcessing} />
 
         <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
           <SummaryCard
