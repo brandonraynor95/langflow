@@ -48,8 +48,9 @@ export function AssistantMessageItem({
     message.result?.validated && message.result?.componentCode;
   const hasValidationError =
     message.result?.validated === false && message.result?.validationError;
+  // Skip animation if the message is already complete on mount (e.g. panel was closed and reopened)
   const [validationAnimationComplete, setValidationAnimationComplete] =
-    useState(false);
+    useState(message.status === "complete");
 
   // Timeout fallback: if message is complete but user hasn't clicked Continue,
   // force transition after 30s to prevent indefinitely stuck loading states

@@ -465,13 +465,9 @@ describe("useAssistantChat", () => {
   });
 
   describe("bugs and edge cases", () => {
-    it.failing(
-      "BUG: completedSteps should track step transitions — array stays empty forever",
+    it(
+      "completedSteps should track step transitions",
       async () => {
-        // L69: completedSteps = [] (empty)
-        // L82: event.step !== completedSteps[completedSteps.length - 1] → always true (undefined)
-        // L83: if (completedSteps.length > 0) → always false because array is empty
-        // Nothing is ever pushed → completedSteps stays [] for the entire session.
         const progressSteps: string[] = [];
 
         mockPostAssistStream.mockImplementation(
@@ -514,13 +510,9 @@ describe("useAssistantChat", () => {
       },
     );
 
-    it.failing(
-      "BUG: completedSteps should contain the previous step when a new step arrives",
+    it(
+      "completedSteps should contain the previous step when a new step arrives",
       async () => {
-        // L83: The inner `if (completedSteps.length > 0)` check means the very first
-        // step transition never records anything. Even if the outer check passes,
-        // the array starts at length 0, so the push is skipped.
-        // Additionally, L84-86 pushes completedSteps[last] instead of event.step.
         mockPostAssistStream.mockImplementation(
           async (_request: unknown, callbacks: Record<string, Function>) => {
             callbacks.onProgress({

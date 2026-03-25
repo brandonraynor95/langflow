@@ -29,6 +29,9 @@ class _ReturnChecker(ast.NodeVisitor):
                 break
         self.generic_visit(node)
 
+    # Langflow components commonly use async output methods
+    visit_AsyncFunctionDef = visit_FunctionDef
+
 
 def _extract_class_name_regex(code: str) -> str | None:
     """Extract class name using regex (fallback for syntax errors)."""

@@ -1,6 +1,6 @@
 """Tests for provider service.
 
-Tests PREFERRED_PROVIDERS, get_default_provider, get_default_model,
+Tests PREFERRED_PROVIDERS, get_default_model,
 check_api_key, and get_enabled_providers_for_user.
 """
 
@@ -13,7 +13,6 @@ from langflow.agentic.services.provider_service import (
     PREFERRED_PROVIDERS,
     check_api_key,
     get_default_model,
-    get_default_provider,
     get_enabled_providers_for_user,
 )
 
@@ -54,39 +53,6 @@ class TestDefaultModels:
         assert result is None
 
 
-class TestGetDefaultProvider:
-    """Tests for get_default_provider function."""
-
-    def test_should_return_first_preferred_when_available(self):
-        """Should return first preferred provider when available."""
-        enabled = ["OpenAI", "Anthropic", "Groq"]
-        result = get_default_provider(enabled)
-        assert result == "Anthropic"
-
-    def test_should_return_second_preferred_when_first_not_available(self):
-        """Should return second preferred when first is not available."""
-        enabled = ["OpenAI", "Groq"]
-        result = get_default_provider(enabled)
-        assert result == "OpenAI"
-
-    def test_should_return_first_enabled_when_no_preferred_available(self):
-        """Should return first enabled when no preferred provider available."""
-        enabled = ["CustomProvider", "AnotherProvider"]
-        result = get_default_provider(enabled)
-        assert result == "CustomProvider"
-
-    def test_should_return_none_for_empty_list(self):
-        """Should return None when no providers enabled."""
-        result = get_default_provider([])
-        assert result is None
-
-    def test_should_respect_preferred_order(self):
-        """Should respect the order of PREFERRED_PROVIDERS."""
-        enabled = ["Groq", "Google Generative AI", "OpenAI"]
-        result = get_default_provider(enabled)
-        assert result == "OpenAI"
-
-
 class TestGetDefaultModel:
     """Tests for get_default_model function."""
 
@@ -118,13 +84,11 @@ class TestProviderServiceIntegration:
             model = get_default_model(provider)
             assert model is not None, f"No default model for preferred provider {provider}"
 
-    def test_get_default_provider_returns_valid_provider(self):
-        """get_default_provider should return a provider with a default model."""
-        enabled = PREFERRED_PROVIDERS.copy()
-        provider = get_default_provider(enabled)
-        assert provider is not None
-        model = get_default_model(provider)
-        assert model is not None
+    def test_core_preferred_providers_have_default_models(self):
+        """Core preferred providers (Anthropic, OpenAI) should have default models."""
+        for provider in ["Anthropic", "OpenAI"]:
+            model = get_default_model(provider)
+            assert model is not None, f"No default model for preferred provider {provider}"
 
 
 class TestCheckApiKey:

@@ -75,14 +75,6 @@ async def check_api_key(
     return api_key
 
 
-def get_default_provider(enabled_providers: list[str]) -> str | None:
-    """Get the default provider from enabled providers based on priority."""
-    for preferred in PREFERRED_PROVIDERS:
-        if preferred in enabled_providers:
-            return preferred
-    return enabled_providers[0] if enabled_providers else None
-
-
 def get_default_model(provider: str) -> str | None:
     """Get the default model for a provider dynamically from the unified models registry."""
     models_by_provider = get_unified_models_detailed(

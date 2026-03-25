@@ -36,6 +36,20 @@ export function useAssistantChat(): UseAssistantChatReturn {
   const addComponent = useAddComponent();
   const { mutateAsync: validateComponent } = usePostValidateComponentCode();
 
+  const updateMessage = useCallback(
+    (
+      messageId: string,
+      updater: (msg: AssistantMessage) => Partial<AssistantMessage>,
+    ) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, ...updater(msg) } : msg,
+        ),
+      );
+    },
+    [],
+  );
+
   const handleSend = useCallback(
     async (content: string, model: AssistantModel | null) => {
       if (isProcessing) return;
@@ -67,6 +81,7 @@ export function useAssistantChat(): UseAssistantChatReturn {
       abortControllerRef.current = new AbortController();
 
       const completedSteps: AgenticStepType[] = [];
+      let currentStepTracked: AgenticStepType | null = null;
 
       try {
         await postAssistStream(
@@ -79,101 +94,67 @@ export function useAssistantChat(): UseAssistantChatReturn {
           },
           {
             onProgress: (event) => {
-              if (event.step !== completedSteps[completedSteps.length - 1]) {
-                if (completedSteps.length > 0) {
-                  completedSteps.push(
-                    completedSteps[completedSteps.length - 1],
-                  );
-                }
+              // When transitioning to a new step, mark the previous one as completed
+              if (
+                currentStepTracked &&
+                event.step !== currentStepTracked
+              ) {
+                completedSteps.push(currentStepTracked);
               }
+              currentStepTracked = event.step;
 
               setCurrentStep(event.step);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? {
-                        ...msg,
-                        progress: {
-                          step: event.step,
-                          attempt: event.attempt,
-                          maxAttempts: event.max_attempts,
-                          message: event.message,
-                          error: event.error,
-                          // Preserve componentCode and className from previous
-                          // progress if the new event doesn't include them
-                          className:
-                            event.class_name ?? msg.progress?.className,
-                          componentCode:
-                            event.component_code ?? msg.progress?.componentCode,
-                        },
-                        completedSteps: [...completedSteps],
-                      }
-                    : msg,
-                ),
-              );
+              updateMessage(assistantMessageId, (msg) => ({
+                progress: {
+                  step: event.step,
+                  attempt: event.attempt,
+                  maxAttempts: event.max_attempts,
+                  message: event.message,
+                  error: event.error,
+                  // Preserve componentCode and className from previous
+                  // progress if the new event doesn't include them
+                  className:
+                    event.class_name ?? msg.progress?.className,
+                  componentCode:
+                    event.component_code ?? msg.progress?.componentCode,
+                },
+                completedSteps: [...completedSteps],
+              }));
             },
             onToken: (event) => {
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? {
-                        ...msg,
-                        content: msg.content + event.chunk,
-                      }
-                    : msg,
-                ),
-              );
+              updateMessage(assistantMessageId, (msg) => ({
+                content: msg.content + event.chunk,
+              }));
             },
             onComplete: (event) => {
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? {
-                        ...msg,
-                        status: "complete",
-                        content: event.data.result || "",
-                        result: {
-                          content: event.data.result || "",
-                          validated: event.data.validated,
-                          className: event.data.class_name,
-                          componentCode: event.data.component_code,
-                          validationAttempts: event.data.validation_attempts,
-                          validationError: event.data.validation_error,
-                        },
-                      }
-                    : msg,
-                ),
-              );
+              updateMessage(assistantMessageId, () => ({
+                status: "complete" as const,
+                content: event.data.result || "",
+                result: {
+                  content: event.data.result || "",
+                  validated: event.data.validated,
+                  className: event.data.class_name,
+                  componentCode: event.data.component_code,
+                  validationAttempts: event.data.validation_attempts,
+                  validationError: event.data.validation_error,
+                },
+              }));
               setCurrentStep(null);
               setIsProcessing(false);
             },
             onError: (event) => {
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? {
-                        ...msg,
-                        status: "error",
-                        error: event.message,
-                      }
-                    : msg,
-                ),
-              );
+              updateMessage(assistantMessageId, () => ({
+                status: "error" as const,
+                error: event.message,
+              }));
               setCurrentStep(null);
               setIsProcessing(false);
             },
             onCancelled: () => {
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? {
-                        ...msg,
-                        status: "cancelled",
-                        progress: undefined,
-                      }
-                    : msg,
-                ),
-              );
+              updateMessage(assistantMessageId, () => ({
+                status: "cancelled" as const,
+                progress: undefined,
+              }));
               setCurrentStep(null);
               setIsProcessing(false);
             },
@@ -182,23 +163,16 @@ export function useAssistantChat(): UseAssistantChatReturn {
         );
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? {
-                    ...msg,
-                    status: "error",
-                    error: "Failed to connect to assistant",
-                  }
-                : msg,
-            ),
-          );
+          updateMessage(assistantMessageId, () => ({
+            status: "error" as const,
+            error: "Failed to connect to assistant",
+          }));
         }
         setCurrentStep(null);
         setIsProcessing(false);
       }
     },
-    [isProcessing, currentFlowId],
+    [isProcessing, currentFlowId, updateMessage],
   );
 
   const handleApprove = useCallback(
@@ -231,7 +205,7 @@ export function useAssistantChat(): UseAssistantChatReturn {
         msg.status === "streaming"
           ? {
               ...msg,
-              status: "cancelled",
+              status: "cancelled" as const,
               progress: undefined,
             }
           : msg,

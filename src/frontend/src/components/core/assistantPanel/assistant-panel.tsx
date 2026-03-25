@@ -134,6 +134,14 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
 
   const useExpandedSize = hasMessages || hasExpandedOnce;
   const [panelSize, setPanelSize] = useState(getStoredSize);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+
+  // Clean up resize listeners if the component unmounts mid-drag
+  useEffect(() => {
+    return () => {
+      resizeCleanupRef.current?.();
+    };
+  }, []);
 
   const handleEdgeResize = useCallback(
     (e: React.MouseEvent, edges: { x?: "left" | "right"; y?: "top" }) => {
@@ -164,17 +172,27 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
         });
       };
 
-      const handleMouseUp = () => {
+      const cleanup = () => {
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
+        resizeCleanupRef.current = null;
+      };
+
+      const handleMouseUp = () => {
+        cleanup();
         setPanelSize((prev) => {
-          localStorage.setItem(PANEL_SIZE_KEY, JSON.stringify(prev));
+          try {
+            localStorage.setItem(PANEL_SIZE_KEY, JSON.stringify(prev));
+          } catch {
+            // localStorage may be unavailable (private browsing)
+          }
           return prev;
         });
       };
 
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
+      resizeCleanupRef.current = cleanup;
     },
     [panelSize],
   );

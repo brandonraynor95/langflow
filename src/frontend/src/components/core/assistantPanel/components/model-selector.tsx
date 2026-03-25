@@ -10,9 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGetEnabledModels } from "@/controllers/API/queries/models/use-get-enabled-models";
-import { useGetModelProviders } from "@/controllers/API/queries/models/use-get-model-providers";
 import type { AssistantModel } from "../assistant-panel.types";
+import { useEnabledModels } from "../hooks";
 
 interface ModelSelectorProps {
   selectedModel: AssistantModel | null;
@@ -24,29 +23,7 @@ export function ModelSelector({
   onModelChange,
 }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: providersData = [], isLoading } = useGetModelProviders({});
-  const { data: enabledModelsData } = useGetEnabledModels();
-
-  // Filter only enabled providers and their ACTIVE models (toggled on by user)
-  const enabledProviders = useMemo(() => {
-    const enabledModels = enabledModelsData?.enabled_models || {};
-
-    return providersData
-      .filter((provider) => provider.is_enabled)
-      .map((provider) => {
-        const providerEnabledModels = enabledModels[provider.provider] || {};
-        return {
-          ...provider,
-          // Filter only models that are enabled AND not embeddings
-          models: provider.models.filter(
-            (model) =>
-              providerEnabledModels[model.model_name] === true &&
-              !model.model_name.includes("embedding"),
-          ),
-        };
-      })
-      .filter((provider) => provider.models.length > 0);
-  }, [providersData, enabledModelsData]);
+  const { filteredProviders: enabledProviders, isLoading } = useEnabledModels();
 
   // Flatten all models for easy selection
   const allModels = useMemo(() => {
@@ -56,7 +33,7 @@ export function ModelSelector({
         name: model.model_name,
         provider: provider.provider,
         displayName: model.model_name,
-        icon: provider.icon || "Bot",
+        icon: provider.icon,
       })),
     );
   }, [enabledProviders]);
@@ -158,14 +135,14 @@ export function ModelSelector({
                         name: model.model_name,
                         provider: provider.provider,
                         displayName: model.model_name,
-                        icon: provider.icon || "Bot",
+                        icon: provider.icon,
                       })
                     }
                     className="flex w-full cursor-pointer items-center rounded-md px-3 py-2"
                   >
                     <div className="flex w-full items-center gap-2">
                       <ForwardedIconComponent
-                        name={provider.icon || "Bot"}
+                        name={provider.icon}
                         className="h-4 w-4 shrink-0 text-primary ml-2"
                       />
                       <div className="truncate text-[13px]">

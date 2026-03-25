@@ -175,7 +175,7 @@ export function AssistantComponentResult({
             className="h-8 rounded-[10px] bg-white px-4 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-100"
             onClick={handleApprove}
           >
-            Approve
+            Add to Canvas
           </button>
         )}
         <button

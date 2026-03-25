@@ -399,27 +399,18 @@ class TestLoadGraphForExecution:
 class TestBugsAndEdgeCases:
     """Tests that challenge the code — exposing real bugs and untested edge cases."""
 
-    @pytest.mark.xfail(
-        reason="BUG: L55 no path traversal validation — FLOWS_BASE_PATH / '../secret.json' escapes base directory",
-        strict=True,
-    )
     def test_resolve_flow_path_traversal_escape(self, tmp_path):
-        """resolve_flow_path should reject paths that traverse outside FLOWS_BASE_PATH.
-
-        L55: FLOWS_BASE_PATH / '../secret.json' resolves to parent directory.
-        No validation that the resolved path stays within the base directory.
-        """
+        """resolve_flow_path should reject paths that traverse outside FLOWS_BASE_PATH."""
         flows_dir = tmp_path / "flows"
         flows_dir.mkdir()
         secret = tmp_path / "secret.json"
         secret.write_text('{"secret": true}')
 
         with patch("langflow.agentic.services.helpers.flow_loader.FLOWS_BASE_PATH", flows_dir):
-            # Should raise 404 — path escapes base directory
             with pytest.raises(HTTPException) as exc_info:
                 resolve_flow_path("../secret.json")
 
-            assert exc_info.value.status_code == 404
+            assert exc_info.value.status_code == 400
 
     def test_resolve_flow_path_empty_string_returns_directory(self, tmp_path):
         """L78: resolve_flow_path('') returns FLOWS_BASE_PATH directory as a 'json' file.
