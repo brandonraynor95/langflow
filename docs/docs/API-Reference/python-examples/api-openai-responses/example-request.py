@@ -12,7 +12,7 @@ headers = {
 payload = {
   "model": "$YOUR_FLOW_ID",
   "input": "Hello, how are you?",
-  "stream": false
+  "stream": False
 }
 
 response = requests.request("POST", url, headers=headers, json=payload)

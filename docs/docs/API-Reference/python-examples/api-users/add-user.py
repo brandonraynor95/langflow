@@ -1,20 +1,18 @@
 import os
+import uuid
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/users/"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"Content-Type": "application/json", "x-api-key": api_key}
 
 payload = {
-  "username": "newuser2",
-  "password": "securepassword123"
+    "username": f"docsuser_{uuid.uuid4().hex[:12]}",
+    "password": "securepassword123",
 }
 
-response = requests.request("POST", url, headers=headers, json=payload)
+response = requests.post(f"{base}/api/v1/users/", headers=headers, json=payload, timeout=30)
 response.raise_for_status()
-
 print(response.text)

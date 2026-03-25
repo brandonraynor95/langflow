@@ -2,14 +2,32 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/monitor/messages/session/01ce083d-748b-4b8d-97b6-33adbb6a528a?new_session_id=different_session_id"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
+flow_id = os.environ.get("FLOW_ID", "")
 
-headers = {
-    "accept": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"accept": "application/json", "x-api-key": api_key}
 
-response = requests.request("PATCH", url, headers=headers)
+list_resp = requests.get(
+    f"{base}/api/v1/monitor/messages",
+    headers=headers,
+    params={"flow_id": flow_id},
+    timeout=30,
+)
+list_resp.raise_for_status()
+messages = list_resp.json()
+if not messages:
+    print("No messages; cannot migrate session id.")
+    raise SystemExit(0)
+
+old_session_id = messages[0]["session_id"]
+new_session_id = f"{old_session_id}-migrated"
+
+response = requests.patch(
+    f"{base}/api/v1/monitor/messages/session/{old_session_id}",
+    headers=headers,
+    params={"new_session_id": new_session_id},
+    timeout=30,
+)
 response.raise_for_status()
-
 print(response.text)

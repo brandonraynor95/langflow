@@ -2,19 +2,17 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/users/10c1c6a2-ab8a-4748-8700-0e4832fd5ce8"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"Content-Type": "application/json", "x-api-key": api_key}
 
-payload = {
-  "is_active": true,
-  "is_superuser": true
-}
+who = requests.get(f"{base}/api/v1/users/whoami", headers=headers, timeout=30)
+who.raise_for_status()
+user_id = who.json()["id"]
 
-response = requests.request("PATCH", url, headers=headers, json=payload)
+payload = {"is_active": True}
+
+response = requests.patch(f"{base}/api/v1/users/{user_id}", headers=headers, json=payload, timeout=30)
 response.raise_for_status()
-
 print(response.text)

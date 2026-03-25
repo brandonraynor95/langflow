@@ -2,18 +2,23 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/users/10c1c6a2-ab8a-4748-8700-0e4832fd5ce8/reset-password"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"Content-Type": "application/json", "x-api-key": api_key}
 
-payload = {
-  "password": "newsecurepassword123"
-}
+who = requests.get(f"{base}/api/v1/users/whoami", headers=headers, timeout=30)
+who.raise_for_status()
+user_id = who.json()["id"]
 
-response = requests.request("PATCH", url, headers=headers, json=payload)
+# Must differ from the current password (default superuser is often langflow/langflow).
+payload = {"password": "DocsExampleResetPass2025!"}
+
+response = requests.patch(
+    f"{base}/api/v1/users/{user_id}/reset-password",
+    headers=headers,
+    json=payload,
+    timeout=30,
+)
 response.raise_for_status()
-
 print(response.text)

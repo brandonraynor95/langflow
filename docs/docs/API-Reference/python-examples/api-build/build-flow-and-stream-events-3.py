@@ -2,14 +2,17 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/build/123e4567-e89b-12d3-a456-426614174000/events?stream=false"
+base = os.environ.get("LANGFLOW_URL") or os.environ.get("LANGFLOW_SERVER_URL", "")
+job_id = os.environ.get("JOB_ID", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "accept": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+# Use the API's `event_delivery` query param to avoid keeping a streaming connection open.
+# For local smoke tests, polling returns a finite JSON response.
+url = f"{base}/api/v1/build/{job_id}/events?event_delivery=polling"
 
-response = requests.request("GET", url, headers=headers)
+headers = {"accept": "application/json", "x-api-key": api_key}
+
+response = requests.get(url, headers=headers, timeout=60)
 response.raise_for_status()
 
 print(response.text)

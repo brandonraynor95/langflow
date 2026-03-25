@@ -1,13 +1,21 @@
+const fs = require("fs");
+const path = require("path");
+
+const fixturesDir = path.join(__dirname, "../../fixtures");
+const defaultProjectZip = path.join(fixturesDir, "project-import.zip");
+const projectPath = process.env.PROJECT_IMPORT_FILE || defaultProjectZip;
+const projectBuf = fs.readFileSync(projectPath);
+const projectName = path.basename(projectPath);
+
 const url = `${process.env.LANGFLOW_URL ?? ""}/api/v1/projects/upload/`;
 
 const formData = new FormData();
-// Replace with a File/Blob for "20241230_135006_langflow_flows.zip" in your environment.
-formData.append("file", new Blob(["<file contents>"]), "20241230_135006_langflow_flows.zip");
+formData.append("file", new Blob([projectBuf], { type: "application/zip" }), projectName);
 
 const options = {
-  method: 'POST',
+  method: "POST",
   headers: {
-    "accept": `application/json`,
+    accept: "application/json",
     "x-api-key": `${process.env.LANGFLOW_API_KEY ?? ""}`,
   },
   body: formData,

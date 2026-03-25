@@ -1,13 +1,21 @@
+const fs = require("fs");
+const path = require("path");
+
+const fixturesDir = path.join(__dirname, "../../fixtures");
+const defaultFlowImport = path.join(fixturesDir, "flow-import.json");
+const flowImportPath = process.env.FLOW_IMPORT_FILE || defaultFlowImport;
+const flowBuf = fs.readFileSync(flowImportPath);
+const flowName = path.basename(flowImportPath);
+
 const url = `${process.env.LANGFLOW_URL ?? ""}/api/v1/flows/upload/?folder_id=${process.env.FOLDER_ID ?? ""}`;
 
 const formData = new FormData();
-// Replace with a File/Blob for "agent-with-astra-db-tool.json" in your environment.
-formData.append("file", new Blob(["<file contents>"]), "agent-with-astra-db-tool.json");
+formData.append("file", new Blob([flowBuf], { type: "application/json" }), flowName);
 
 const options = {
-  method: 'POST',
+  method: "POST",
   headers: {
-    "accept": `application/json`,
+    accept: "application/json",
     "x-api-key": `${process.env.LANGFLOW_API_KEY ?? ""}`,
   },
   body: formData,

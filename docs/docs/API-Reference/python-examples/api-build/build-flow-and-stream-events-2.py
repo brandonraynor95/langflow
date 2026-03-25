@@ -2,7 +2,7 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/build/123e4567-e89b-12d3-a456-426614174000/events"
+url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/build/{os.getenv("JOB_ID", "")}/events"
 
 headers = {
     "accept": f"application/json",

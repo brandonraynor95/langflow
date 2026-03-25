@@ -12,7 +12,7 @@ headers = {
 payload = {
   "model": "FLOW_ID",
   "input": "Explain quantum computing in simple terms",
-  "stream": false
+  "stream": False
 }
 
 response = requests.request("POST", url, headers=headers, json=payload)

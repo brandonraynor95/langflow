@@ -1,17 +1,35 @@
+import json
 import os
+from pathlib import Path
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/files/download/{os.getenv('FLOW_ID', '')}/2024-12-30_15-19-43_your_file.txt"
+base = os.environ.get("LANGFLOW_URL", "")
+flow_id = os.environ.get("FLOW_ID", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "accept": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+fixtures = Path(__file__).resolve().parents[2] / "fixtures"
+upload_path = Path(os.environ.get("SAMPLE_UPLOAD_FILE", str(fixtures / "sample-upload.txt")))
 
-response = requests.request("GET", url, headers=headers)
-response.raise_for_status()
+headers = {"accept": "application/json", "x-api-key": api_key}
 
-with open("downloaded_file.txt", "wb") as f:
-    f.write(response.content)
-print("Saved response to downloaded_file.txt")
+upload = requests.post(
+    f"{base}/api/v1/files/upload/{flow_id}",
+    headers=headers,
+    files={"file": (upload_path.name, upload_path.read_bytes(), "text/plain")},
+    timeout=30,
+)
+upload.raise_for_status()
+meta = upload.json()
+file_name = meta["file_path"].split("/")[-1]
+
+download = requests.get(
+    f"{base}/api/v1/files/download/{flow_id}/{file_name}",
+    headers=headers,
+    timeout=30,
+)
+download.raise_for_status()
+
+out_path = Path("downloaded_file.txt")
+out_path.write_bytes(download.content)
+print(json.dumps({"saved_bytes": len(download.content), "path": str(out_path), "upload": meta}))

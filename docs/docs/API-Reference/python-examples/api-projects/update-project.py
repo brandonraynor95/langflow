@@ -1,27 +1,19 @@
 import os
+import uuid
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/projects/b408ddb9-6266-4431-9be8-e04a62758331"
+base = os.environ.get("LANGFLOW_URL") or os.environ.get("LANGFLOW_SERVER_URL", "")
+project_id = os.environ.get("PROJECT_ID", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "accept": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"accept": "application/json", "Content-Type": "application/json", "x-api-key": api_key}
 
 payload = {
-  "name": "string",
-  "description": "string",
-  "parent_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "components": [
-    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-  ],
-  "flows": [
-    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-  ]
+    "name": f"docs-example-renamed-project-{uuid.uuid4().hex[:8]}",
+    "description": "Updated via API docs Python example",
 }
 
-response = requests.request("PATCH", url, headers=headers, json=payload)
+response = requests.patch(f"{base}/api/v1/projects/{project_id}", headers=headers, json=payload, timeout=30)
 response.raise_for_status()
-
 print(response.text)

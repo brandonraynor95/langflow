@@ -10,7 +10,7 @@ headers = {
 }
 
 files = {
-    "file": open("agent-with-astra-db-tool.json", "rb"),
+    "file": open(os.getenv("FLOW_IMPORT_FILE", "docs/docs/API-Reference/fixtures/flow-import.json"), "rb"),
 }
 
 response = requests.request("POST", url, headers=headers, files=files)

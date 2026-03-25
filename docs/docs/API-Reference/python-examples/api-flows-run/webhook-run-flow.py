@@ -2,18 +2,22 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_SERVER_URL', '')}/api/v1/webhook/{os.getenv('FLOW_ID', '')}"
+base = os.environ.get("LANGFLOW_URL") or os.environ.get("LANGFLOW_SERVER_URL", "")
+flow_id = os.environ.get("FLOW_ID", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
 headers = {
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
+    "Content-Type": "application/json",
+    "x-api-key": api_key,
 }
 
-payload = {
-  "data": "example-data"
-}
+payload = {"data": "example-data"}
 
-response = requests.request("POST", url, headers=headers, json=payload)
+response = requests.post(
+    f"{base}/api/v1/webhook/{flow_id}",
+    headers=headers,
+    json=payload,
+    timeout=60,
+)
 response.raise_for_status()
-
 print(response.text)

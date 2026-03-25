@@ -10,7 +10,7 @@ headers = {
 }
 
 files = {
-    "file": open("FILE_NAME.EXTENSION", "rb"),
+    "file": open(os.getenv("SAMPLE_UPLOAD_FILE", "docs/docs/API-Reference/fixtures/sample-upload.txt"), "rb"),
 }
 
 response = requests.request("POST", url, headers=headers, files=files)

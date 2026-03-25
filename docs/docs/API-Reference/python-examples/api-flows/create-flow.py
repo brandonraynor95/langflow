@@ -17,9 +17,9 @@ payload = {
   "icon_bg_color": "#FF0000",
   "gradient": "string",
   "data": {},
-  "is_component": false,
+  "is_component": False,
   "updated_at": "2024-12-30T15:48:01.519Z",
-  "webhook": false,
+  "webhook": False,
   "endpoint_name": "string",
   "tags": [
     "string"

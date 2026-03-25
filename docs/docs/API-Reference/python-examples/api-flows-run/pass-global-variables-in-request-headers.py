@@ -2,23 +2,23 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_SERVER_URL', '')}/api/v1/run/{os.getenv('FLOW_ID', '')}"
+base = os.environ.get("LANGFLOW_URL") or os.environ.get("LANGFLOW_SERVER_URL", "")
+flow_id = os.environ.get("FLOW_ID", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
 headers = {
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-    "X-LANGFLOW-GLOBAL-VAR-OPENAI_API_KEY": f"sk-...",
-    "X-LANGFLOW-GLOBAL-VAR-USER_ID": f"user123",
-    "X-LANGFLOW-GLOBAL-VAR-ENVIRONMENT": f"production",
+    "Content-Type": "application/json",
+    "x-api-key": api_key,
+    "X-LANGFLOW-GLOBAL-VAR-USER_ID": "user123",
+    "X-LANGFLOW-GLOBAL-VAR-ENVIRONMENT": "production",
 }
 
 payload = {
-  "input_value": "Tell me about something interesting!",
-  "input_type": "chat",
-  "output_type": "chat"
+    "input_value": "Tell me about something interesting!",
+    "input_type": "chat",
+    "output_type": "chat",
 }
 
-response = requests.request("POST", url, headers=headers, json=payload)
+response = requests.post(f"{base}/api/v1/run/{flow_id}", headers=headers, json=payload, timeout=60)
 response.raise_for_status()
-
 print(response.text)

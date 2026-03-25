@@ -1,15 +1,22 @@
 import os
+import uuid
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/users/10c1c6a2-ab8a-4748-8700-0e4832fd5ce8"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "accept": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"accept": "application/json", "Content-Type": "application/json", "x-api-key": api_key}
 
-response = requests.request("DELETE", url, headers=headers)
-response.raise_for_status()
+create = requests.post(
+    f"{base}/api/v1/users/",
+    headers=headers,
+    json={"username": f"docsdel_{uuid.uuid4().hex[:12]}", "password": "securepassword123"},
+    timeout=30,
+)
+create.raise_for_status()
+user_id = create.json()["id"]
 
-print(response.text)
+delete = requests.delete(f"{base}/api/v1/users/{user_id}", headers=headers, timeout=30)
+delete.raise_for_status()
+print(delete.text)

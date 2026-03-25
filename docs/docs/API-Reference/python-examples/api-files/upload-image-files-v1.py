@@ -9,7 +9,7 @@ headers = {
 }
 
 files = {
-    "file": open("PATH/TO/FILE.png", "rb"),
+    "file": open(os.getenv("SAMPLE_IMAGE_FILE", "docs/docs/API-Reference/fixtures/sample-upload.png"), "rb"),
 }
 
 response = requests.request("POST", url, headers=headers, files=files)

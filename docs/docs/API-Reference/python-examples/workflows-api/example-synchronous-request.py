@@ -2,24 +2,19 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_SERVER_URL', '')}/api/v2/workflows"
+base = os.environ.get("LANGFLOW_URL") or os.environ.get("LANGFLOW_SERVER_URL", "")
+flow_id = os.environ.get("FLOW_ID", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"Content-Type": "application/json", "x-api-key": api_key}
 
 payload = {
-  "flow_id": "flow_67ccd2be17f0819081ff3bb2cf6508e60bb6a6b452d3795b",
-  "background": false,
-  "inputs": {
-    "ChatInput-abc.input_type": "chat",
-    "ChatInput-abc.input_value": "what is 2+2",
-    "ChatInput-abc.session_id": "session-123"
-  }
+    "flow_id": flow_id,
+    "background": False,
+    "stream": False,
+    "inputs": {},
 }
 
-response = requests.request("POST", url, headers=headers, json=payload)
+response = requests.post(f"{base}/api/v2/workflows", headers=headers, json=payload, timeout=120)
 response.raise_for_status()
-
 print(response.text)

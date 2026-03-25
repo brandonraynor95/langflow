@@ -2,14 +2,20 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/projects/{os.getenv('PROJECT_ID', '')}"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
 
-headers = {
-    "accept": f"*/*",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"accept": "*/*", "Content-Type": "application/json", "x-api-key": api_key}
 
-response = requests.request("DELETE", url, headers=headers)
-response.raise_for_status()
+create = requests.post(
+    f"{base}/api/v1/projects/",
+    headers=headers,
+    json={"name": "docs-example-delete-me", "description": "Temporary project", "components_list": [], "flows_list": []},
+    timeout=30,
+)
+create.raise_for_status()
+project_id = create.json()["id"]
 
-print(response.text)
+delete = requests.delete(f"{base}/api/v1/projects/{project_id}", headers=headers, timeout=30)
+delete.raise_for_status()
+print(delete.text)

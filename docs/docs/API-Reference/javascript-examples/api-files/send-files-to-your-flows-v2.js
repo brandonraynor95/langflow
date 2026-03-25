@@ -1,13 +1,21 @@
+const fs = require("fs");
+const path = require("path");
+
+const fixturesDir = path.join(__dirname, "../../fixtures");
+const defaultUpload = path.join(fixturesDir, "sample-upload.txt");
+const uploadPath = process.env.SAMPLE_UPLOAD_FILE || defaultUpload;
+const uploadBuf = fs.readFileSync(uploadPath);
+const uploadName = path.basename(uploadPath);
+
 const url = `${process.env.LANGFLOW_URL ?? ""}/api/v2/files`;
 
 const formData = new FormData();
-// Replace with a File/Blob for "FILE_NAME.EXTENSION" in your environment.
-formData.append("file", new Blob(["<file contents>"]), "FILE_NAME.EXTENSION");
+formData.append("file", new Blob([uploadBuf]), uploadName);
 
 const options = {
-  method: 'POST',
+  method: "POST",
   headers: {
-    "accept": `application/json`,
+    accept: "application/json",
     "x-api-key": `${process.env.LANGFLOW_API_KEY ?? ""}`,
   },
   body: formData,

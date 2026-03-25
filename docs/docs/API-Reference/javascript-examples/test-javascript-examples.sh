@@ -110,6 +110,33 @@ print("")
 PY
 }
 
+print_failure_logs() {
+  local out_file="$1"
+  local err_file="$2"
+  if [[ -s "$err_file" ]]; then
+    echo "      stderr (last 12 lines):"
+    python3 - "$err_file" <<'PY'
+import sys
+from pathlib import Path
+
+lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
+for line in lines[-12:]:
+    print(line)
+PY
+  fi
+  if [[ -s "$out_file" ]]; then
+    echo "      stdout (last 12 lines):"
+    python3 - "$out_file" <<'PY'
+import sys
+from pathlib import Path
+
+lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
+for line in lines[-12:]:
+    print(line)
+PY
+  fi
+}
+
 for file in "${JS_FILES[@]}"; do
   rel="${file#"$ROOT_DIR"/}"
 
@@ -141,6 +168,7 @@ for file in "${JS_FILES[@]}"; do
 
     if ! node "$file" >/tmp/langflow-js-example.out 2>/tmp/langflow-js-example.err; then
       echo "FAIL  $rel (execution)"
+      print_failure_logs "/tmp/langflow-js-example.out" "/tmp/langflow-js-example.err"
       ((FAIL+=1))
       continue
     fi

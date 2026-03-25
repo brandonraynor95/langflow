@@ -2,22 +2,39 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/flows/download/"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
+flow_id = os.environ.get("FLOW_ID", "")
+folder_id = os.environ.get("PROJECT_ID") or os.environ.get("FOLDER_ID", "")
 
 headers = {
-    "accept": f"application/json",
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
+    "accept": "application/json",
+    "Content-Type": "application/json",
+    "x-api-key": api_key,
 }
 
-payload = [
-  "e1e40c77-0541-41a9-88ab-ddb3419398b5",
-  "92f9a4c5-cfc8-4656-ae63-1f0881163c28"
-]
+# Export needs at least two flows to return a ZIP; a single id returns JSON.
+extra = requests.post(
+    f"{base}/api/v1/flows/",
+    headers=headers,
+    json={
+        "name": "docs-export-temp-flow",
+        "description": "Temporary second flow for export example",
+        "data": {"nodes": [], "edges": []},
+        **({"folder_id": folder_id} if folder_id else {}),
+    },
+    timeout=30,
+)
+extra.raise_for_status()
+extra_id = extra.json()["id"]
 
-response = requests.request("POST", url, headers=headers, json=payload)
+payload = [flow_id, extra_id]
+
+response = requests.post(f"{base}/api/v1/flows/download/", headers=headers, json=payload, timeout=60)
 response.raise_for_status()
 
 with open("langflow-flows.zip", "wb") as f:
     f.write(response.content)
 print("Saved response to langflow-flows.zip")
+
+requests.delete(f"{base}/api/v1/flows/{extra_id}", headers=headers, timeout=30)

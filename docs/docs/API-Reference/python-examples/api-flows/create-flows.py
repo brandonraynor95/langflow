@@ -1,57 +1,28 @@
 import os
+import uuid
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/flows/batch/"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
+folder_id = (os.environ.get("PROJECT_ID") or os.environ.get("FOLDER_ID") or "").strip()
 
-headers = {
-    "accept": f"application/json",
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"accept": "application/json", "Content-Type": "application/json", "x-api-key": api_key}
 
-payload = {
-  "flows": [
-    {
-      "name": "string",
-      "description": "string",
-      "icon": "string",
-      "icon_bg_color": "string",
-      "gradient": "string",
-      "data": {},
-      "is_component": false,
-      "updated_at": "2024-12-30T18:36:02.737Z",
-      "webhook": false,
-      "endpoint_name": "string",
-      "tags": [
-        "string"
-      ],
-      "locked": false,
-      "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "project_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-    },
-    {
-      "name": "string",
-      "description": "string",
-      "icon": "string",
-      "icon_bg_color": "string",
-      "gradient": "string",
-      "data": {},
-      "is_component": false,
-      "updated_at": "2024-12-30T18:36:02.737Z",
-      "webhook": false,
-      "endpoint_name": "string",
-      "tags": [
-        "string"
-      ],
-      "locked": false,
-      "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "project_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
+def _flow_doc(suffix: str) -> dict:
+    doc = {
+        "name": f"batch-flow-{uuid.uuid4().hex[:8]}",
+        "description": f"Docs batch example {suffix}",
+        "data": {"nodes": [], "edges": []},
     }
-  ]
-}
+    if folder_id:
+        doc["folder_id"] = folder_id
+    return doc
 
-response = requests.request("POST", url, headers=headers, json=payload)
+
+payload = {"flows": [_flow_doc("A"), _flow_doc("B")]}
+
+response = requests.post(f"{base}/api/v1/flows/batch/", headers=headers, json=payload, timeout=30)
 response.raise_for_status()
-
 print(response.text)

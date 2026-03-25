@@ -2,19 +2,24 @@ import os
 
 import requests
 
-url = f"http://{os.getenv('LANGFLOW_SERVER_URL', '')}/api/v1/responses"
+base = os.environ.get("LANGFLOW_URL") or os.environ.get("LANGFLOW_SERVER_URL", "")
+flow_id = os.environ.get("FLOW_ID", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
+
+url = f"{base}/api/v1/responses"
 
 headers = {
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-    "Content-Type": f"application/json",
+    "x-api-key": api_key,
+    "Content-Type": "application/json",
 }
 
 payload = {
-  "model": "$FLOW_ID",
-  "input": "Hello, my name is Alice"
+    "model": flow_id,
+    "input": "Hello, my name is Alice",
+    "stream": False,
 }
 
-response = requests.request("POST", url, headers=headers, json=payload)
+response = requests.post(url, headers=headers, json=payload, timeout=120)
 response.raise_for_status()
 
 print(response.text)

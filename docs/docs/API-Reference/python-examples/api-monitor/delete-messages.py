@@ -1,21 +1,29 @@
 import os
+from uuid import UUID
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/monitor/messages"
+base = os.environ.get("LANGFLOW_URL", "")
+api_key = os.environ.get("LANGFLOW_API_KEY", "")
+flow_id = os.environ.get("FLOW_ID", "")
 
-headers = {
-    "accept": f"*/*",
-    "Content-Type": f"application/json",
-    "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
-}
+headers = {"accept": "*/*", "Content-Type": "application/json", "x-api-key": api_key}
 
-payload = [
-  "MESSAGE_ID_1",
-  "MESSAGE_ID_2"
-]
+list_resp = requests.get(
+    f"{base}/api/v1/monitor/messages",
+    headers=headers,
+    params={"flow_id": flow_id},
+    timeout=30,
+)
+list_resp.raise_for_status()
+messages = list_resp.json()
+if not messages:
+    print("No messages to delete.")
+    raise SystemExit(0)
 
-response = requests.request("DELETE", url, headers=headers, json=payload)
+ids = [UUID(str(m["id"])) for m in messages[:2]]
+params = [("message_ids", str(i)) for i in ids]
+
+response = requests.delete(f"{base}/api/v1/monitor/messages", headers=headers, params=params, timeout=30)
 response.raise_for_status()
-
-print(response.text)
+print(response.status_code)
