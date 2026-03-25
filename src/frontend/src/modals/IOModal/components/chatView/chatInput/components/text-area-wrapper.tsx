@@ -10,7 +10,6 @@ const TextAreaWrapper = ({
   noInput,
   chatValue,
   CHAT_INPUT_PLACEHOLDER,
-  CHAT_INPUT_PLACEHOLDER_SEND,
   inputRef,
   files,
   isDragging,

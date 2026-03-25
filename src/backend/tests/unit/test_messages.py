@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -169,6 +170,66 @@ def test_convert_to_langchain(method_name):
     assert lc_message.type == "ai"
     expected_len = 2
     assert len(list(iterator)) == expected_len
+
+
+def test_to_lc_message_skips_unsupported_file_attachments():
+    message = Message(
+        text="Hello",
+        sender="User",
+        sender_name="User",
+        session_id="session-id",
+        files=["nonexistent.unsupported"],
+    )
+
+    lc_message = message.to_lc_message()
+
+    assert lc_message.type == "human"
+    assert lc_message.content == [{"type": "text", "text": "Hello"}]
+
+
+def test_to_lc_message_keeps_supported_csv_attachments_as_text(tmp_path):
+    csv_path = tmp_path / "table.csv"
+    csv_path.write_text("name,role\nAda,Engineer\n", encoding="utf-8")
+
+    message = Message(
+        text="Hello",
+        sender="User",
+        sender_name="User",
+        session_id="session-id",
+        files=[str(csv_path)],
+    )
+
+    lc_message = message.to_lc_message()
+
+    assert lc_message.type == "human"
+    assert isinstance(lc_message.content, list)
+    assert lc_message.content[0] == {"type": "text", "text": "Hello"}
+    assert lc_message.content[1]["type"] == "text"
+    assert "Attachment: table.csv" in lc_message.content[1]["text"]
+    assert "name,role" in lc_message.content[1]["text"]
+
+
+def test_to_lc_message_keeps_supported_image_attachments(tmp_path):
+    image_path = tmp_path / "image.png"
+    image_content = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg=="
+    )
+    image_path.write_bytes(image_content)
+
+    message = Message(
+        text="Hello",
+        sender="User",
+        sender_name="User",
+        session_id="session-id",
+        files=[str(image_path)],
+    )
+
+    lc_message = message.to_lc_message()
+
+    assert lc_message.type == "human"
+    assert isinstance(lc_message.content, list)
+    assert lc_message.content[0] == {"type": "text", "text": "Hello"}
+    assert lc_message.content[1]["type"] == "image_url"
 
 
 @pytest.mark.usefixtures("client")

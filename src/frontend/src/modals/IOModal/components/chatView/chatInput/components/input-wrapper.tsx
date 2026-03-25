@@ -22,7 +22,7 @@ interface InputWrapperProps {
   files: FilePreviewType[];
   isDragging: boolean;
   handleDeleteFile: (file: FilePreviewType) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleButtonClick: () => void;
   setShowAudioInput: (value: boolean) => void;
@@ -44,7 +44,6 @@ const InputWrapper: React.FC<InputWrapperProps> = ({
   handleFileChange,
   handleButtonClick,
   setShowAudioInput,
-  currentFlowId,
   playgroundPage,
 }) => {
   const classNameFilePreview = `flex w-full items-center gap-2 py-2 overflow-auto`;

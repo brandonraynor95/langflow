@@ -6,6 +6,7 @@ import re
 import traceback
 from collections.abc import AsyncIterator, Iterator
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 from uuid import UUID
 
@@ -74,6 +75,8 @@ class Message(Data):
     category: Literal["message", "error", "warning", "info"] | None = "message"
     content_blocks: list[ContentBlock] = Field(default_factory=list)
     duration: int | None = None
+
+    _MAX_ATTACHMENT_TEXT_CHARS = 12000
 
     @field_validator("flow_id", mode="before")
     @classmethod
@@ -249,11 +252,41 @@ class Message(Data):
             return content_dicts
 
         for file in files:
-            if isinstance(file, Image):
-                # Pass the message's flow_id to the Image for proper path resolution
-                content_dicts.append(file.to_content_dict(flow_id=self.flow_id))
-            else:
-                content_dicts.append(create_image_content_dict(file, None, model_name))
+            try:
+                if isinstance(file, Image):
+                    # Pass the message's flow_id to the Image for proper path resolution
+                    content_dicts.append(file.to_content_dict(flow_id=self.flow_id))
+                else:
+                    if is_image_file(file):
+                        content_dicts.append(create_image_content_dict(file, None, model_name))
+                        continue
+
+                    from lfx.base.data.utils import parse_text_file_to_data
+
+                    parsed_file = parse_text_file_to_data(file, silent_errors=True)
+                    parsed_data = parsed_file.data if parsed_file else {}
+                    parsed_text = parsed_data.get("text") if isinstance(parsed_data, dict) else None
+                    if not parsed_text:
+                        continue
+
+                    parsed_text_str = parsed_text if isinstance(parsed_text, str) else json.dumps(parsed_text)
+                    if len(parsed_text_str) > self._MAX_ATTACHMENT_TEXT_CHARS:
+                        parsed_text_str = (
+                            f"{parsed_text_str[: self._MAX_ATTACHMENT_TEXT_CHARS]}\n"
+                            "\n[Attachment content truncated]"
+                        )
+
+                    file_name = Path(file).name
+                    content_dicts.append(
+                        {
+                            "type": "text",
+                            "text": f"Attachment: {file_name}\n{parsed_text_str}",
+                        }
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    f"Skipping unsupported attachment during message conversion: {type(exc).__name__}"
+                )
         return content_dicts
 
     def load_lc_prompt(self):

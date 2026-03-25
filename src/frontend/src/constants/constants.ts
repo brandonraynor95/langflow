@@ -847,12 +847,67 @@ export const MODAL_CLASSES =
   "nopan nodelete nodrag  noflow fixed inset-0 bottom-0 left-0 right-0 top-0 z-50 overflow-auto bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0";
 
 export const ALLOWED_IMAGE_INPUT_EXTENSIONS = ["png", "jpg", "jpeg"];
+export const ALLOWED_IMAGE_INPUT_MIME_TYPES = ["image/png", "image/jpeg"];
+export const CHAT_IMAGE_UPLOAD_ACCEPT =
+  ".png,.jpg,.jpeg,image/png,image/jpeg";
+export const CHAT_IMAGE_UPLOAD_TOOLTIP = "Attach image (png, jpg, jpeg)";
+
+export const ALLOWED_CHAT_ATTACHMENT_INPUT_EXTENSIONS = [
+  "png",
+  "jpg",
+  "jpeg",
+  "pdf",
+  "csv",
+  "docx",
+  "txt",
+  "md",
+  "mdx",
+  "json",
+  "yaml",
+  "yml",
+  "xml",
+  "html",
+  "htm",
+  "py",
+  "sh",
+  "sql",
+  "js",
+  "ts",
+  "tsx",
+];
+
+export const ALLOWED_CHAT_ATTACHMENT_INPUT_MIME_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "application/pdf",
+  "text/csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+  "text/markdown",
+  "application/json",
+  "application/x-yaml",
+  "application/yaml",
+  "text/yaml",
+  "application/xml",
+  "text/xml",
+  "text/html",
+  "text/javascript",
+  "application/javascript",
+  "application/x-sh",
+  "text/x-python",
+];
+
+export const CHAT_ATTACHMENT_UPLOAD_ACCEPT =
+  ".png,.jpg,.jpeg,.pdf,.csv,.docx,.txt,.md,.mdx,.json,.yaml,.yml,.xml,.html,.htm,.py,.sh,.sql,.js,.ts,.tsx,image/png,image/jpeg,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,application/json,application/x-yaml,application/yaml,text/yaml,application/xml,text/xml,text/html,text/javascript,application/javascript,application/x-sh,text/x-python";
+export const CHAT_ATTACHMENT_UPLOAD_TOOLTIP =
+  "Attach file (images, pdf, csv, docx, txt, md, json, yaml, xml, html, code files)";
 
 export const componentsToIgnoreUpdate = ["CustomComponent"];
 
 export const FS_ERROR_TEXT =
-  "Please ensure your file has one of the following extensions:";
-export const SN_ERROR_TEXT = ALLOWED_IMAGE_INPUT_EXTENSIONS.join(", ");
+  "Unsupported attachment type. Supported chat attachments include images, PDF, CSV, DOCX, and common text/code files.";
+export const SN_ERROR_TEXT = ALLOWED_CHAT_ATTACHMENT_INPUT_EXTENSIONS.join(", ");
 
 export const ERROR_UPDATING_COMPONENT =
   "An unexpected error occurred while updating the Component. Please try again.";
