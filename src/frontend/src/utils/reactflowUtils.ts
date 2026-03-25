@@ -2133,7 +2133,12 @@ const getTemplateAliases = (
   component: Record<string, any>,
 ): string[] => {
   const aliases = [componentKey, component?.name, component?.display_name];
+  const legacyAliases: Record<string, string[]> = {
+    "Prompt Template": ["Prompt"],
+  };
   const componentType = component?.template?._type;
+
+  aliases.push(...(legacyAliases[componentKey] ?? []));
 
   if (
     typeof componentType === "string" &&

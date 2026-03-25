@@ -507,7 +507,7 @@
                   },
                   {
                     "name": "fastapi",
-                    "version": "0.135.1"
+                    "version": "0.135.2"
                   },
                   {
                     "name": "lfx",
@@ -824,7 +824,7 @@
                 "dependencies": [
                   {
                     "name": "requests",
-                    "version": "2.32.5"
+                    "version": "2.33.0"
                   },
                   {
                     "name": "bs4",
@@ -1715,7 +1715,7 @@
                   },
                   {
                     "name": "langchain_core",
-                    "version": "1.2.20"
+                    "version": "1.2.22"
                   }
                 ],
                 "total_dependencies": 3
@@ -2298,7 +2298,7 @@
                   },
                   {
                     "name": "langchain_core",
-                    "version": "1.2.20"
+                    "version": "1.2.22"
                   }
                 ],
                 "total_dependencies": 3
@@ -2881,7 +2881,7 @@
                   },
                   {
                     "name": "langchain_core",
-                    "version": "1.2.20"
+                    "version": "1.2.22"
                   }
                 ],
                 "total_dependencies": 3

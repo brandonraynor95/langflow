@@ -661,18 +661,17 @@ def test_update_projects_handles_components_without_metadata():
 
 
 def test_update_projects_resolves_prompt_via_component_type_alias():
-    """Test that legacy Prompt nodes resolve via the component class alias.
+    """Test that legacy Prompt nodes resolve via the explicit legacy alias.
 
-    PromptComponent is keyed as "Prompt Template" in the component dictionary,
-    but starter projects may still reference the legacy "Prompt" type. The
-    alias is derived from template._type, not a hardcoded mapping table.
+    Prompt Template is keyed as "Prompt Template" in the component dictionary,
+    but starter projects may still reference the legacy "Prompt" type.
     """
     all_types_dict = {
         "models_and_agents": {
             "Prompt Template": {
                 "template": {
                     "code": {"value": "new_prompt_code_v2"},
-                    "_type": "PromptComponent",
+                    "_type": "Component",
                 },
                 "display_name": "Prompt Template",
             }
@@ -700,7 +699,7 @@ def test_update_projects_resolves_prompt_via_component_type_alias():
     updated_code = updated_project["nodes"][0]["data"]["node"]["template"]["code"]["value"]
     assert updated_code == "new_prompt_code_v2", (
         f"Expected code to be updated to 'new_prompt_code_v2' but got '{updated_code}'. "
-        "The legacy 'Prompt' type should resolve via template._type to 'Prompt Template'."
+        "The legacy 'Prompt' type should resolve to 'Prompt Template'."
     )
 
 
@@ -718,7 +717,7 @@ def test_update_projects_direct_key_takes_precedence_over_alias():
             "Prompt Template": {
                 "template": {
                     "code": {"value": "renamed_code"},
-                    "_type": "PromptComponent",
+                    "_type": "Component",
                 },
                 "display_name": "Prompt Template",
             },

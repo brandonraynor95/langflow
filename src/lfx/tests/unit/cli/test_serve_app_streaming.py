@@ -110,8 +110,11 @@ def mock_metas():
 @pytest.fixture
 def multi_serve_app(mock_graphs, mock_metas, monkeypatch):
     """Create a multi-serve app for testing."""
+    from lfx.services.deps import get_settings_service
+
     # Set required environment variable
     monkeypatch.setenv("LANGFLOW_API_KEY", "test-api-key")
+    monkeypatch.setattr(get_settings_service().settings, "allow_custom_components", True)
 
     with patch("lfx.cli.serve_app.execute_graph_with_capture") as mock_execute:
         # Mock successful execution

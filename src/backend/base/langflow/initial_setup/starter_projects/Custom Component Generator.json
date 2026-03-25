@@ -925,7 +925,7 @@
                 "dependencies": [
                   {
                     "name": "requests",
-                    "version": "2.32.5"
+                    "version": "2.33.0"
                   },
                   {
                     "name": "bs4",
@@ -1320,7 +1320,7 @@
                 "dependencies": [
                   {
                     "name": "requests",
-                    "version": "2.32.5"
+                    "version": "2.33.0"
                   },
                   {
                     "name": "bs4",
@@ -1721,7 +1721,7 @@
                 "dependencies": [
                   {
                     "name": "requests",
-                    "version": "2.32.5"
+                    "version": "2.33.0"
                   },
                   {
                     "name": "bs4",
@@ -2394,7 +2394,7 @@
                   },
                   {
                     "name": "fastapi",
-                    "version": "0.135.1"
+                    "version": "0.135.2"
                   },
                   {
                     "name": "lfx",

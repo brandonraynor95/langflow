@@ -381,7 +381,7 @@ class TestBuildCodeHashLookups:
         # Should remain None — no-op when all_types_dict is None
         assert cache.type_to_current_hash is None
 
-    def test_prompt_alias_is_derived_from_component_type(self):
+    def test_prompt_alias_is_registered_for_legacy_prompt_nodes(self):
         from lfx.interface.components import ComponentCache, _build_code_hash_lookups
 
         cache = ComponentCache()
@@ -389,7 +389,8 @@ class TestBuildCodeHashLookups:
             "models_and_agents": {
                 "Prompt Template": {
                     "metadata": {"code_hash": "prompthash12"},
-                    "template": {"_type": "PromptComponent"},
+                    "display_name": "Prompt Template",
+                    "template": {"_type": "Component"},
                 },
             }
         }
@@ -411,7 +412,8 @@ class TestBuildCodeHashLookups:
                 },
                 "Prompt Template": {
                     "metadata": {"code_hash": "renamedhash1"},
-                    "template": {"_type": "PromptComponent"},
+                    "display_name": "Prompt Template",
+                    "template": {"_type": "Component"},
                 },
             }
         }

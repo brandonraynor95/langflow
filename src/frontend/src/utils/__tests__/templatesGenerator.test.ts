@@ -44,13 +44,13 @@ describe("templatesGenerator", () => {
   });
 
   describe("derived template aliases", () => {
-    it("should derive a 'Prompt' alias from template._type", () => {
+    it("should add the legacy 'Prompt' alias for Prompt Template", () => {
       const data = asApiObject({
         models_and_agents: {
           "Prompt Template": {
             template: {
               code: { value: "prompt_v2_code" },
-              _type: "PromptComponent",
+              _type: "Component",
             },
             display_name: "Prompt Template",
           },
@@ -61,7 +61,7 @@ describe("templatesGenerator", () => {
 
       // Primary key
       expect(templates).toHaveProperty("Prompt Template");
-      // Alias derived from _type: "PromptComponent" -> "Prompt"
+      // Legacy alias for older flows
       expect(templates).toHaveProperty("Prompt");
       // Both should point to the same data
       expect(templates["Prompt"]).toBe(templates["Prompt Template"]);
@@ -77,7 +77,7 @@ describe("templatesGenerator", () => {
           "Prompt Template": {
             template: {
               code: { value: "renamed_code" },
-              _type: "PromptComponent",
+              _type: "Component",
             },
             display_name: "Prompt Template",
           },

@@ -237,8 +237,10 @@ class TestServeAppEndpoints:
         return graph
 
     @pytest.fixture
-    def app_client(self, real_graph_with_async):
+    def app_client(self, real_graph_with_async, monkeypatch):
         """Create test client with single flow app."""
+        from lfx.services.deps import get_settings_service
+
         meta = FlowMeta(
             id="test-flow-id",
             relative_path="test.json",
@@ -257,13 +259,17 @@ class TestServeAppEndpoints:
             verbose_print=verbose_print,
         )
 
+        monkeypatch.setattr(get_settings_service().settings, "allow_custom_components", True)
+
         # Set up test API key
         with patch.dict(os.environ, {"LANGFLOW_API_KEY": "test-api-key"}):  # pragma: allowlist secret
             return TestClient(app)
 
     @pytest.fixture
-    def multi_flow_client(self, real_graph_with_async, simple_chat_json):
+    def multi_flow_client(self, real_graph_with_async, simple_chat_json, monkeypatch):
         """Create test client with multiple flows."""
+        from lfx.services.deps import get_settings_service
+
         # Create second real graph using the same JSON structure
         graph2 = Graph.from_payload(simple_chat_json, flow_id="flow-2")
 
@@ -296,6 +302,8 @@ class TestServeAppEndpoints:
             metas=metas,
             verbose_print=verbose_print,
         )
+
+        monkeypatch.setattr(get_settings_service().settings, "allow_custom_components", True)
 
         with patch.dict(os.environ, {"LANGFLOW_API_KEY": "test-api-key"}):  # pragma: allowlist secret
             return TestClient(app)

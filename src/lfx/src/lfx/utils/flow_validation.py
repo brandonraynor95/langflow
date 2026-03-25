@@ -130,12 +130,14 @@ def check_flow_and_raise(
     if blocked:
         blocked_names = ", ".join(blocked)
         logger.warning(f"Flow build blocked: unrecognized component code: {blocked_names}")
-        raise ValueError(f"Flow build blocked: custom components are not allowed: {blocked_names}")
+        message = f"Flow build blocked: custom components are not allowed: {blocked_names}"
+        raise ValueError(message)
 
     if outdated:
         outdated_names = ", ".join(outdated)
         logger.warning(f"Flow build blocked: outdated components must be updated: {outdated_names}")
-        raise ValueError(f"Flow build blocked: outdated components must be updated before running: {outdated_names}")
+        message = f"Flow build blocked: outdated components must be updated before running: {outdated_names}"
+        raise ValueError(message)
 
 
 async def ensure_component_hash_lookups_loaded() -> dict[str, str] | None:
@@ -161,8 +163,12 @@ async def validate_lfx_flow_custom_components(flow_data: dict | None) -> None:
     from lfx.services.deps import get_settings_service
 
     settings_service = get_settings_service()
-    allow_custom_components = settings_service.settings.allow_custom_components if settings_service else False
-    type_to_current_hash = await ensure_component_hash_lookups_loaded()
+    if settings_service is None:
+        msg = "Settings service must be initialized before validating LFX flows."
+        raise RuntimeError(msg)
+
+    allow_custom_components = settings_service.settings.allow_custom_components
+    type_to_current_hash = await ensure_component_hash_lookups_loaded() if not allow_custom_components else None
 
     check_flow_and_raise(
         flow_data,

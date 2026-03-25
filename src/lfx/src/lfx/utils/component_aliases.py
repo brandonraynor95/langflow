@@ -6,7 +6,9 @@ from typing import Any
 # Explicit fallback aliases for rare cases that cannot be derived from
 # component metadata. Most legacy names are inferred from `_type`,
 # `name`, and `display_name`.
-LEGACY_TYPE_ALIASES: dict[str, str] = {}
+LEGACY_TYPE_ALIASES: dict[str, str] = {
+    "Prompt": "Prompt Template",
+}
 
 
 def get_component_type_aliases(
