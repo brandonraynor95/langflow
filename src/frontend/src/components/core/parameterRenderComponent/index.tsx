@@ -87,10 +87,9 @@ export function ParameterRenderComponent({
       templateValue === undefined ||
       templateValue === null);
 
-  const cloudOverride =
-    shouldUseCloudPlaceholder
-      ? nodeMetadata?.cloud_default_overrides?.[name]
-      : undefined;
+  const cloudOverride = shouldUseCloudPlaceholder
+    ? nodeMetadata?.cloud_default_overrides?.[name]
+    : undefined;
 
   const renderComponent = (): React.ReactElement<InputProps> => {
     const baseInputProps: InputProps = {
@@ -302,16 +301,14 @@ export function ParameterRenderComponent({
         if (cloudOnly && nodeMetadata?.cloud_incompatible_options) {
           const incompatible = nodeMetadata.cloud_incompatible_options[name];
           if (incompatible && Array.isArray(incompatible)) {
-            sortableOptions = sortableOptions?.filter(
-              (opt: unknown) => {
-                const optionName =
-                  typeof opt === "object" && opt !== null && "name" in opt
-                    ? (opt as { name?: unknown }).name ?? opt
-                    : opt;
+            sortableOptions = sortableOptions?.filter((opt: unknown) => {
+              const optionName =
+                typeof opt === "object" && opt !== null && "name" in opt
+                  ? ((opt as { name?: unknown }).name ?? opt)
+                  : opt;
 
-                return !incompatible.includes(optionName);
-              },
-            );
+              return !incompatible.includes(optionName);
+            });
           }
         }
         return (

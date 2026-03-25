@@ -18,10 +18,7 @@ import {
 import type { BaseInputProps } from "../../types";
 import ModelList from "./components/ModelList";
 import ModelTrigger from "./components/ModelTrigger";
-import type {
-  ModelInputComponentType,
-  ModelOption,
-} from "./types";
+import type { ModelInputComponentType, ModelOption } from "./types";
 
 type ModelInputValue =
   | Array<{
@@ -48,7 +45,8 @@ export default function ModelInputComponent({
   editNode,
   inspectionPanel,
   showEmptyState = false,
-}: BaseInputProps<ModelInputValue> & ModelInputComponentType): JSX.Element | null {
+}: BaseInputProps<ModelInputValue> &
+  ModelInputComponentType): JSX.Element | null {
   const refButton = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [openManageProvidersDialog, setOpenManageProvidersDialog] =
@@ -66,10 +64,8 @@ export default function ModelInputComponent({
       ? "llm"
       : "embeddings";
 
-  const {
-    data: providersData = [],
-    isFetching: isFetchingProviders,
-  } = useGetModelProviders({});
+  const { data: providersData = [], isFetching: isFetchingProviders } =
+    useGetModelProviders({});
   const { data: enabledModelsData } = useGetEnabledModels();
 
   const hasEnabledProviders = useMemo(() => {
@@ -137,7 +133,9 @@ export default function ModelInputComponent({
       return null;
     }
 
-    const matchedOption = flatOptions.find((option) => option.name === currentName);
+    const matchedOption = flatOptions.find(
+      (option) => option.name === currentName,
+    );
 
     if (matchedOption) {
       return matchedOption;

@@ -150,7 +150,8 @@ export function useAddComponent() {
                     }
 
                     if (Object.hasOwn(override, "value")) {
-                      clonedComponent.template[fieldName].value = override.value;
+                      clonedComponent.template[fieldName].value =
+                        override.value;
                     }
 
                     if (override.placeholder !== undefined) {

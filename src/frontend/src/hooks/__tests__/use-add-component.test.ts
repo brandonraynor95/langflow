@@ -21,8 +21,7 @@ jest.mock("@/stores/cloudModeStore", () => ({
       cloudOnly: boolean;
       setCloudOnly: jest.Mock;
     }) => unknown,
-  ) =>
-    selector({ cloudOnly: mockCloudOnly, setCloudOnly: jest.fn() }),
+  ) => selector({ cloudOnly: mockCloudOnly, setCloudOnly: jest.fn() }),
 }));
 
 describe("useAddComponent", () => {
@@ -398,6 +397,8 @@ describe("useAddComponent", () => {
 
     expect(pastedNode).not.toBe(mockComponent);
     expect(pastedNode.template.storage_location.value).toEqual([awsOption]);
-    expect(mockComponent.template.storage_location.value).toEqual([localOption]);
+    expect(mockComponent.template.storage_location.value).toEqual([
+      localOption,
+    ]);
   });
 });

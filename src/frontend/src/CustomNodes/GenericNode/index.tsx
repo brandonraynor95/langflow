@@ -526,7 +526,9 @@ function GenericNode({
             setDismissAll={memoizedSetDismissAllLegacy}
           />
         ) : null}
-        {shouldShowCloudIncompatible ? <NodeCloudIncompatibleComponent /> : null}
+        {shouldShowCloudIncompatible ? (
+          <NodeCloudIncompatibleComponent />
+        ) : null}
 
         <div
           data-testid={`${data.id}-main-node`}

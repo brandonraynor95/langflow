@@ -69,9 +69,12 @@ jest.mock("@/shared/hooks/use-alternate", () => ({
   useAlternate: (initial: boolean) => [initial, jest.fn(), jest.fn()],
 }));
 
-jest.mock("../../controllers/API/queries/nodes/use-post-validate-component-code", () => ({
-  usePostValidateComponentCode: () => ({ mutate: jest.fn() }),
-}));
+jest.mock(
+  "../../controllers/API/queries/nodes/use-post-validate-component-code",
+  () => ({
+    usePostValidateComponentCode: () => ({ mutate: jest.fn() }),
+  }),
+);
 
 jest.mock("../../pages/FlowPage/components/nodeToolbarComponent", () => ({
   __esModule: true,
@@ -223,9 +226,7 @@ describe("GenericNode", () => {
       },
     };
 
-    render(
-      <GenericNode data={data} />,
-    );
+    render(<GenericNode data={data} />);
 
     expect(screen.getByText("Legacy")).toBeInTheDocument();
     expect(screen.getByTestId("cloud-incompatible-banner")).toBeInTheDocument();
