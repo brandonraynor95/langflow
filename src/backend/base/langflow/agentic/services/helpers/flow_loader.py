@@ -24,12 +24,6 @@ if TYPE_CHECKING:
     from lfx.graph.graph.base import Graph
 
 
-def _validate_loaded_graph(graph: "Graph") -> "Graph":
-    """Enforce custom-component policy for prebuilt graphs from Python flows."""
-    validate_flow_for_current_settings(graph)
-    return graph
-
-
 @contextmanager
 def _temporary_sys_path(path: str):
     """Temporarily add a path to sys.path."""
@@ -165,7 +159,8 @@ async def _load_graph_from_python(
     if not hasattr(module, "get_graph"):
         # Fallback: check for 'graph' variable for backward compatibility
         if hasattr(module, "graph"):
-            graph = _validate_loaded_graph(module.graph)
+            graph = module.graph
+            validate_flow_for_current_settings(graph)
             if module_name in sys.modules:
                 del sys.modules[module_name]
             return graph
@@ -197,7 +192,8 @@ async def _load_graph_from_python(
         if module_name in sys.modules:
             del sys.modules[module_name]
 
-    return _validate_loaded_graph(graph)
+    validate_flow_for_current_settings(graph)
+    return graph
 
 
 async def load_graph_for_execution(
