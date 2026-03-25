@@ -405,7 +405,7 @@ def push_command_wrapper(
         None,
         "--dir",
         "-d",
-        help="Directory of flow JSON files to push (pushes all *.json files).",
+        help="Directory of flow JSON files to push (pushes all *.json files). Defaults to flows/.",
     ),
     project: str | None = typer.Option(
         None,

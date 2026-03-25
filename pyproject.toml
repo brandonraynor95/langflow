@@ -82,6 +82,7 @@ explicit = true
 langflow-base = { workspace = true }
 langflow = { workspace = true }
 lfx = { workspace = true }
+langflow-sdk = { workspace = true }
 torch = { index = "pytorch-cpu" }
 torchvision = { index = "pytorch-cpu" }
 

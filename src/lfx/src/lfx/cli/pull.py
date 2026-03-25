@@ -48,12 +48,12 @@ class PullResult:
     flow_id: UUID
     flow_name: str
     path: Path
-    status: str  # "written" | "error"
+    status: str  # "unchanged" | "updated" | "created" | "error"
     error: str | None = None
 
     @property
     def ok(self) -> bool:
-        return self.status == "written"
+        return self.status != "error"
 
 
 # ---------------------------------------------------------------------------
@@ -99,8 +99,13 @@ def _write_flow(
         )
         safe_name = _safe_filename(flow_name)
         out_path = dest_dir / f"{safe_name}.json"
-        out_path.write_text(sdk.flow_to_json(normalized, indent=indent), encoding="utf-8")
-        return PullResult(flow_id=flow_id, flow_name=flow_name, path=out_path, status="written")
+        new_content = sdk.flow_to_json(normalized, indent=indent)
+        if out_path.exists() and out_path.read_text(encoding="utf-8") == new_content:
+            status = "unchanged"
+        else:
+            status = "created" if not out_path.exists() else "updated"
+            out_path.write_text(new_content, encoding="utf-8")
+        return PullResult(flow_id=flow_id, flow_name=flow_name, path=out_path, status=status)
     except Exception as exc:  # noqa: BLE001
         dummy_path = dest_dir / f"{flow_id}.json"
         return PullResult(flow_id=flow_id, flow_name=flow_name, path=dummy_path, status="error", error=str(exc))
@@ -113,19 +118,34 @@ def _render_results(results: list[PullResult]) -> None:
     table.add_column("File")
     table.add_column("Status")
 
+    _STATUS_STYLE = {
+        "unchanged": ("dim", "UNCHANGED"),
+        "updated": ("yellow", "UPDATED"),
+        "created": ("green", "CREATED"),
+        "error": ("red", "ERROR"),
+    }
+
     for r in results:
-        color = "green" if r.ok else "red"
-        label = r.status.upper() + (f": {r.error}" if r.error else "")
+        color, label = _STATUS_STYLE.get(r.status, ("white", r.status.upper()))
+        if r.error:
+            label += f": {r.error}"
         table.add_row(r.flow_name, str(r.flow_id), str(r.path), f"[{color}]{label}[/{color}]")
 
     ok_console.print()
     ok_console.print(table)
 
     errors = [r for r in results if not r.ok]
+    n_changed = sum(1 for r in results if r.status in ("created", "updated"))
+    n_unchanged = sum(1 for r in results if r.status == "unchanged")
     if errors:
         console.print(f"\n[red]{len(errors)} pull(s) failed.[/red]")
     else:
-        ok_console.print(f"\n[green]{len(results)} flow(s) pulled.[/green]")
+        parts = []
+        if n_changed:
+            parts.append(f"[green]{n_changed} updated[/green]")
+        if n_unchanged:
+            parts.append(f"[dim]{n_unchanged} unchanged[/dim]")
+        ok_console.print("\n" + ", ".join(parts) + ".")
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +225,9 @@ def pull_command(
         for flow_obj in proj.flows:
             result = _write_flow(flow_obj, sdk=sdk, dest_dir=dest_dir, strip_secrets=strip_secrets, indent=indent)
             results.append(result)
-            if result.ok:
+            if result.status == "unchanged":
+                console.print(f"[dim]Unchanged[/dim] {result.flow_name!r}")
+            elif result.ok:
                 console.print(f"[green]Pulled[/green] {result.flow_name!r} → {result.path}")
             else:
                 console.print(f"[red]Failed[/red] {result.flow_name!r}: {result.error}")
@@ -214,7 +236,7 @@ def pull_command(
     else:
         console.print(f"[dim]Pulling all flows from[/dim] {env_cfg.url}")
         try:
-            flows = client.list_flows(get_all=True)
+            flows = client.list_flows(get_all=True, remove_example_flows=True)
         except Exception as exc:
             console.print(f"[red]Error:[/red] Could not list flows: {exc}")
             raise typer.Exit(1) from exc
@@ -226,7 +248,9 @@ def pull_command(
         for flow_obj in flows:
             result = _write_flow(flow_obj, sdk=sdk, dest_dir=dest_dir, strip_secrets=strip_secrets, indent=indent)
             results.append(result)
-            if result.ok:
+            if result.status == "unchanged":
+                console.print(f"[dim]Unchanged[/dim] {result.flow_name!r}")
+            elif result.ok:
                 console.print(f"[green]Pulled[/green] {result.flow_name!r} → {result.path}")
             else:
                 console.print(f"[red]Failed[/red] {result.flow_name!r}: {result.error}")

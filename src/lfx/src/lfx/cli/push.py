@@ -49,13 +49,13 @@ class PushResult:
     path: Path
     flow_id: UUID
     flow_name: str
-    status: str  # "created" | "updated" | "error" | "dry-run"
+    status: str  # "created" | "updated" | "unchanged" | "error" | "dry-run"
     error: str | None = None
     flow_url: str | None = None
 
     @property
     def ok(self) -> bool:
-        return self.status in ("created", "updated", "dry-run")
+        return self.status in ("created", "updated", "unchanged", "dry-run")
 
 
 # ---------------------------------------------------------------------------
@@ -123,11 +123,37 @@ def _upsert_single(
     dry_run: bool,
     flow_name: str,
     base_url: str,
+    local_file_content: str | None = None,
+    strip_secrets: bool = True,
 ) -> PushResult:
     flow_url = f"{base_url.rstrip('/')}/flow/{flow_id}"
 
     if dry_run:
         return PushResult(path=path, flow_id=flow_id, flow_name=flow_name, status="dry-run", flow_url=flow_url)
+
+    # Compare normalized remote against local file to detect unchanged flows,
+    # avoiding a spurious PUT when nothing has actually changed.
+    if local_file_content is not None:
+        try:
+            remote = client.get_flow(flow_id)
+            remote_normalized = sdk.normalize_flow(
+                remote.model_dump(mode="json"),
+                strip_volatile=True,
+                strip_secrets=strip_secrets,
+                sort_keys=True,
+            )
+            if sdk.flow_to_json(remote_normalized) == local_file_content:
+                return PushResult(
+                    path=path,
+                    flow_id=flow_id,
+                    flow_name=flow_name,
+                    status="unchanged",
+                    flow_url=flow_url,
+                )
+        except sdk.LangflowNotFoundError:
+            pass  # Flow doesn't exist yet — fall through to create it
+        except Exception:  # noqa: BLE001
+            pass  # Comparison failure is non-fatal — proceed with push
 
     try:
         _, created = client.upsert_flow(flow_id, flow_create)
@@ -171,13 +197,20 @@ def _find_or_create_project(
 
 
 def _collect_flow_files(sources: list[str], dir_path: str | None) -> list[Path]:
-    """Resolve the set of flow JSON files to push."""
+    """Resolve the set of flow JSON files to push.
+
+    When neither explicit file paths nor ``--dir`` are given, defaults to
+    ``flows/`` — mirroring the behaviour of ``lfx pull``.
+    """
     paths: list[Path] = []
 
-    if dir_path:
-        d = Path(dir_path)
+    # Default to flows/ when nothing is specified, just like lfx pull does.
+    effective_dir = dir_path or (None if sources else "flows")
+
+    if effective_dir:
+        d = Path(effective_dir)
         if not d.is_dir():
-            console.print(f"[red]Error:[/red] --dir {d} is not a directory.")
+            console.print(f"[red]Error:[/red] Directory not found: {d}")
             raise typer.Exit(1)
         paths.extend(sorted(d.glob("*.json")))
         if not paths:
@@ -204,6 +237,7 @@ def _render_results(results: list[PushResult], *, dry_run: bool) -> None:
     status_colors = {
         "created": "green",
         "updated": "cyan",
+        "unchanged": "dim",
         "dry-run": "yellow",
         "error": "red",
     }
@@ -231,7 +265,15 @@ def _render_results(results: list[PushResult], *, dry_run: bool) -> None:
     else:
         created = sum(1 for r in results if r.status == "created")
         updated = sum(1 for r in results if r.status == "updated")
-        ok_console.print(f"\n[green]{created} created, {updated} updated.[/green]")
+        unchanged = sum(1 for r in results if r.status == "unchanged")
+        parts = []
+        if created:
+            parts.append(f"[green]{created} created[/green]")
+        if updated:
+            parts.append(f"[cyan]{updated} updated[/cyan]")
+        if unchanged:
+            parts.append(f"[dim]{unchanged} unchanged[/dim]")
+        ok_console.print("\n" + ", ".join(parts) + ".")
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +314,9 @@ def push_command(
 
     paths = _collect_flow_files(flow_paths, dir_path)
     if not paths:
-        console.print("[red]Error:[/red] No flow files to push.")
+        console.print(
+            "[red]Error:[/red] No *.json flow files found. Run [bold]lfx pull[/bold] first, or pass explicit file paths."
+        )
         raise typer.Exit(1)
 
     # Resolve target project folder_id
@@ -298,6 +342,8 @@ def push_command(
         flow_id = _extract_flow_id(raw_flow, path)
         flow_name = raw_flow.get("name", path.stem)
         flow_create = _flow_to_create(sdk, raw_flow, target_folder_id)
+        # Capture normalized content now so _upsert_single can compare against remote.
+        local_file_content = sdk.flow_to_json(raw_flow) if normalize else None
 
         result = _upsert_single(
             client,
@@ -308,17 +354,23 @@ def push_command(
             dry_run=dry_run,
             flow_name=flow_name,
             base_url=env_cfg.url,
+            local_file_content=local_file_content,
+            strip_secrets=strip_secrets,
         )
         results.append(result)
 
         if dry_run:
             console.print(f"[yellow]DRY-RUN[/yellow] Would push {flow_name!r} ({flow_id})")
-        elif result.ok:
-            action = "Created" if result.status == "created" else "Updated"
+        elif result.status == "unchanged":
+            console.print(f"[dim]Unchanged[/dim] {flow_name!r}")
+        elif result.status == "created":
             url_hint = f"  [dim]{result.flow_url}[/dim]" if result.flow_url else ""
-            console.print(f"[green]{action}[/green] {flow_name!r} ({flow_id}){url_hint}")
+            console.print(f"[green]Created[/green]  {flow_name!r} ({flow_id}){url_hint}")
+        elif result.status == "updated":
+            url_hint = f"  [dim]{result.flow_url}[/dim]" if result.flow_url else ""
+            console.print(f"[cyan]Updated[/cyan]  {flow_name!r} ({flow_id}){url_hint}")
         else:
-            console.print(f"[red]Failed[/red]  {flow_name!r} ({flow_id}): {result.error}")
+            console.print(f"[red]Failed[/red]   {flow_name!r} ({flow_id}): {result.error}")
 
     _render_results(results, dry_run=dry_run)
 
