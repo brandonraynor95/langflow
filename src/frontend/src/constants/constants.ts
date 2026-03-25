@@ -848,8 +848,7 @@ export const MODAL_CLASSES =
 
 export const ALLOWED_IMAGE_INPUT_EXTENSIONS = ["png", "jpg", "jpeg"];
 export const ALLOWED_IMAGE_INPUT_MIME_TYPES = ["image/png", "image/jpeg"];
-export const CHAT_IMAGE_UPLOAD_ACCEPT =
-  ".png,.jpg,.jpeg,image/png,image/jpeg";
+export const CHAT_IMAGE_UPLOAD_ACCEPT = ".png,.jpg,.jpeg,image/png,image/jpeg";
 export const CHAT_IMAGE_UPLOAD_TOOLTIP = "Attach image (png, jpg, jpeg)";
 
 export const ALLOWED_CHAT_ATTACHMENT_INPUT_EXTENSIONS = [
@@ -912,7 +911,8 @@ export const componentsToIgnoreUpdate = ["CustomComponent"];
 
 export const FS_ERROR_TEXT =
   "Unsupported attachment type. Supported chat attachments include images, PDF, CSV, DOCX, and common text/code files.";
-export const SN_ERROR_TEXT = ALLOWED_CHAT_ATTACHMENT_INPUT_EXTENSIONS.join(", ");
+export const SN_ERROR_TEXT =
+  ALLOWED_CHAT_ATTACHMENT_INPUT_EXTENSIONS.join(", ");
 
 export const ERROR_UPDATING_COMPONENT =
   "An unexpected error occurred while updating the Component. Please try again.";

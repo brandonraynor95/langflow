@@ -1,9 +1,11 @@
-import { useCallback, type ChangeEvent, type Dispatch, type SetStateAction } from "react";
-import ShortUniqueId from "short-unique-id";
 import {
-  FS_ERROR_TEXT,
-  SN_ERROR_TEXT,
-} from "@/constants/constants";
+  useCallback,
+  type ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+import ShortUniqueId from "short-unique-id";
+import { FS_ERROR_TEXT, SN_ERROR_TEXT } from "@/constants/constants";
 import { usePostUploadFile } from "@/controllers/API/queries/files/use-post-upload-file";
 import useFileSizeValidator from "@/shared/hooks/use-file-size-validator";
 import { isAllowedChatAttachmentFile } from "@/utils/fileUtils";
