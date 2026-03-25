@@ -11,6 +11,7 @@ from lfx.io import BoolInput, IntInput, Output
 from lfx.log.logger import logger
 from lfx.schema.content_block import ContentBlock
 from lfx.schema.message import Message
+from lfx.schema.properties import Properties
 from lfx.utils.constants import MESSAGE_SENDER_AI
 
 if TYPE_CHECKING:
@@ -180,7 +181,7 @@ class DeepAgentComponent(Component):
         agent_message = Message(
             sender=MESSAGE_SENDER_AI,
             sender_name=sender_name,
-            properties={"icon": "Bot", "state": "partial"},
+            properties=Properties(icon="Bot", state="partial"),
             content_blocks=[ContentBlock(title="Agent Steps", contents=[])],
             session_id=session_id or str(uuid.uuid4()),
         )
@@ -237,7 +238,7 @@ class DeepAgentComponent(Component):
             await logger.adebug(f"Deep Agent response: {response_text[:500]}")
 
         agent_message.text = response_text
-        agent_message.properties["state"] = "complete"
+        agent_message.properties.state = "complete"
 
         await self.send_message(agent_message)
         self.status = agent_message
