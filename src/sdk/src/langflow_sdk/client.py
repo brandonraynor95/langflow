@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import httpx
-from typing_extensions import Self
 
 from langflow_sdk.exceptions import (
     LangflowAuthError,
@@ -46,6 +45,8 @@ from langflow_sdk.serialization import flow_to_json, normalize_flow
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
     from uuid import UUID
+
+    from typing_extensions import Self
 
 _DEFAULT_TIMEOUT = 60.0
 _HTTP_201_CREATED = HTTPStatus.CREATED.value
