@@ -20,6 +20,7 @@ from lfx.log.logger import logger
 from lfx.schema.data import Data
 from lfx.schema.dataframe import DataFrame
 from lfx.schema.table import EditMode
+from lfx.schema.token_usage import accumulate_usage, extract_usage_from_message
 
 
 class StructuredOutputComponent(Component):
@@ -222,6 +223,10 @@ class StructuredOutputComponent(Component):
             return DataFrame(output)
         return DataFrame()
 
+    def _usage_callback(self, message):
+        """Accumulate token usage from get_chat_result() responses."""
+        self._token_usage = accumulate_usage(self._token_usage, extract_usage_from_message(message))
+
     def _extract_output_with_trustcall(self, llm, schema: BaseModel, config_dict: dict) -> list[BaseModel] | None:
         try:
             llm_with_structured_output = create_extractor(llm, tools=[schema], tool_choice=schema.__name__)
@@ -230,6 +235,7 @@ class StructuredOutputComponent(Component):
                 system_message=self.system_prompt,
                 input_value=self.input_value,
                 config=config_dict,
+                token_usage_callback=self._usage_callback,
             )
         except Exception as e:  # noqa: BLE001
             logger.warning(
@@ -248,6 +254,7 @@ class StructuredOutputComponent(Component):
                 system_message=self.system_prompt,
                 input_value=self.input_value,
                 config=config_dict,
+                token_usage_callback=self._usage_callback,
             )
             if isinstance(result, BaseModel):
                 result = result.model_dump()
