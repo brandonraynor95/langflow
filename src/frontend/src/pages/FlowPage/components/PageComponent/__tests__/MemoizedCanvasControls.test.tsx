@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockSaveFlow: jest.Mock<Promise<void>, any[]> = jest.fn(() => Promise.resolve());
+const mockSaveFlow: jest.Mock<Promise<void>, any[]> = jest.fn(() =>
+  Promise.resolve(),
+);
 const mockSetCurrentFlow = jest.fn();
 
 const mockCurrentFlow = {
@@ -150,7 +152,9 @@ describe("MemoizedCanvasControls", () => {
     expect(mockSaveFlow).toHaveBeenCalledTimes(1);
     expect(mockSetCurrentFlow).toHaveBeenCalledTimes(1);
 
-    const savedFlow = (mockSaveFlow.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown> | undefined;
+    const savedFlow = (mockSaveFlow.mock.calls as unknown[][])[0]?.[0] as
+      | Record<string, unknown>
+      | undefined;
     expect(savedFlow?.locked).toBe(true);
   });
 
@@ -162,7 +166,9 @@ describe("MemoizedCanvasControls", () => {
     const lockButton = screen.getByTestId("lock-status");
     fireEvent.click(lockButton);
 
-    const savedFlow = (mockSaveFlow.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown> | undefined;
+    const savedFlow = (mockSaveFlow.mock.calls as unknown[][])[0]?.[0] as
+      | Record<string, unknown>
+      | undefined;
     expect(savedFlow?.locked).toBe(false);
   });
 
