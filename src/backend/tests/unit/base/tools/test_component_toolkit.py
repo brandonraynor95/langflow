@@ -230,9 +230,7 @@ class TestComponentToolEventEmission:
         component_tool.invoke(input={"expression": "3+3"})
 
         # Find and parse the log event
-        log_calls = [
-            call for call in mock_queue.put_nowait.call_args_list if b'"event": "log"' in call[0][0][1]
-        ]
+        log_calls = [call for call in mock_queue.put_nowait.call_args_list if b'"event": "log"' in call[0][0][1]]
         assert len(log_calls) >= 1, "log event should be emitted when component calls self.log()"
 
         event_data = json.loads(log_calls[0][0][0][1].decode("utf-8").strip())
@@ -273,9 +271,7 @@ class TestComponentToolEventEmission:
 
         component_tool.invoke(input={"expression": "4*4"})
 
-        log_calls = [
-            call for call in mock_queue.put_nowait.call_args_list if b'"event": "log"' in call[0][0][1]
-        ]
+        log_calls = [call for call in mock_queue.put_nowait.call_args_list if b'"event": "log"' in call[0][0][1]]
         assert len(log_calls) == 0, "no log events should be emitted when component does not call self.log()"
 
     def test_build_start_and_end_events_are_emitted(self):
