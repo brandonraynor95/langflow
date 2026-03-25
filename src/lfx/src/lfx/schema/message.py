@@ -76,7 +76,7 @@ class Message(Data):
     content_blocks: list[ContentBlock] = Field(default_factory=list)
     duration: int | None = None
 
-    _MAX_ATTACHMENT_TEXT_CHARS = 12000
+    _MAX_ATTACHMENT_SIZE_BYTES = 1024 * 1024 * 1024
 
     @field_validator("flow_id", mode="before")
     @classmethod
@@ -261,6 +261,17 @@ class Message(Data):
                         content_dicts.append(create_image_content_dict(file, None, model_name))
                         continue
 
+                    try:
+                        file_size_bytes = Path(file).stat().st_size
+                    except Exception:  # noqa: BLE001
+                        file_size_bytes = None
+
+                    if (
+                        file_size_bytes is not None
+                        and file_size_bytes > self._MAX_ATTACHMENT_SIZE_BYTES
+                    ):
+                        continue
+
                     from lfx.base.data.utils import parse_text_file_to_data
 
                     parsed_file = parse_text_file_to_data(file, silent_errors=True)
@@ -270,11 +281,6 @@ class Message(Data):
                         continue
 
                     parsed_text_str = parsed_text if isinstance(parsed_text, str) else json.dumps(parsed_text)
-                    if len(parsed_text_str) > self._MAX_ATTACHMENT_TEXT_CHARS:
-                        parsed_text_str = (
-                            f"{parsed_text_str[: self._MAX_ATTACHMENT_TEXT_CHARS]}\n"
-                            "\n[Attachment content truncated]"
-                        )
 
                     file_name = Path(file).name
                     content_dicts.append(

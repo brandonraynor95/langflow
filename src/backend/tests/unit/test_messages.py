@@ -232,6 +232,25 @@ def test_to_lc_message_keeps_supported_image_attachments(tmp_path):
     assert lc_message.content[1]["type"] == "image_url"
 
 
+def test_to_lc_message_skips_oversized_file_attachments(tmp_path):
+    big_path = tmp_path / "big.txt"
+    with open(big_path, "wb") as handle:
+        handle.truncate(1024 * 1024 * 1024 + 1)
+
+    message = Message(
+        text="Hello",
+        sender="User",
+        sender_name="User",
+        session_id="session-id",
+        files=[str(big_path)],
+    )
+
+    lc_message = message.to_lc_message()
+
+    assert lc_message.type == "human"
+    assert lc_message.content == [{"type": "text", "text": "Hello"}]
+
+
 @pytest.mark.usefixtures("client")
 async def test_aupdate_single_message(created_message):
     # Modify the message
