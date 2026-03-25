@@ -18,9 +18,9 @@ import zipfile
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from typing_extensions import Self
 
 import httpx
+from typing_extensions import Self
 
 from langflow_sdk.exceptions import (
     LangflowAuthError,
