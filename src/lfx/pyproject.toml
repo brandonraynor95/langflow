@@ -73,6 +73,11 @@ markers = [
     "asyncio: Async tests"
 ]
 
+[project.optional-dependencies]
+deepagents = [
+    "deepagents>=0.4.9,<1.0.0 ; python_version >= '3.11'",
+]
+
 [dependency-groups]
 dev = [
     "asgi-lifespan>=2.1.0",
