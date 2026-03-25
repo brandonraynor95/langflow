@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import ShadTooltip from "@/components/common/shadTooltipComponent";
 import { useUpdateSessionName } from "@/controllers/API/queries/messages/use-rename-session";
 import { useVoiceStore } from "@/stores/voiceStore";
@@ -17,11 +18,12 @@ export interface SessionSelectorProps {
   updateVisibleSession: (session: string) => void;
   selectedView?: { type: string; id: string };
   setSelectedView?: (view: { type: string; id: string } | undefined) => void;
-  playgroundPage?: boolean;
-  setActiveSession?: (session: string) => void;
   handleRename?: (oldSessionId: string, newSessionId: string) => Promise<void>;
   menuOpen?: boolean;
   onMenuOpenChange?: (open: boolean) => void;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
+  showCheckbox?: boolean;
 }
 
 export function SessionSelector({
@@ -34,11 +36,12 @@ export function SessionSelector({
   updateVisibleSession,
   selectedView,
   setSelectedView,
-  playgroundPage = false,
-  setActiveSession,
   handleRename,
   menuOpen,
   onMenuOpenChange,
+  isSelected = false,
+  onToggleSelect,
+  showCheckbox = false,
 }: SessionSelectorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { mutate: updateSessionName } = useUpdateSessionName();
@@ -96,7 +99,7 @@ export function SessionSelector({
   });
 
   const canModifySession = !isDefaultSession;
-  const canDeleteSession = hasMessages;
+  const canDeleteSession = hasMessages || !isDefaultSession;
   const canRenameSession = canModifySession && hasMessages;
 
   return (
@@ -109,11 +112,30 @@ export function SessionSelector({
       }}
       className={cn(
         "file-component-accordion-div group cursor-pointer rounded-md text-left text-mmd hover:bg-accent",
-        isVisible ? "bg-accent font-semibold" : "font-normal",
+        isVisible && !isSelected ? "bg-accent font-semibold" : "font-normal",
+        isSelected && "bg-accent",
       )}
     >
       <div className="flex h-8 items-center justify-between overflow-hidden w-full">
-        <div className="flex w/full min-w-0 items-center px-2">
+        <div className="flex w-full min-w-0 items-center gap-2 px-2">
+          {showCheckbox && onToggleSelect && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelect();
+              }}
+              className="cursor-pointer flex items-center justify-center w-4 h-4 flex-shrink-0"
+              data-testid={`session-${session}-checkbox`}
+            >
+              <ForwardedIconComponent
+                name={isSelected ? "SquareCheck" : "Square"}
+                className={cn(
+                  "h-4 w-4",
+                  isSelected ? "text-status-red" : "text-muted-foreground",
+                )}
+              />
+            </div>
+          )}
           {isEditing ? (
             <div
               onClick={(e) => e.stopPropagation()}
@@ -156,6 +178,7 @@ export function SessionSelector({
           tooltipSide="left"
           open={menuOpen}
           onOpenChange={onMenuOpenChange}
+          isDefaultSession={isDefaultSession}
         />
       </div>
     </div>

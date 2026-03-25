@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -83,14 +84,20 @@ def _patch_send_message_decorator(component, func):
 
 
 def _build_output_function(component: Component, output_method: Callable, event_manager: EventManager | None = None):
+    method_name = output_method.__name__
+
     def output_function(*args, **kwargs):
+        # Create an isolated copy to prevent race conditions when this
+        # tool is invoked concurrently by an agent (GitHub issue #8791)
+        comp = deepcopy(component)
+        local_method = getattr(comp, method_name)
         try:
             if event_manager:
-                event_manager.on_build_start(data={"id": component.get_id()})
-            component.set(*args, **kwargs)
-            result = output_method()
+                event_manager.on_build_start(data={"id": comp.get_id()})
+            comp.set(*args, **kwargs)
+            result = local_method()
             if event_manager:
-                event_manager.on_build_end(data={"id": component.get_id()})
+                event_manager.on_build_end(data={"id": comp.get_id()})
         except Exception as e:
             raise ToolException(e) from e
 
@@ -107,14 +114,20 @@ def _build_output_function(component: Component, output_method: Callable, event_
 def _build_output_async_function(
     component: Component, output_method: Callable, event_manager: EventManager | None = None
 ):
+    method_name = output_method.__name__
+
     async def output_function(*args, **kwargs):
+        # Create an isolated copy to prevent race conditions when this
+        # tool is invoked concurrently by an agent (GitHub issue #8791)
+        comp = deepcopy(component)
+        local_method = getattr(comp, method_name)
         try:
             if event_manager:
-                await asyncio.to_thread(event_manager.on_build_start, data={"id": component.get_id()})
-            component.set(*args, **kwargs)
-            result = await output_method()
+                await asyncio.to_thread(event_manager.on_build_start, data={"id": comp.get_id()})
+            comp.set(*args, **kwargs)
+            result = await local_method()
             if event_manager:
-                await asyncio.to_thread(event_manager.on_build_end, data={"id": component.get_id()})
+                await asyncio.to_thread(event_manager.on_build_end, data={"id": comp.get_id()})
         except Exception as e:
             raise ToolException(e) from e
         if isinstance(result, Message):
@@ -257,19 +270,13 @@ class ComponentToolkit:
             tool.name = _format_tool_name(str(tool_name)) or tool.name
             tool.description = tool_description or tool.description
             tool.tags = [tool.name]
-        elif flow_mode_inputs and (tool_name or tool_description):
+        elif (tool_name or tool_description) and (flow_mode_inputs or len(tools) > 1):
             for tool in tools:
                 tool.name = _format_tool_name(str(tool_name) + "_" + str(tool.name)) or tool.name
                 tool.description = (
                     str(tool_description) + " Output details: " + str(tool.description)
                 ) or tool.description
                 tool.tags = [tool.name]
-        elif tool_name or tool_description:
-            msg = (
-                "When passing a tool name or description, there must be only one tool, "
-                f"but {len(tools)} tools were found."
-            )
-            raise ValueError(msg)
         return tools
 
     def get_tools_metadata_dictionary(self) -> dict:

@@ -54,12 +54,12 @@ test(
     // Add Update Data component
     await page.getByTestId("sidebar-search-input").click();
     await page.getByTestId("sidebar-search-input").fill("data operations");
-    await page.waitForSelector('[data-testid="processingData Operations"]', {
+    await page.waitForSelector('[data-testid="processingJSON Operations"]', {
       timeout: 1000,
     });
 
     await page
-      .getByTestId("processingData Operations")
+      .getByTestId("processingJSON Operations")
       .dragTo(page.locator('//*[@id="react-flow-id"]'), {
         targetPosition: { x: 500, y: 100 },
       });
@@ -120,7 +120,7 @@ test(
       .first()
       .click();
     await page
-      .getByTestId("handle-dataoperations-shownode-data-left")
+      .getByTestId("handle-dataoperations-shownode-json-left")
       .first()
       .click();
 
@@ -140,7 +140,7 @@ test(
       .first()
       .click();
     await page
-      .getByTestId("handle-parsercomponent-shownode-data or dataframe-left")
+      .getByTestId("handle-parsercomponent-shownode-json or table-left")
       .first()
       .click();
 
@@ -173,7 +173,7 @@ test(
       .getByTestId("inputlist_str_urls_1")
       .fill("https://en.wikipedia.org/wiki/Human_intelligence");
 
-    await page.getByTestId("title-Data Operations").click();
+    await page.getByTestId("title-JSON Operations").click();
 
     await page.waitForTimeout(1000);
 
@@ -181,6 +181,11 @@ test(
     await page.getByText("Select Operation").click();
 
     await page.getByTestId("list_item_append_or_update").click();
+
+    // Wait for keypair fields to render after update_build_config round-trip
+    await page.waitForSelector('[data-testid="keypair0"]', {
+      timeout: 30000,
+    });
 
     await page.getByTestId("keypair0").fill("text");
     await page.getByTestId("keypair100").fill("modified_value");
@@ -203,7 +208,7 @@ test(
     // Update Data -> Loop Item (left side)
 
     await page
-      .getByTestId("handle-dataoperations-shownode-data-right")
+      .getByTestId("handle-dataoperations-shownode-json-right")
       .first()
       .click();
     await page

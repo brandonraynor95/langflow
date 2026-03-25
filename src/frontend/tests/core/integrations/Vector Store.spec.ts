@@ -3,8 +3,8 @@ import { expect, test } from "../../fixtures";
 import { adjustScreenView } from "../../utils/adjust-screen-view";
 import { awaitBootstrapTest } from "../../utils/await-bootstrap-test";
 import { initialGPTsetup } from "../../utils/initialGPTsetup";
-import { withEventDeliveryModes } from "../../utils/withEventDeliveryModes";
 import { disableInspectPanel } from "../../utils/open-advanced-options";
+import { withEventDeliveryModes } from "../../utils/withEventDeliveryModes";
 
 // Add this line to declare Node.js global variables
 declare const process: any;
@@ -21,6 +21,13 @@ withEventDeliveryModes(
     test.skip(
       !process?.env?.ASTRA_DB_APPLICATION_TOKEN,
       "ASTRA_DB_APPLICATION_TOKEN required to run this test",
+    );
+
+    // AstraDB Cassandra driver causes infinite retry loops on Windows
+    // (system_virtual_schema permission errors) leading to shard timeouts
+    test.skip(
+      process.platform === "win32",
+      "AstraDB driver is not compatible with Windows CI",
     );
 
     await awaitBootstrapTest(page);

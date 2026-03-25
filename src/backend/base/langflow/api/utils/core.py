@@ -55,6 +55,19 @@ def _get_validated_file_name(file_name: str = Path()) -> str:
 
 ValidatedFileName = Annotated[str, Depends(_get_validated_file_name)]
 
+
+def _get_validated_folder_name(folder_name: str = Path()) -> str:
+    """Validate folder_name path parameter to prevent path traversal attacks."""
+    if ".." in folder_name or "/" in folder_name or "\\" in folder_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid folder name. Use a simple folder name without directory paths or '..'.",
+        )
+    return folder_name
+
+
+ValidatedFolderName = Annotated[str, Depends(_get_validated_folder_name)]
+
 # Message to raise if we're in an Astra cloud environment and a component or endpoint is not supported
 disable_endpoint_in_astra_cloud_msg = "This endpoint is not supported in Astra cloud environment."
 
@@ -67,6 +80,17 @@ class EventDeliveryType(str, Enum):
 
 def has_api_terms(word: str):
     return "api" in word and ("key" in word or ("token" in word and "tokens" not in word))
+
+
+def _get_provider_from_template(template: dict) -> str | None:
+    """Return provider name from template's model field, if any."""
+    model_field = template.get("model")
+    if not isinstance(model_field, dict):
+        return None
+    raw = model_field.get("value")
+    if isinstance(raw, list) and len(raw) > 0 and isinstance(raw[0], dict):
+        return raw[0].get("provider")
+    return None
 
 
 def remove_api_keys(flow: dict):
