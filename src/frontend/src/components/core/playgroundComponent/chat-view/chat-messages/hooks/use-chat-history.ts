@@ -19,10 +19,13 @@ export const useChatHistory = (visibleSession: string | null) => {
   const { data: queryData } = useGetMessagesQuery(messageQueryParams);
 
   // Session cache key - this is the single source of truth for messages
-  const sessionCacheKey = [
-    "useGetMessagesQuery",
-    { id: currentFlowId, session_id: visibleSession },
-  ];
+  const sessionCacheKey = useMemo(
+    () => [
+      "useGetMessagesQuery",
+      { id: currentFlowId, session_id: visibleSession },
+    ],
+    [currentFlowId, visibleSession],
+  );
 
   // Watch the session cache - this automatically updates when updateMessage/addUserMessage change it
   const { data: sessionMessages = [] } = useQuery<Message[]>({
@@ -91,7 +94,7 @@ export const useChatHistory = (visibleSession: string | null) => {
 
         // Convert Message.properties to ChatMessageType.properties (PropertiesType)
         // Properties are now properly typed in Message, no cast needed
-        let properties: ChatMessageType["properties"] = undefined;
+        let properties: ChatMessageType["properties"];
         if (message.properties?.source?.id) {
           properties = {
             source: {
@@ -108,6 +111,7 @@ export const useChatHistory = (visibleSession: string | null) => {
             allow_markdown: message.properties.allow_markdown,
             positive_feedback: message.properties.positive_feedback,
             build_duration: message.properties.build_duration,
+            usage: message.properties.usage,
           };
         }
 

@@ -8,6 +8,7 @@ from lfx.schema.token_usage import (
     _normalize_usage_metadata,
     accumulate_usage,
     extract_usage_from_chunk,
+    extract_usage_from_llm_result,
     extract_usage_from_message,
 )
 
@@ -138,6 +139,188 @@ class TestExtractUsageFromMessage:
 
         assert result is not None
         assert result.total_tokens is None
+
+
+class TestExtractUsageFromLlmResult:
+    """Tests for extract_usage_from_llm_result()."""
+
+    @staticmethod
+    def _make_llm_result(llm_output=None, generations=None):
+        """Create a duck-typed LLMResult-like object for testing."""
+        return SimpleNamespace(
+            llm_output=llm_output,
+            generations=generations or [],
+        )
+
+    @staticmethod
+    def _make_generation(message=None, generation_info=None):
+        """Create a duck-typed generation object."""
+        return SimpleNamespace(message=message, generation_info=generation_info)
+
+    def test_extracts_from_llm_output_token_usage(self):
+        """Strategy 1: llm_output['token_usage'] (legacy OpenAI path)."""
+        result_obj = self._make_llm_result(
+            llm_output={"token_usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}},
+        )
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert isinstance(result, Usage)
+        assert result.input_tokens == 10
+        assert result.output_tokens == 20
+        assert result.total_tokens == 30
+
+    def test_extracts_from_usage_metadata_via_message(self):
+        """Strategy 2: generations[].message.usage_metadata via extract_usage_from_message()."""
+        message = AIMessage(content="hi")
+        message.usage_metadata = {"input_tokens": 15, "output_tokens": 25}
+        gen = self._make_generation(message=message)
+        result_obj = self._make_llm_result(generations=[[gen]])
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert isinstance(result, Usage)
+        assert result.input_tokens == 15
+        assert result.output_tokens == 25
+        assert result.total_tokens == 40
+
+    def test_extracts_from_response_metadata_token_usage(self):
+        """Strategy 2: generations[].message.response_metadata['token_usage'] via extract_usage_from_message()."""
+        message = AIMessage(
+            content="hi",
+            response_metadata={"token_usage": {"prompt_tokens": 50, "completion_tokens": 100, "total_tokens": 150}},
+        )
+        gen = self._make_generation(message=message)
+        result_obj = self._make_llm_result(generations=[[gen]])
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert isinstance(result, Usage)
+        assert result.input_tokens == 50
+        assert result.output_tokens == 100
+        assert result.total_tokens == 150
+
+    def test_extracts_from_response_metadata_usage_anthropic(self):
+        """Strategy 2: generations[].message.response_metadata['usage'] via extract_usage_from_message()."""
+        message = AIMessage(
+            content="hi",
+            response_metadata={"usage": {"input_tokens": 200, "output_tokens": 300}},
+        )
+        gen = self._make_generation(message=message)
+        result_obj = self._make_llm_result(generations=[[gen]])
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert isinstance(result, Usage)
+        assert result.input_tokens == 200
+        assert result.output_tokens == 300
+        assert result.total_tokens == 500
+
+    def test_extracts_from_generation_info_token_usage(self):
+        """Strategy 3: generation_info['token_usage'] fallback (older adapters)."""
+        gen = self._make_generation(
+            message=None,
+            generation_info={"token_usage": {"prompt_tokens": 5, "completion_tokens": 10, "total_tokens": 15}},
+        )
+        result_obj = self._make_llm_result(generations=[[gen]])
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert isinstance(result, Usage)
+        assert result.input_tokens == 5
+        assert result.output_tokens == 10
+        assert result.total_tokens == 15
+
+    def test_extracts_from_generation_info_usage_anthropic(self):
+        """Strategy 3: generation_info['usage'] fallback (older Anthropic adapters)."""
+        gen = self._make_generation(
+            message=None,
+            generation_info={"usage": {"input_tokens": 30, "output_tokens": 40}},
+        )
+        result_obj = self._make_llm_result(generations=[[gen]])
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert isinstance(result, Usage)
+        assert result.input_tokens == 30
+        assert result.output_tokens == 40
+        assert result.total_tokens == 70
+
+    def test_returns_none_when_no_usage_data(self):
+        result_obj = self._make_llm_result(llm_output={}, generations=[[]])
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert result is None
+
+    def test_returns_none_for_empty_result(self):
+        result_obj = self._make_llm_result()
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert result is None
+
+    def test_llm_output_takes_priority_over_usage_metadata(self):
+        """llm_output strategy should win over message-level extraction."""
+        message = AIMessage(content="hi")
+        message.usage_metadata = {"input_tokens": 999, "output_tokens": 999}
+        gen = self._make_generation(message=message)
+        result_obj = self._make_llm_result(
+            llm_output={"token_usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}},
+            generations=[[gen]],
+        )
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert result.input_tokens == 10
+        assert result.output_tokens == 20
+
+    def test_message_takes_priority_over_generation_info(self):
+        """Message-level extraction should win over generation_info fallback."""
+        message = AIMessage(content="hi")
+        message.usage_metadata = {"input_tokens": 10, "output_tokens": 20}
+        gen = self._make_generation(
+            message=message,
+            generation_info={"token_usage": {"prompt_tokens": 999, "completion_tokens": 999}},
+        )
+        result_obj = self._make_llm_result(generations=[[gen]])
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert result.input_tokens == 10
+        assert result.output_tokens == 20
+
+    def test_skips_zero_llm_output_falls_through_to_message(self):
+        """Zero values in llm_output should fall through to message strategies."""
+        message = AIMessage(content="hi")
+        message.usage_metadata = {"input_tokens": 15, "output_tokens": 25}
+        gen = self._make_generation(message=message)
+        result_obj = self._make_llm_result(
+            llm_output={"token_usage": {"prompt_tokens": 0, "completion_tokens": 0}},
+            generations=[[gen]],
+        )
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        assert result.input_tokens == 15
+        assert result.output_tokens == 25
+
+    def test_returns_none_for_none_response(self):
+        """Passing None should not raise and should return None."""
+        result = extract_usage_from_llm_result(None)
+
+        assert result is None
+
+    def test_total_tokens_is_recalculated_from_sum(self):
+        """total_tokens is always recalculated as input + output, not taken from provider."""
+        result_obj = self._make_llm_result(
+            llm_output={"token_usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 999}},
+        )
+
+        result = extract_usage_from_llm_result(result_obj)
+
+        # The function recalculates total_tokens rather than using the provider value
+        assert result.total_tokens == 30
 
 
 class TestExtractUsageFromChunk:
