@@ -393,9 +393,9 @@ export default function NodeStatus({
           {showNodeStatus && (
             <ShadTooltip
               styleClasses={cn(
-                "border rounded-xl p-2 bg",
+                "border rounded-xl p-2",
                 conditionSuccess
-                  ? "bg-neutral-700"
+                  ? "bg-success-background"
                   : "border-destructive bg-error-background",
               )}
               content={

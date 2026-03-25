@@ -95,13 +95,15 @@ export const useChatHistory = (visibleSession: string | null) => {
         // Convert Message.properties to ChatMessageType.properties (PropertiesType)
         // Properties are now properly typed in Message, no cast needed
         let properties: ChatMessageType["properties"];
-        if (message.properties?.source?.id) {
+        if (message.properties) {
           properties = {
-            source: {
-              id: message.properties.source.id,
-              display_name: message.properties.source.display_name || "",
-              source: message.properties.source.source || "",
-            },
+            ...(message.properties.source?.id && {
+              source: {
+                id: message.properties.source.id,
+                display_name: message.properties.source.display_name || "",
+                source: message.properties.source.source || "",
+              },
+            }),
             state: message.properties.state,
             icon: message.properties.icon,
             background_color: message.properties.background_color,

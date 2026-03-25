@@ -258,8 +258,7 @@ class NativeCallbackHandler(BaseCallbackHandler):
         Returns a (prompt_tokens, completion_tokens, total_tokens) tuple to preserve
         the existing interface with end_langchain_span().
         """
-        # Deferred import: lfx is an optional dependency of the langflow backend package.
-        # Importing at module level would make lfx a hard import-time requirement.
+        # Deferred import: avoids circular imports at module level.
         from lfx.schema.token_usage import extract_usage_from_llm_result
 
         usage = extract_usage_from_llm_result(response)

@@ -168,7 +168,9 @@ export const BotMessage = memo(
                       <span>Running... {formatSeconds(displayTime)}</span>
                     ) : !thinkingActive && displayTime > 0 ? (
                       <>
-                        <span className="text-muted-foreground">Finished</span>
+                        <span className="text-muted-foreground">
+                          Finished in
+                        </span>
                         <span className="flex items-center gap-1 font-mono text-xs text-accent-emerald-foreground">
                           {formattedTokenCount && (
                             <>

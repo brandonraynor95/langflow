@@ -41,7 +41,7 @@ export type UsageType = {
 };
 
 export type PropertiesType = {
-  source: SourceType;
+  source?: SourceType;
   icon?: string;
   background_color?: string;
   text_color?: string;
