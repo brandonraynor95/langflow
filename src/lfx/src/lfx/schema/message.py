@@ -266,10 +266,7 @@ class Message(Data):
                     except Exception:  # noqa: BLE001
                         file_size_bytes = None
 
-                    if (
-                        file_size_bytes is not None
-                        and file_size_bytes > self._MAX_ATTACHMENT_SIZE_BYTES
-                    ):
+                    if file_size_bytes is not None and file_size_bytes > self._MAX_ATTACHMENT_SIZE_BYTES:
                         continue
 
                     from lfx.base.data.utils import parse_text_file_to_data
@@ -290,9 +287,7 @@ class Message(Data):
                         }
                     )
             except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    f"Skipping unsupported attachment during message conversion: {type(exc).__name__}"
-                )
+                logger.warning(f"Skipping unsupported attachment during message conversion: {type(exc).__name__}")
         return content_dicts
 
     def load_lc_prompt(self):
