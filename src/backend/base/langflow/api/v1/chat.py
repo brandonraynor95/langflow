@@ -13,7 +13,10 @@ from lfx.graph.utils import log_vertex_build
 from lfx.log.logger import logger
 from lfx.schema.schema import InputValueRequest, OutputValue
 from lfx.services.cache.utils import CacheMiss
-from lfx.utils.flow_validation import validate_flow_for_current_settings
+from lfx.utils.flow_validation import (
+    is_custom_component_validation_error_message,
+    validate_flow_for_current_settings,
+)
 
 from langflow.api.build import cancel_flow_build, get_flow_events_response, start_flow_build
 from langflow.api.limited_background_tasks import LimitVertexBuildBackgroundTasks
@@ -93,20 +96,7 @@ async def retrieve_vertices_order(
     components_count = None
     run_id = str(uuid.uuid4())
     try:
-        try:
-            if data:
-                validate_flow_for_current_settings(data.model_dump())
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-        # If no client-side data was provided, load and validate the flow from the database
         if not data:
-            flow = await session.get(Flow, flow_id)
-            if flow and flow.data:
-                try:
-                    validate_flow_for_current_settings(flow.data)
-                except ValueError as exc:
-                    raise HTTPException(status_code=400, detail=str(exc)) from exc
             graph = await build_graph_from_db(flow_id=flow_id, session=session, chat_service=chat_service)
         else:
             graph = await build_and_cache_graph_from_data(
@@ -132,8 +122,6 @@ async def retrieve_vertices_order(
         )
         return VerticesOrderResponse(ids=graph.first_layer, run_id=graph.run_id, vertices_to_run=vertices_to_run)
     except Exception as exc:
-        if isinstance(exc, HTTPException):
-            raise
         background_tasks.add_task(
             telemetry_service.log_package_playground,
             PlaygroundPayload(
@@ -145,6 +133,8 @@ async def retrieve_vertices_order(
             ),
         )
         if "stream or streaming set to True" in str(exc):
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if is_custom_component_validation_error_message(str(exc)):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         await logger.aexception("Error checking build status")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -329,12 +319,6 @@ async def build_vertex(
             # If there's no cache
             await logger.awarning(f"No cache found for {flow_id_str}. Building graph starting at {vertex_id}")
             async with session_scope() as session:
-                flow = await session.get(Flow, flow_id)
-                if flow and flow.data:
-                    try:
-                        validate_flow_for_current_settings(flow.data)
-                    except ValueError as exc:
-                        raise HTTPException(status_code=400, detail=str(exc)) from exc
                 graph = await build_graph_from_db(
                     flow_id=flow_id,
                     session=session,
@@ -454,6 +438,8 @@ async def build_vertex(
                 component_run_id=run_id if "run_id" in locals() else None,
             ),
         )
+        if is_custom_component_validation_error_message(str(exc)):
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         await logger.aexception("Error building Component")
         message = parse_exception(exc)
         raise HTTPException(status_code=500, detail=message) from exc
