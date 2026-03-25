@@ -94,6 +94,7 @@
               "Message"
             ],
             "beta": false,
+            "cloud_compatible": true,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "Get user text inputs.",
@@ -233,6 +234,7 @@
               "Message"
             ],
             "beta": false,
+            "cloud_compatible": true,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "Display a chat message in the Playground.",
@@ -517,6 +519,7 @@
               "Table"
             ],
             "beta": false,
+            "cloud_compatible": false,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "Search and retrieve data from knowledge.",

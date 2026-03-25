@@ -51,11 +51,11 @@ export function ParameterRenderComponent({
   name: string;
   nodeId: string;
   templateData: Partial<InputFieldType>;
-  templateValue: any;
+  templateValue: unknown;
   editNode: boolean;
   showParameter: boolean;
   inspectionPanel: boolean;
-  handleNodeClass: (value: any, code?: string, type?: string) => void;
+  handleNodeClass: (value: unknown, code?: string, type?: string) => void;
   nodeClass: APIClassType;
   disabled: boolean;
   placeholder?: string;
@@ -71,14 +71,31 @@ export function ParameterRenderComponent({
     templateData.name
   ).toLowerCase();
 
-  // Check for cloud default overrides on the current field
+  const nodeMetadata = nodeClass?.metadata as
+    | {
+        cloud_default_overrides?: Record<
+          string,
+          { value?: unknown; placeholder?: string }
+        >;
+        cloud_incompatible_options?: Record<string, unknown[]>;
+      }
+    | undefined;
+
+  const shouldUseCloudPlaceholder =
+    cloudOnly &&
+    (templateValue === "" ||
+      templateValue === undefined ||
+      templateValue === null);
+
   const cloudOverride =
-    cloudOnly && nodeClass?.metadata?.cloud_default_overrides?.[name];
+    shouldUseCloudPlaceholder
+      ? nodeMetadata?.cloud_default_overrides?.[name]
+      : undefined;
 
   const renderComponent = (): React.ReactElement<InputProps> => {
     const baseInputProps: InputProps = {
       id,
-      value: cloudOverride ? cloudOverride.value : templateValue,
+      value: templateValue,
       editNode,
       handleOnNewValue: handleOnNewValue as handleOnNewValueType,
       disabled,
@@ -88,7 +105,7 @@ export function ParameterRenderComponent({
       helperText: templateData?.helper_text,
       readonly: templateData.readonly,
       placeholder:
-        cloudOverride?.placeholder || placeholder || templateData?.placeholder,
+        cloudOverride?.placeholder ?? placeholder ?? templateData?.placeholder,
       isToolMode,
       nodeInformationMetadata,
       hasRefreshButton: templateData.refresh_button,
@@ -258,11 +275,15 @@ export function ParameterRenderComponent({
             template={nodeClass?.template}
           />
         );
-      case "slider":
+      case "slider": {
+        // Slider uses a narrower value type than the generic base input props.
+        // Omit the generic value from the spread so the explicit slider value wins.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { value: _sliderValue, ...sliderInputProps } = baseInputProps;
         return (
           <SliderComponent
-            {...baseInputProps}
-            value={templateValue}
+            {...sliderInputProps}
+            value={templateValue as string | number | string[] | number[]}
             rangeSpec={templateData.rangeSpec ?? templateData.range_spec}
             minLabel={templateData?.min_label}
             maxLabel={templateData?.max_label}
@@ -274,15 +295,22 @@ export function ParameterRenderComponent({
             id={`slider_${id}`}
           />
         );
+      }
       case "sortableList": {
         // Filter out cloud-incompatible options when cloud mode is active
         let sortableOptions = templateData?.options;
-        if (cloudOnly && nodeClass?.metadata?.cloud_incompatible_options) {
-          const incompatible =
-            nodeClass.metadata.cloud_incompatible_options[name];
+        if (cloudOnly && nodeMetadata?.cloud_incompatible_options) {
+          const incompatible = nodeMetadata.cloud_incompatible_options[name];
           if (incompatible && Array.isArray(incompatible)) {
             sortableOptions = sortableOptions?.filter(
-              (opt: any) => !incompatible.includes(opt.name ?? opt),
+              (opt: unknown) => {
+                const optionName =
+                  typeof opt === "object" && opt !== null && "name" in opt
+                    ? (opt as { name?: unknown }).name ?? opt
+                    : opt;
+
+                return !incompatible.includes(optionName);
+              },
             );
           }
         }
@@ -299,10 +327,12 @@ export function ParameterRenderComponent({
         );
       }
       case "connect": {
+        const connectionOptions = templateData?.options as
+          | Array<{ name?: unknown; link?: string }>
+          | undefined;
         const link =
-          templateData?.options?.find(
-            (option: any) => option?.name === templateValue,
-          )?.link || "";
+          connectionOptions?.find((option) => option?.name === templateValue)
+            ?.link || "";
 
         return (
           <CustomConnectionComponent

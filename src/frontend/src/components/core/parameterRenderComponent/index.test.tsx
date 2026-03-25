@@ -1,37 +1,95 @@
-// TypeScript-only test to verify component props interface
-// This test doesn't run any actual component code to avoid Jest configuration issues
+import type { ComponentProps } from "react";
+import { render, screen } from "@testing-library/react";
+import { ParameterRenderComponent } from ".";
 
-describe("ParameterRenderComponent Types", () => {
-  it("should accept correct props type", () => {
-    // This test verifies that the component accepts the correct props structure
-    const baseProps = {
-      handleOnNewValue: jest.fn(),
-      name: "test-field",
-      nodeId: "test-node-id",
-      editNode: false,
-      handleNodeClass: jest.fn(),
-      nodeClass: {
-        description: "Test component",
-        template: {},
-        display_name: "Test Component",
-        documentation: "Test component documentation",
+let mockCloudOnly = false;
+type CloudModeState = {
+  cloudOnly: boolean;
+  setCloudOnly: jest.Mock;
+};
+type StrRenderProps = {
+  value?: string | number | readonly string[] | null;
+  placeholder?: string | null;
+};
+
+jest.mock("@/stores/cloudModeStore", () => ({
+  useCloudModeStore: <T,>(selector: (state: CloudModeState) => T) =>
+    selector({ cloudOnly: mockCloudOnly, setCloudOnly: jest.fn() }),
+}));
+
+jest.mock("./components/strRenderComponent", () => ({
+  StrRenderComponent: ({ value, placeholder }: StrRenderProps) => (
+    <div
+      data-testid="str-render-props"
+      data-value={value ?? ""}
+      data-placeholder={placeholder ?? ""}
+    />
+  ),
+}));
+
+jest.mock("./components/mcpComponent", () => () => (
+  <div data-testid="mcp-component" />
+));
+
+describe("ParameterRenderComponent", () => {
+  beforeEach(() => {
+    mockCloudOnly = false;
+  });
+
+  const baseProps: ComponentProps<typeof ParameterRenderComponent> = {
+    handleOnNewValue: jest.fn(),
+    name: "url",
+    nodeId: "test-node-id",
+    editNode: true,
+    showParameter: true,
+    inspectionPanel: false,
+    handleNodeClass: jest.fn(),
+    nodeClass: {
+      description: "Test component",
+      template: {},
+      display_name: "Test Component",
+      documentation: "Test component documentation",
+      metadata: {
+        cloud_default_overrides: {
+          url: {
+            value: "",
+            placeholder: "Enter your cloud URL",
+          },
+        },
       },
-      disabled: false,
-      templateValue: "Hello {{name}}!",
-    };
+    },
+    disabled: false,
+    templateData: { type: "str", name: "url", placeholder: "Local URL" },
+  };
 
-    // Test different template data types
-    const mustacheTemplateData = { type: "mustache", name: "template" };
-    const promptTemplateData = { type: "prompt", name: "template" };
+  it("keeps an existing saved value visible in cloud mode", () => {
+    mockCloudOnly = true;
 
-    // If this compiles without TypeScript errors, the types are correct
-    expect(baseProps).toBeDefined();
-    expect(baseProps.nodeClass.description).toBe("Test component");
-    expect(baseProps.nodeClass.display_name).toBe("Test Component");
-    expect(baseProps.nodeClass.documentation).toBe(
-      "Test component documentation",
+    render(
+      <ParameterRenderComponent
+        {...baseProps}
+        templateValue="https://prod.example.com"
+      />,
     );
-    expect(mustacheTemplateData.type).toBe("mustache");
-    expect(promptTemplateData.type).toBe("prompt");
+
+    const renderedProps = screen.getByTestId("str-render-props");
+    expect(renderedProps).toHaveAttribute(
+      "data-value",
+      "https://prod.example.com",
+    );
+    expect(renderedProps).toHaveAttribute("data-placeholder", "Local URL");
+  });
+
+  it("uses the cloud placeholder when a new value is empty", () => {
+    mockCloudOnly = true;
+
+    render(<ParameterRenderComponent {...baseProps} templateValue="" />);
+
+    const renderedProps = screen.getByTestId("str-render-props");
+    expect(renderedProps).toHaveAttribute("data-value", "");
+    expect(renderedProps).toHaveAttribute(
+      "data-placeholder",
+      "Enter your cloud URL",
+    );
   });
 });

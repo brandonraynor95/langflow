@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -9,8 +10,12 @@ Element.prototype.scrollIntoView = jest.fn();
 
 // Mock cloud mode store
 let mockCloudOnly = false;
+type CloudModeState = {
+  cloudOnly: boolean;
+  setCloudOnly: jest.Mock;
+};
 jest.mock("@/stores/cloudModeStore", () => ({
-  useCloudModeStore: (selector: any) =>
+  useCloudModeStore: <T,>(selector: (state: CloudModeState) => T) =>
     selector({ cloudOnly: mockCloudOnly, setCloudOnly: jest.fn() }),
 }));
 
@@ -145,7 +150,7 @@ const mockOptions: ModelOption[] = [
   },
 ];
 
-const defaultProps: any = {
+const defaultProps: ComponentProps<typeof ModelInputComponent> = {
   id: "test-model-input",
   value: [],
   disabled: false,
@@ -467,6 +472,53 @@ describe("ModelInputComponent", () => {
 
       // Ollama model should not appear in the UI when cloud mode is active
       expect(screen.queryByText("llama3")).not.toBeInTheDocument();
+
+      mockCloudOnly = false;
+    });
+
+    it("should keep showing a saved cloud-incompatible provider selection", async () => {
+      mockCloudOnly = true;
+
+      const optionsWithOllama: ModelOption[] = [
+        {
+          id: "llama3",
+          name: "llama3",
+          icon: "Ollama",
+          provider: "Ollama",
+          metadata: {},
+        },
+        ...mockOptions,
+      ];
+
+      renderWithQueryClient(
+        <ModelInputComponent
+          {...defaultProps}
+          options={optionsWithOllama}
+          value={[
+            {
+              id: "llama3",
+              name: "llama3",
+              icon: "Ollama",
+              provider: "Ollama",
+              metadata: {},
+            },
+          ]}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("llama3")).toBeInTheDocument();
+      });
+
+      expect(screen.getByText("Not available in cloud")).toBeInTheDocument();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("combobox"));
+
+      await waitFor(() => {
+        expect(screen.getByText("OpenAI")).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("llama3-option")).not.toBeInTheDocument();
 
       mockCloudOnly = false;
     });

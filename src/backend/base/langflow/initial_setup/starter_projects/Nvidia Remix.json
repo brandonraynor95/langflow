@@ -212,6 +212,7 @@
               "Message"
             ],
             "beta": false,
+            "cloud_compatible": true,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "Get chat inputs from the Playground.",
@@ -488,6 +489,7 @@
               "Message"
             ],
             "beta": false,
+            "cloud_compatible": true,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "Display a chat message in the Playground.",
@@ -771,6 +773,7 @@
               "Message"
             ],
             "beta": false,
+            "cloud_compatible": true,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "Define the agent's instructions, then enter a task to complete using tools.",
@@ -1720,6 +1723,7 @@
               "Embeddings"
             ],
             "beta": false,
+            "cloud_compatible": true,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "Generate embeddings using a specified provider.",
@@ -2102,6 +2106,7 @@
               "Table"
             ],
             "beta": false,
+            "cloud_compatible": false,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "FAISS Vector Store with search capabilities",
@@ -2452,6 +2457,7 @@
             ],
             "beta": false,
             "category": "data",
+            "cloud_compatible": true,
             "conditional_paths": [],
             "custom_fields": {},
             "description": "Connect to an MCP server to use its tools.",

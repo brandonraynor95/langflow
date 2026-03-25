@@ -11,6 +11,7 @@ interface ModelTriggerProps {
   disabled: boolean;
   options: ModelOption[];
   selectedModel: SelectedModel | null;
+  showCloudIncompatibleWarning?: boolean;
   placeholder?: string;
   hasEnabledProviders: boolean;
   onOpenManageProviders: () => void;
@@ -24,6 +25,7 @@ const ModelTrigger = ({
   disabled,
   options,
   selectedModel,
+  showCloudIncompatibleWarning = false,
   placeholder = "Setup Provider",
   hasEnabledProviders,
   onOpenManageProviders,
@@ -90,13 +92,24 @@ const ModelTrigger = ({
                   No models enabled
                 </div>
               ) : (
-                <div
-                  className={cn(
-                    "truncate",
-                    !selectedModel?.name && "text-muted-foreground",
+                <div className="flex min-w-0 flex-col items-start">
+                  <div
+                    className={cn(
+                      "truncate",
+                      !selectedModel?.name && "text-muted-foreground",
+                    )}
+                  >
+                    {selectedModel?.name || "Select a model"}
+                  </div>
+                  {showCloudIncompatibleWarning && (
+                    <div className="flex items-center gap-1 text-[11px] text-accent-emerald-foreground">
+                      <ForwardedIconComponent
+                        name="CloudOff"
+                        className="h-3 w-3"
+                      />
+                      <span>Not available in cloud</span>
+                    </div>
                   )}
-                >
-                  {selectedModel?.name || "Select a model"}
                 </div>
               )}
             </span>

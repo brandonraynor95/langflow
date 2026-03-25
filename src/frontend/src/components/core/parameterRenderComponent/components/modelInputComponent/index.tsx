@@ -4,12 +4,9 @@ import LoadingTextComponent from "@/components/common/loadingTextComponent";
 import { CLOUD_INCOMPATIBLE_PROVIDERS } from "@/constants/cloud-incompatible-providers";
 import { useGetEnabledModels } from "@/controllers/API/queries/models/use-get-enabled-models";
 import { useGetModelProviders } from "@/controllers/API/queries/models/use-get-model-providers";
-import { usePostTemplateValue } from "@/controllers/API/queries/nodes/use-post-template-value";
 import { useRefreshModelInputs } from "@/hooks/use-refresh-model-inputs";
 import ModelProviderModal from "@/modals/modelProviderModal";
-import useAlertStore from "@/stores/alertStore";
 import { useCloudModeStore } from "@/stores/cloudModeStore";
-import type { APIClassType } from "@/types/api";
 import ForwardedIconComponent from "../../../../common/genericIconComponent";
 import { Button } from "../../../../ui/button";
 import { Command } from "../../../../ui/command";
@@ -24,8 +21,17 @@ import ModelTrigger from "./components/ModelTrigger";
 import type {
   ModelInputComponentType,
   ModelOption,
-  SelectedModel,
 } from "./types";
+
+type ModelInputValue =
+  | Array<{
+      id?: string;
+      name: string;
+      icon?: string;
+      provider?: string;
+      metadata?: Record<string, unknown>;
+    }>
+  | "connect_other_models";
 
 export default function ModelInputComponent({
   id,
@@ -42,8 +48,7 @@ export default function ModelInputComponent({
   editNode,
   inspectionPanel,
   showEmptyState = false,
-}: BaseInputProps<any> & ModelInputComponentType): JSX.Element | null {
-  const { setErrorData } = useAlertStore();
+}: BaseInputProps<ModelInputValue> & ModelInputComponentType): JSX.Element | null {
   const refButton = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [openManageProvidersDialog, setOpenManageProvidersDialog] =
@@ -56,12 +61,6 @@ export default function ModelInputComponent({
   // prevents infinite loop when no models are available
   const hasProcessedEmptyRef = useRef(false);
 
-  const postTemplateValue = usePostTemplateValue({
-    parameterId: "model",
-    nodeId: nodeId || "",
-    node: (nodeClass as APIClassType) || null,
-  });
-
   const modelType =
     nodeClass?.template?.model?.model_type === "language"
       ? "llm"
@@ -69,13 +68,9 @@ export default function ModelInputComponent({
 
   const {
     data: providersData = [],
-    isLoading: isLoadingProviders,
     isFetching: isFetchingProviders,
   } = useGetModelProviders({});
-  const { data: enabledModelsData, isLoading: isLoadingEnabledModels } =
-    useGetEnabledModels();
-
-  const isLoading = isLoadingProviders || isLoadingEnabledModels;
+  const { data: enabledModelsData } = useGetEnabledModels();
 
   const hasEnabledProviders = useMemo(() => {
     return providersData?.some(
@@ -108,7 +103,11 @@ export default function ModelInputComponent({
         }
       }
 
-      (grouped[provider] ??= []).push(option);
+      if (!grouped[provider]) {
+        grouped[provider] = [];
+      }
+
+      grouped[provider].push(option);
     }
     return grouped;
   }, [options, enabledModelsData, cloudOnly]);
@@ -126,7 +125,8 @@ export default function ModelInputComponent({
       return null;
     }
 
-    const currentName = value?.[0]?.name;
+    const currentValue = Array.isArray(value) ? value[0] : null;
+    const currentName = currentValue?.name;
     if (!currentName) {
       // Logic to auto-select the first model if none is selected
       // We only do this check if we have options available
@@ -137,13 +137,32 @@ export default function ModelInputComponent({
       return null;
     }
 
-    return (
-      flatOptions.find((option) => option.name === currentName) ||
-      // Fallback: If the saved name isn't in the list (e.g. disabled), select first available?
-      // Or keep displaying the stale one? Original logic selected first available.
-      (flatOptions.length > 0 ? flatOptions[0] : null)
-    );
+    const matchedOption = flatOptions.find((option) => option.name === currentName);
+
+    if (matchedOption) {
+      return matchedOption;
+    }
+
+    if (currentValue) {
+      return {
+        id: currentValue.id,
+        name: currentValue.name,
+        icon: currentValue.icon || "Bot",
+        provider: currentValue.provider || "Unknown",
+        metadata: currentValue.metadata ?? {},
+      };
+    }
+
+    return flatOptions.length > 0 ? flatOptions[0] : null;
   }, [value, flatOptions]);
+
+  const showCloudIncompatibleWarning = useMemo(
+    () =>
+      cloudOnly &&
+      !!selectedModel?.provider &&
+      CLOUD_INCOMPATIBLE_PROVIDERS.has(selectedModel.provider),
+    [cloudOnly, selectedModel?.provider],
+  );
 
   useEffect(() => {
     // Only proceed if we have options and haven't selected a value
@@ -333,6 +352,7 @@ export default function ModelInputComponent({
             disabled={disabled}
             options={options}
             selectedModel={selectedModel}
+            showCloudIncompatibleWarning={showCloudIncompatibleWarning}
             placeholder={placeholder}
             hasEnabledProviders={hasEnabledProviders ?? false}
             onOpenManageProviders={() => setOpenManageProvidersDialog(true)}

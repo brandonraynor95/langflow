@@ -518,17 +518,15 @@ function GenericNode({
             loadingUpdate={loadingUpdate}
             setDismissAll={memoizedSetDismissAll}
           />
-        ) : shouldShowLegacyComponent ? (
+        ) : null}
+        {shouldShowLegacyComponent ? (
           <NodeLegacyComponent
             legacy={data.node?.legacy}
             replacement={data.node?.replacement}
             setDismissAll={memoizedSetDismissAllLegacy}
           />
-        ) : shouldShowCloudIncompatible ? (
-          <NodeCloudIncompatibleComponent />
-        ) : (
-          <></>
-        )}
+        ) : null}
+        {shouldShowCloudIncompatible ? <NodeCloudIncompatibleComponent /> : null}
 
         <div
           data-testid={`${data.id}-main-node`}
