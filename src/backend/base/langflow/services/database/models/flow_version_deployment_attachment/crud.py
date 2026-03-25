@@ -164,7 +164,7 @@ async def list_attachments_for_flow_with_provider_info(
     db: AsyncSession,
     *,
     user_id: UUID,
-    flow_id: UUID,
+    flow_ids: list[UUID],
 ) -> list[tuple[FlowVersionDeploymentAttachment, UUID, str]]:
     """Return attachments for all versions of a flow, with provider context.
 
@@ -180,6 +180,9 @@ async def list_attachments_for_flow_with_provider_info(
     from langflow.services.database.models.deployment_provider_account.model import DeploymentProviderAccount
     from langflow.services.database.models.flow_version.model import FlowVersion
 
+    if not flow_ids:
+        return []
+
     stmt = (
         select(
             FlowVersionDeploymentAttachment,
@@ -191,7 +194,7 @@ async def list_attachments_for_flow_with_provider_info(
         .where(
             FlowVersionDeploymentAttachment.user_id == user_id,
             FlowVersionDeploymentAttachment.flow_version_id.in_(
-                select(FlowVersion.id).where(FlowVersion.flow_id == flow_id)
+                select(FlowVersion.id).where(FlowVersion.flow_id.in_(flow_ids))
             ),
         )
         .order_by(FlowVersionDeploymentAttachment.created_at)
