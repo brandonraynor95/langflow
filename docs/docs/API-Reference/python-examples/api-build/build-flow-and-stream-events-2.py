@@ -2,10 +2,10 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/build/{os.getenv("JOB_ID", "")}/events"
+url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/build/{os.getenv('JOB_ID', '')}/events"
 
 headers = {
-    "accept": f"application/json",
+    "accept": "application/json",
     "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
 }
 

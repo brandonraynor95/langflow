@@ -5,7 +5,7 @@ import requests
 url = f"{os.getenv('LANGFLOW_SERVER_URL', '')}/api/v1/version"
 
 headers = {
-    "accept": f"application/json",
+    "accept": "application/json",
 }
 
 response = requests.request("GET", url, headers=headers)

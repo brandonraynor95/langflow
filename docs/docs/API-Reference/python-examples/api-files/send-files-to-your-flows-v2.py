@@ -5,7 +5,7 @@ import requests
 url = f"{os.getenv('LANGFLOW_URL', '')}/api/v2/files"
 
 headers = {
-    "accept": f"application/json",
+    "accept": "application/json",
     "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
 }
 
@@ -19,5 +19,5 @@ response.raise_for_status()
 print(response.text)
 
 for _f in files.values():
-    if hasattr(_f, 'close'):
+    if hasattr(_f, "close"):
         _f.close()

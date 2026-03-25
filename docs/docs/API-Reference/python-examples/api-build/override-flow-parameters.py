@@ -5,20 +5,14 @@ import requests
 url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/build/{os.getenv('FLOW_ID', '')}/flow"
 
 headers = {
-    "accept": f"application/json",
-    "Content-Type": f"application/json",
+    "accept": "application/json",
+    "Content-Type": "application/json",
     "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
 }
 
 payload = {
-  "data": {
-    "nodes": [],
-    "edges": []
-  },
-  "inputs": {
-    "input_value": "Your custom input here",
-    "session": "session_id"
-  }
+    "data": {"nodes": [], "edges": []},
+    "inputs": {"input_value": "Your custom input here", "session": "session_id"},
 }
 
 response = requests.request("POST", url, headers=headers, json=payload)

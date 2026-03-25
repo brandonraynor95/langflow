@@ -10,7 +10,12 @@ headers = {"accept": "*/*", "Content-Type": "application/json", "x-api-key": api
 create = requests.post(
     f"{base}/api/v1/projects/",
     headers=headers,
-    json={"name": "docs-example-delete-me", "description": "Temporary project", "components_list": [], "flows_list": []},
+    json={
+        "name": "docs-example-delete-me",
+        "description": "Temporary project",
+        "components_list": [],
+        "flows_list": [],
+    },
     timeout=30,
 )
 create.raise_for_status()

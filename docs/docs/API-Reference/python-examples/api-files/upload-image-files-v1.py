@@ -18,5 +18,5 @@ response.raise_for_status()
 print(response.text)
 
 for _f in files.values():
-    if hasattr(_f, 'close'):
+    if hasattr(_f, "close"):
         _f.close()

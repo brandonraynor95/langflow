@@ -5,7 +5,7 @@ import requests
 url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/monitor/builds?flow_id={os.getenv('FLOW_ID', '')}"
 
 headers = {
-    "accept": f"*/*",
+    "accept": "*/*",
     "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
 }
 

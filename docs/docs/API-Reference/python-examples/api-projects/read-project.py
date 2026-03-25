@@ -5,7 +5,7 @@ import requests
 url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/projects/{os.getenv('PROJECT_ID', '')}"
 
 headers = {
-    "accept": f"application/json",
+    "accept": "application/json",
     "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
 }
 

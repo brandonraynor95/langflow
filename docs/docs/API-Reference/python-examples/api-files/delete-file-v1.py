@@ -2,10 +2,12 @@ import os
 
 import requests
 
-url = f"{os.getenv('LANGFLOW_URL', '')}/api/v1/files/delete/{os.getenv('FLOW_ID', '')}/2024-12-30_15-19-43_your_file.txt"
+url = (
+    f"{os.getenv('LANGFLOW_URL', '')}/api/v1/files/delete/{os.getenv('FLOW_ID', '')}/2024-12-30_15-19-43_your_file.txt"
+)
 
 headers = {
-    "accept": f"application/json",
+    "accept": "application/json",
     "x-api-key": f"{os.getenv('LANGFLOW_API_KEY', '')}",
 }
 
