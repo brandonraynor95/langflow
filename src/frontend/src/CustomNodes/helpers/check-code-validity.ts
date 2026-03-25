@@ -60,7 +60,7 @@ const codeHasBreakingChange = (
 export const checkCodeValidity = (
   data: NodeDataType,
   templates: { [key: string]: any },
-) : CodeValidityType | undefined => {
+): CodeValidityType | undefined => {
   if (!data?.node || !templates) return;
   const template = templates[data.type]?.template;
   const currentCode = template?.code?.value;
@@ -69,7 +69,8 @@ export const checkCodeValidity = (
   const userOutputs = data.node?.outputs;
   const originalTemplate = template;
   const userTemplate = data.node?.template;
-  const hasNodeCode = typeof thisNodesCode === "string" && thisNodesCode.length > 0;
+  const hasNodeCode =
+    typeof thisNodesCode === "string" && thisNodesCode.length > 0;
   const isBlocked = hasNodeCode && !template;
 
   if (isBlocked) {

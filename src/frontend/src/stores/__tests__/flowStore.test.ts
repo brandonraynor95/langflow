@@ -624,8 +624,9 @@ describe("useFlowStore", () => {
                 node: {
                   ...(old.data.node as Record<string, unknown>),
                   template: {
-                    ...(((old.data.node as { template?: Record<string, unknown> })
-                      .template ?? {}) as Record<string, unknown>),
+                    ...(((
+                      old.data.node as { template?: Record<string, unknown> }
+                    ).template ?? {}) as Record<string, unknown>),
                     code: { ...updatedCodeField },
                   },
                 },

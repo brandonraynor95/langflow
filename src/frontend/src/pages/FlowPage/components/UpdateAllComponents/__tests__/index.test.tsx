@@ -36,11 +36,14 @@ jest.mock("@/components/ui/button", () => ({
   ),
 }));
 
-jest.mock("@/controllers/API/queries/nodes/use-post-validate-component-code", () => ({
-  usePostValidateComponentCode: () => ({
-    mutateAsync: jest.fn(),
+jest.mock(
+  "@/controllers/API/queries/nodes/use-post-validate-component-code",
+  () => ({
+    usePostValidateComponentCode: () => ({
+      mutateAsync: jest.fn(),
+    }),
   }),
-}));
+);
 
 jest.mock("@/modals/updateComponentModal", () => () => null);
 

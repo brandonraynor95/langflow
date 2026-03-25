@@ -54,19 +54,20 @@ export default function NodeUpdateComponent({
     );
   }
 
-  const dotColor = blocked || isRequired
-    ? "bg-accent-amber"
-    : hasBreakingChange
-      ? "bg-warning"
-      : "bg-status-green";
+  const dotColor =
+    blocked || isRequired
+      ? "bg-accent-amber"
+      : hasBreakingChange
+        ? "bg-warning"
+        : "bg-status-green";
 
   const label = blocked
     ? "Custom component blocked"
     : isRequired
-    ? "Update required"
-    : hasBreakingChange
-      ? "Update available"
-      : "Update ready";
+      ? "Update required"
+      : hasBreakingChange
+        ? "Update available"
+        : "Update ready";
 
   return (
     <div

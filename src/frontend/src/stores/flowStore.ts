@@ -849,8 +849,12 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
     const allowCustomComponents =
       useUtilityStore.getState().allowCustomComponents;
     if (!allowCustomComponents && get().componentsToUpdate.length > 0) {
-      const blockedComponents = get().componentsToUpdate.filter((component) => component.blocked);
-      const outdatedComponents = get().componentsToUpdate.filter((component) => component.outdated);
+      const blockedComponents = get().componentsToUpdate.filter(
+        (component) => component.blocked,
+      );
+      const outdatedComponents = get().componentsToUpdate.filter(
+        (component) => component.outdated,
+      );
       const errorList: string[] = [];
 
       if (blockedComponents.length > 0) {
