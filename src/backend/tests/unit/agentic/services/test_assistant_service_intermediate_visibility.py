@@ -41,8 +41,9 @@ async def _collect_raw_events(gen) -> list[str]:
 
 
 class TestValidatingStepIncludesCode:
-    """The 'validating' progress event must include component_code
-    so the frontend can show a live preview before validation completes.
+    """The 'validating' progress event must include component_code.
+
+    So the frontend can show a live preview before validation completes.
     """
 
     @pytest.mark.asyncio
@@ -81,8 +82,9 @@ class TestValidatingStepIncludesCode:
 
     @pytest.mark.asyncio
     async def test_should_include_component_code_before_validation_result(self):
-        """The validating event should arrive BEFORE the validated event,
-        giving the frontend time to show the code preview.
+        """The validating event should arrive BEFORE the validated event.
+
+        Giving the frontend time to show the code preview.
         """
         component_code = "class PreviewComp(Component):\n    pass"
         mock_validation = MagicMock()
@@ -117,8 +119,9 @@ class TestValidatingStepIncludesCode:
 
 
 class TestValidationFailedIncludesDetails:
-    """The 'validation_failed' progress event must include error,
-    class_name, and component_code for debugging in the UI.
+    """The 'validation_failed' progress event must include error details.
+
+    Includes class_name and component_code for debugging in the UI.
     """
 
     @pytest.mark.asyncio
@@ -194,8 +197,9 @@ class TestValidationFailedIncludesDetails:
 
 
 class TestRetryingStepIncludesError:
-    """The 'retrying' progress event must include the error that
-    caused the retry, so the UI can show why it's retrying.
+    """The 'retrying' progress event must include the error that caused the retry.
+
+    So the UI can show why it's retrying.
     """
 
     @pytest.mark.asyncio
@@ -278,13 +282,15 @@ class TestRetryingStepIncludesError:
 
 
 class TestProgressEventSequence:
-    """Tests for the correct ordering and completeness of progress events
-    in the component generation pipeline.
+    """Tests for the correct ordering and completeness of progress events.
+
+    Covers the component generation pipeline.
     """
 
     @pytest.mark.asyncio
     async def test_should_emit_full_success_sequence(self):
-        """Successful generation should emit:
+        """Successful generation should emit the full event sequence.
+
         generating_component → generation_complete → extracting_code → validating → validated → complete
         """
         component_code = "class SeqComp(Component):\n    pass"
