@@ -157,6 +157,7 @@ export function AssistantInput({
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
+            data-testid="assistant-input-textarea"
             onKeyDown={handleKeyDown}
             placeholder={
               isProcessing

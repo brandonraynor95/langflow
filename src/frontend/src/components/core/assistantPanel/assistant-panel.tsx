@@ -179,12 +179,12 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
     [panelSize],
   );
 
+  if (!isOpen) return null;
+
   const containerClasses = cn(
     "flex flex-col transition-[opacity,transform] duration-200 fixed shadow-xl will-change-[opacity,transform]",
     "z-50 bottom-16 left-[calc(50%+140px)] -translate-x-1/2 rounded-2xl border border-border",
-    isOpen
-      ? "opacity-100 translate-y-0"
-      : "opacity-0 translate-y-4 pointer-events-none",
+    "opacity-100 translate-y-0",
   );
 
   const containerStyle = useExpandedSize
