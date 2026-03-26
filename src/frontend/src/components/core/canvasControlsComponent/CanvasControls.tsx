@@ -10,22 +10,26 @@ import HelpDropdown from "./HelpDropdown";
 const CanvasControls = ({
   children,
   selectedNode,
+  effectiveLocked,
 }: {
   children?: ReactNode;
   selectedNode: AllNodeType | null;
+  effectiveLocked?: boolean;
 }) => {
   const reactFlowStoreApi = useStoreApi();
   const isFlowLocked = useFlowStore(
     useShallow((state) => state.currentFlow?.locked),
   );
 
+  const locked = effectiveLocked ?? isFlowLocked;
+
   useEffect(() => {
     reactFlowStoreApi.setState({
-      nodesDraggable: !isFlowLocked,
-      nodesConnectable: !isFlowLocked,
-      elementsSelectable: !isFlowLocked,
+      nodesDraggable: !locked,
+      nodesConnectable: !locked,
+      elementsSelectable: !locked,
     });
-  }, [isFlowLocked, reactFlowStoreApi]);
+  }, [locked, reactFlowStoreApi]);
 
   return (
     <Panel

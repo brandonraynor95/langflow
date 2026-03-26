@@ -22,6 +22,7 @@ interface MemoizedCanvasControlsProps {
   shadowBoxWidth: number;
   shadowBoxHeight: number;
   selectedNode: AllNodeType | null;
+  isAgentWorking?: boolean;
 }
 
 export const MemoizedCanvasControls = memo(
@@ -30,30 +31,37 @@ export const MemoizedCanvasControls = memo(
     shadowBoxWidth,
     shadowBoxHeight,
     selectedNode,
+    isAgentWorking,
   }: MemoizedCanvasControlsProps) => {
     const isLocked = useFlowStore(
       useShallow((state) => state.currentFlow?.locked),
     );
+    const effectiveLocked = isLocked || isAgentWorking;
 
     return (
-      <CanvasControls selectedNode={selectedNode}>
+      <CanvasControls
+        selectedNode={selectedNode}
+        effectiveLocked={effectiveLocked}
+      >
         <Button
           unstyled
           unselectable="on"
           size="icon"
           data-testid="lock-status"
           className="flex items-center justify-center px-2 rounded-none gap-1 cursor-default"
-          title={`Lock status: ${isLocked ? "Locked" : "Unlocked"}`}
+          title={`Lock status: ${effectiveLocked ? "Locked" : "Unlocked"}`}
         >
           <ForwardedIconComponent
-            name={isLocked ? "Lock" : "Unlock"}
+            name={effectiveLocked ? "Lock" : "Unlock"}
             className={cn(
               "!h-[18px] !w-[18px] text-muted-foreground",
-              isLocked && "text-destructive",
+              effectiveLocked && "text-destructive",
             )}
           />
-          {isLocked && (
-            <span className="text-xs text-destructive">Flow Locked</span>
+          {effectiveLocked && (
+            <span className="text-xs text-destructive">
+              {isAgentWorking ? "Agent Working" : "Flow Locked"}
+            </span>
           )}
         </Button>
       </CanvasControls>
