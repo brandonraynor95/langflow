@@ -955,7 +955,7 @@ def api_key_banner(unmasked_api_key) -> None:
         pyperclip.copy(unmasked_api_key.api_key)
         clipboard_available = True
     except Exception:  # noqa: BLE001
-        pass
+        logger.debug("Clipboard not available in this environment; API key will be displayed on stdout only.")
 
     clipboard_hint = (
         f"The API key has been copied to your clipboard. [bold]{['Ctrl', 'Cmd'][is_mac]} + V[/bold] to paste it."
