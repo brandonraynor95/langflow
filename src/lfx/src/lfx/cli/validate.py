@@ -666,25 +666,29 @@ def validate_flow_file(
 # ---------------------------------------------------------------------------
 
 
-def _render_results(results: list[ValidationResult], *, verbose: bool, strict: bool = False) -> None:
-    for result in results:
-        label = f"[bold]{result.path}[/bold]"
-        passes = result.ok and not (strict and result.warnings)
-        if passes:
-            ok_console.print(f"[green]\u2713[/green] {label}")
-        else:
-            console.print(f"[red]\u2717[/red] {label}")
+def _render_result(
+    result: ValidationResult,
+    *,
+    index: int,
+    total: int,
+    verbose: bool,
+    strict: bool = False,
+) -> None:
+    counter = f"[dim][{index}/{total}][/dim] " if total > 1 else ""
+    label = f"[bold]{result.path}[/bold]"
+    passes = result.ok and not (strict and result.warnings)
+    if passes:
+        ok_console.print(f"{counter}[green]\u2713[/green] {label}")
+    else:
+        console.print(f"{counter}[red]\u2717[/red] {label}")
 
-        show_issues = verbose or not passes
-        if show_issues:
-            for issue in result.issues:
-                # In strict mode warnings are shown as errors
-                effective_severity = "error" if (strict and issue.severity == "warning") else issue.severity
-                color = "red" if effective_severity == "error" else "yellow"
-                loc = f" [{issue.node_name or issue.node_id}]" if (issue.node_id or issue.node_name) else ""
-                console.print(
-                    f"  [{color}][L{issue.level} {effective_severity.upper()}][/{color}]{loc} {issue.message}"
-                )
+    show_issues = verbose or not passes
+    if show_issues:
+        for issue in result.issues:
+            effective_severity = "error" if (strict and issue.severity == "warning") else issue.severity
+            color = "red" if effective_severity == "error" else "yellow"
+            loc = f" [{issue.node_name or issue.node_id}]" if (issue.node_id or issue.node_name) else ""
+            console.print(f"  [{color}][L{issue.level} {effective_severity.upper()}][/{color}]{loc} {issue.message}")
 
 
 def _expand_paths(raw_paths: list[str]) -> list[Path]:
@@ -710,6 +714,9 @@ def _expand_paths(raw_paths: list[str]) -> list[Path]:
     return paths
 
 
+_DEFAULT_FLOWS_DIR = "flows"
+
+
 def validate_command(
     flow_paths: list[str],
     level: int,
@@ -723,14 +730,18 @@ def validate_command(
     verbose: bool,
     output_format: str,
 ) -> None:
+    if not flow_paths:
+        flow_paths = [_DEFAULT_FLOWS_DIR]
+
     paths = _expand_paths(flow_paths)
 
     if not paths:
         console.print("[yellow]No flow files to validate.[/yellow]")
         raise typer.Exit(0)
 
-    results = [
-        validate_flow_file(
+    results: list[ValidationResult] = []
+    for i, p in enumerate(paths, start=1):
+        result = validate_flow_file(
             p,
             level=level,
             skip_components=skip_components,
@@ -739,8 +750,9 @@ def validate_command(
             skip_version_check=skip_version_check,
             skip_credentials=skip_credentials,
         )
-        for p in paths
-    ]
+        results.append(result)
+        if output_format != "json":
+            _render_result(result, index=i, total=len(paths), verbose=verbose, strict=strict)
 
     if output_format == "json":
         import json as _json
@@ -763,9 +775,11 @@ def validate_command(
             for r in results
         ]
         sys.stdout.write(_json.dumps(out, indent=2) + "\n")
-    else:
-        _render_results(results, verbose=verbose, strict=strict)
+    elif len(paths) > 1:
+        passed = sum(1 for r in results if r.ok and not (strict and r.warnings))
+        failed = len(results) - passed
+        color = "green" if failed == 0 else "red"
+        ok_console.print(f"\n[{color}]Validated {len(paths)} flows: {passed} passed, {failed} failed.[/{color}]")
 
-    failed = any((not r.ok) or (strict and r.warnings) for r in results)
-    if failed:
+    if any((not r.ok) or (strict and r.warnings) for r in results):
         raise typer.Exit(1)

@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -33,6 +34,7 @@ console = Console()
 
 _STATUS_SYNCED = "synced"
 _STATUS_AHEAD = "ahead"
+_STATUS_BEHIND = "behind"
 _STATUS_NEW = "new"
 _STATUS_REMOTE_ONLY = "remote-only"
 _STATUS_NO_ID = "no-id"
@@ -41,8 +43,9 @@ _STATUS_ERROR = "error"
 _STATUS_STYLE: dict[str, tuple[str, str, str]] = {
     _STATUS_SYNCED: ("✓", "green", "synced"),
     _STATUS_AHEAD: ("↑", "yellow", "ahead"),
+    _STATUS_BEHIND: ("↓", "yellow", "behind"),
     _STATUS_NEW: ("+", "cyan", "new"),
-    _STATUS_REMOTE_ONLY: ("↓", "blue", "remote only"),
+    _STATUS_REMOTE_ONLY: ("○", "blue", "remote only"),
     _STATUS_NO_ID: ("?", "dim", "no id"),
     _STATUS_ERROR: ("✗", "red", "error"),
 }
@@ -245,7 +248,16 @@ def status_command(
         if local_hash == remote_hash:
             statuses.append(FlowStatus(name=name, status=_STATUS_SYNCED, path=path, flow_id=flow_id))
         else:
-            statuses.append(FlowStatus(name=name, status=_STATUS_AHEAD, path=path, flow_id=flow_id))
+            remote_updated_at: datetime | None = remote_flow.updated_at
+            local_mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+            if remote_updated_at and remote_updated_at.tzinfo is None:
+                remote_updated_at = remote_updated_at.replace(tzinfo=timezone.utc)
+
+            if remote_updated_at and remote_updated_at > local_mtime:
+                status = _STATUS_BEHIND
+            else:
+                status = _STATUS_AHEAD
+            statuses.append(FlowStatus(name=name, status=status, path=path, flow_id=flow_id))
 
     # ------------------------------------------------------------------ #
     # Remote-only flows                                                   #

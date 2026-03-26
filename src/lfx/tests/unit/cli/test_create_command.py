@@ -51,8 +51,7 @@ class TestListTemplates:
 
     def test_includes_known_templates(self):
         result = list_templates()
-        assert "basic-chatbot" in result
-        assert "basic-prompting" in result
+        assert "hello-world" in result
 
     def test_sorted(self):
         result = list_templates()
@@ -89,27 +88,18 @@ class TestSlugify:
 
 
 class TestLoadTemplate:
-    def test_loads_basic_chatbot(self):
-        flow = _load_template("basic-chatbot")
+    def test_loads_hello_world(self):
+        flow = _load_template("hello-world")
         assert "id" in flow
         assert "name" in flow
         assert "data" in flow
-
-    def test_loads_basic_prompting(self):
-        flow = _load_template("basic-prompting")
-        assert "data" in flow
-        nodes = flow["data"]["nodes"]
-        node_types = {n["data"]["type"] for n in nodes}
-        assert "ChatInput" in node_types
-        assert "ChatOutput" in node_types
-        assert "LanguageModelComponent" in node_types
 
     def test_raises_on_unknown_template(self):
         with pytest.raises(FileNotFoundError, match="not found"):
             _load_template("does-not-exist")
 
     def test_error_lists_available_templates(self):
-        with pytest.raises(FileNotFoundError, match="basic-chatbot"):
+        with pytest.raises(FileNotFoundError, match="hello-world"):
             _load_template("does-not-exist")
 
 
@@ -155,25 +145,18 @@ class TestTemplateStructure:
             assert edge["source"] in node_ids, f"Edge source {edge['source']!r} not in nodes for {template_name!r}"
             assert edge["target"] in node_ids, f"Edge target {edge['target']!r} not in nodes for {template_name!r}"
 
-    def test_basic_chatbot_has_chat_input_and_output(self):
-        flow = _load_template("basic-chatbot")
+    def test_hello_world_has_chat_input_and_output(self):
+        flow = _load_template("hello-world")
         types = {n["data"]["type"] for n in flow["data"]["nodes"]}
-        assert types == {"ChatInput", "ChatOutput"}
+        assert "ChatInput" in types
+        assert "ChatOutput" in types
 
-    def test_basic_chatbot_edge_connects_input_to_output(self):
-        flow = _load_template("basic-chatbot")
-        edges = flow["data"]["edges"]
-        assert len(edges) == 1
-        assert edges[0]["source"] == "ChatInput-001"
-        assert edges[0]["target"] == "ChatOutput-001"
-
-    def test_basic_prompting_has_four_nodes(self):
-        flow = _load_template("basic-prompting")
-        assert len(flow["data"]["nodes"]) == 4
-
-    def test_basic_prompting_has_three_edges(self):
-        flow = _load_template("basic-prompting")
-        assert len(flow["data"]["edges"]) == 3
+    def test_hello_world_edge_connects_input_to_output(self):
+        flow = _load_template("hello-world")
+        node_ids = {n["id"] for n in flow["data"]["nodes"]}
+        for edge in flow["data"]["edges"]:
+            assert edge["source"] in node_ids
+            assert edge["target"] in node_ids
 
 
 # ---------------------------------------------------------------------------
@@ -206,18 +189,12 @@ class TestCreateCommand:
         assert id1 != "00000000-0000-0000-0000-000000000000"
         assert id2 != "00000000-0000-0000-0000-000000000000"
 
-    def test_uses_default_template_basic_chatbot(self, tmp_path):
+    def test_uses_default_template_hello_world(self, tmp_path):
         dest = create_command("test", output_dir=tmp_path)
         flow = _read_flow(dest)
         types = {n["data"]["type"] for n in flow["data"]["nodes"]}
         assert "ChatInput" in types
         assert "ChatOutput" in types
-
-    def test_uses_explicit_template(self, tmp_path):
-        dest = create_command("test", template="basic-prompting", output_dir=tmp_path)
-        flow = _read_flow(dest)
-        types = {n["data"]["type"] for n in flow["data"]["nodes"]}
-        assert "LanguageModelComponent" in types
 
     def test_creates_output_dir_if_missing(self, tmp_path):
         nested = tmp_path / "a" / "b" / "flows"
@@ -284,7 +261,7 @@ class TestCreateCLI:
     def test_list_flag_prints_templates_and_exits(self):
         result = runner.invoke(app, ["create", "--list", "ignored-name"])
         assert result.exit_code == 0
-        assert "basic-chatbot" in result.output
+        assert "hello-world" in result.output
 
     def test_unknown_template_exits_nonzero(self, tmp_path):
         result = runner.invoke(
@@ -306,15 +283,16 @@ class TestCreateCLI:
         result = runner.invoke(app, ["create", "my-flow", "--output-dir", str(tmp_path)])
         assert result.exit_code != 0
 
-    def test_explicit_template_basic_prompting(self, tmp_path):
+    def test_explicit_template_hello_world(self, tmp_path):
         result = runner.invoke(
             app,
-            ["create", "rag-flow", "--template", "basic-prompting", "--output-dir", str(tmp_path)],
+            ["create", "my-flow", "--template", "hello-world", "--output-dir", str(tmp_path)],
         )
         assert result.exit_code == 0, result.output
-        flow = _read_flow(tmp_path / "rag-flow.json")
+        flow = _read_flow(tmp_path / "my-flow.json")
         types = {n["data"]["type"] for n in flow["data"]["nodes"]}
-        assert "LanguageModelComponent" in types
+        assert "ChatInput" in types
+        assert "ChatOutput" in types
 
 
 # ---------------------------------------------------------------------------

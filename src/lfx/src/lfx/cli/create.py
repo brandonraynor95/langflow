@@ -6,7 +6,7 @@ can start from a known-good structure rather than an empty file.
 Examples::
 
     lfx create my-chatbot
-    lfx create my-rag --template basic-prompting
+    lfx create my-rag --template hello-world
     lfx create my-flow --output-dir ./flows --overwrite
     lfx create --list
 """
@@ -28,8 +28,7 @@ _FLOWS_TEMPLATE_DIR = Path(__file__).parent.parent / "templates" / "flows"
 
 # Descriptions shown in ``lfx create --list``
 _TEMPLATE_DESCRIPTIONS: dict[str, str] = {
-    "basic-chatbot": "ChatInput → ChatOutput — minimal echo flow, no LLM required",
-    "basic-prompting": "ChatInput + Prompt → LanguageModel → ChatOutput — add your model",
+    "hello-world": "ChatInput → ChatOutput — minimal echo flow, no LLM required",
 }
 
 
@@ -69,7 +68,7 @@ def _slugify(name: str) -> str:
 def create_command(
     name: str,
     *,
-    template: str = "basic-chatbot",
+    template: str = "hello-world",
     output_dir: Path = Path("flows"),
     overwrite: bool = False,
 ) -> Path:

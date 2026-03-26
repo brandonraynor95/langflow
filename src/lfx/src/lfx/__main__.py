@@ -9,7 +9,7 @@ app = typer.Typer(
 )
 
 
-@app.command(name="init", help="Scaffold a new Flow DevOps project")
+@app.command(name="init", help="Scaffold a new Flow DevOps project", rich_help_panel="Setup")
 def init_command_wrapper(
     project_dir: str = typer.Argument(
         ".",
@@ -44,7 +44,7 @@ def init_command_wrapper(
     )
 
 
-@app.command(name="login", help="Validate credentials against a remote Langflow instance")
+@app.command(name="login", help="Validate credentials against a remote Langflow instance", rich_help_panel="Setup")
 def login_command_wrapper(
     env: str | None = typer.Option(
         None,
@@ -79,11 +79,11 @@ def login_command_wrapper(
     )
 
 
-@app.command(name="create", help="Create a new flow JSON from a built-in template")
+@app.command(name="create", help="Create a new flow JSON from a built-in template", rich_help_panel="Authoring")
 def create_command_wrapper(
     name: str = typer.Argument(help="Display name for the new flow (also used as the filename)."),
     template: str = typer.Option(
-        "basic-chatbot",
+        "hello-world",
         "--template",
         "-t",
         help="Template to use. Run with --list to see all available templates.",
@@ -125,10 +125,74 @@ def create_command_wrapper(
     )
 
 
-@app.command(name="validate", help="Validate one or more flow JSON files", no_args_is_help=True)
+@app.command(
+    name="requirements", help="Generate requirements.txt for a flow", no_args_is_help=True, rich_help_panel="Authoring"
+)
+def requirements_command_wrapper(
+    flow_path: str = typer.Argument(help="Path to the Langflow flow JSON file"),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file path (default: stdout)",
+    ),
+    lfx_package: str = typer.Option(
+        "lfx",
+        "--lfx-package",
+        help="Name of the LFX package (default: lfx)",
+    ),
+    *,
+    no_lfx: bool = typer.Option(
+        False,
+        "--no-lfx",
+        help="Exclude the LFX package from output",
+    ),
+    no_pin: bool = typer.Option(
+        False,
+        "--no-pin",
+        help="Do not pin package versions (default: pin to currently installed versions)",
+    ),
+) -> None:
+    """Generate requirements.txt from a Langflow flow JSON (lazy-loaded)."""
+    import json
+    from pathlib import Path
+
+    from lfx.utils.flow_requirements import generate_requirements_txt
+
+    path = Path(flow_path)
+    if not path.is_file():
+        typer.echo(f"Error: File not found: {path}", err=True)
+        raise typer.Exit(1)
+
+    try:
+        flow = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        typer.echo(f"Error: Could not read flow JSON: {e}", err=True)
+        raise typer.Exit(1) from e
+
+    content = generate_requirements_txt(
+        flow,
+        lfx_package=lfx_package,
+        include_lfx=not no_lfx,
+        pin_versions=not no_pin,
+    )
+
+    if output:
+        try:
+            Path(output).write_text(content, encoding="utf-8")
+        except OSError as e:
+            typer.echo(f"Error: Could not write to {output}: {e}", err=True)
+            raise typer.Exit(1) from e
+        typer.echo(f"Requirements written to {output}")
+    else:
+        typer.echo(content, nl=False)
+
+
+@app.command(name="validate", help="Validate one or more flow JSON files", rich_help_panel="Authoring")
 def validate_command_wrapper(
     flow_paths: list[str] = typer.Argument(
-        help="Path(s) to Langflow flow JSON file(s) to validate",
+        default=None,
+        help="Path(s) to Langflow flow JSON file(s) or directories to validate. Defaults to flows/.",
     ),
     level: int = typer.Option(
         4,
@@ -191,7 +255,7 @@ def validate_command_wrapper(
     from lfx.cli.validate import validate_command
 
     validate_command(
-        flow_paths=flow_paths,
+        flow_paths=flow_paths or [],
         level=level,
         skip_components=skip_components,
         skip_edge_types=skip_edge_types,
@@ -204,68 +268,7 @@ def validate_command_wrapper(
     )
 
 
-@app.command(name="requirements", help="Generate requirements.txt for a flow", no_args_is_help=True)
-def requirements_command_wrapper(
-    flow_path: str = typer.Argument(help="Path to the Langflow flow JSON file"),
-    output: str | None = typer.Option(
-        None,
-        "--output",
-        "-o",
-        help="Output file path (default: stdout)",
-    ),
-    lfx_package: str = typer.Option(
-        "lfx",
-        "--lfx-package",
-        help="Name of the LFX package (default: lfx)",
-    ),
-    *,
-    no_lfx: bool = typer.Option(
-        False,
-        "--no-lfx",
-        help="Exclude the LFX package from output",
-    ),
-    no_pin: bool = typer.Option(
-        False,
-        "--no-pin",
-        help="Do not pin package versions (default: pin to currently installed versions)",
-    ),
-) -> None:
-    """Generate requirements.txt from a Langflow flow JSON (lazy-loaded)."""
-    import json
-    from pathlib import Path
-
-    from lfx.utils.flow_requirements import generate_requirements_txt
-
-    path = Path(flow_path)
-    if not path.is_file():
-        typer.echo(f"Error: File not found: {path}", err=True)
-        raise typer.Exit(1)
-
-    try:
-        flow = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
-        typer.echo(f"Error: Could not read flow JSON: {e}", err=True)
-        raise typer.Exit(1) from e
-
-    content = generate_requirements_txt(
-        flow,
-        lfx_package=lfx_package,
-        include_lfx=not no_lfx,
-        pin_versions=not no_pin,
-    )
-
-    if output:
-        try:
-            Path(output).write_text(content, encoding="utf-8")
-        except OSError as e:
-            typer.echo(f"Error: Could not write to {output}: {e}", err=True)
-            raise typer.Exit(1) from e
-        typer.echo(f"Requirements written to {output}")
-    else:
-        typer.echo(content, nl=False)
-
-
-@app.command(name="run", help="Run a flow directly", no_args_is_help=True)
+@app.command(name="run", help="Run a flow directly", no_args_is_help=True, rich_help_panel="Running")
 def run_command_wrapper(
     script_path: str | None = typer.Argument(
         None, help="Path to the Python script (.py) or JSON flow (.json) containing a graph"
@@ -343,7 +346,7 @@ def run_command_wrapper(
     )
 
 
-@app.command(name="serve", help="Serve a flow as an API", no_args_is_help=True)
+@app.command(name="serve", help="Serve a flow as an API", no_args_is_help=True, rich_help_panel="Running")
 def serve_command_wrapper(
     script_path: str | None = typer.Argument(
         None,
@@ -403,7 +406,217 @@ def serve_command_wrapper(
     )
 
 
-@app.command(name="export", help="Normalize flow JSON for git (local) or pull from a remote instance")
+@app.command(
+    name="status", help="Compare local flow files against a remote Langflow instance", rich_help_panel="Remote"
+)
+def status_command_wrapper(
+    flow_paths: list[str] = typer.Argument(
+        default=None,
+        help="Specific flow JSON file(s) to check. Omit to scan --dir (default: flows/).",
+    ),
+    env: str | None = typer.Option(
+        None,
+        "--env",
+        "-e",
+        help="Environment name from .lfx/environments.yaml. Uses [defaults] if omitted.",
+    ),
+    dir_path: str | None = typer.Option(
+        None,
+        "--dir",
+        "-d",
+        help="Directory of flow JSON files to compare (default: flows/ in cwd).",
+    ),
+    environments_file: str | None = typer.Option(
+        None,
+        "--environments-file",
+        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
+    ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Langflow instance URL (inline override — skips config file lookup).",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the Langflow instance (used with --target or to override config).",
+    ),
+    show_remote_only: bool = typer.Option(
+        False,
+        "--remote-only",
+        help="Also list flows that exist on the server but have no local file.",
+    ),
+) -> None:
+    """Show whether local flow files are in sync, ahead, or missing vs the remote instance."""
+    from lfx.cli.status import status_command
+
+    status_command(
+        dir_path=dir_path,
+        flow_paths=flow_paths or [],
+        env=env,
+        environments_file=environments_file,
+        target=target,
+        api_key=api_key,
+        show_remote_only=show_remote_only,
+    )
+
+
+@app.command(
+    name="push", help="Push flow JSON to a remote Langflow instance (upsert by stable ID)", rich_help_panel="Remote"
+)
+def push_command_wrapper(
+    flow_paths: list[str] = typer.Argument(
+        default=None,
+        help="Path(s) to flow JSON file(s) to push. Use --dir for a whole directory.",
+    ),
+    env: str | None = typer.Option(
+        None,
+        "--env",
+        "-e",
+        help="Environment name from .lfx/environments.yaml. Use --target for inline configuration.",
+    ),
+    dir_path: str | None = typer.Option(
+        None,
+        "--dir",
+        "-d",
+        help="Directory of flow JSON files to push (pushes all *.json files). Defaults to flows/.",
+    ),
+    project: str | None = typer.Option(
+        None,
+        "--project",
+        "-p",
+        help="Target project name on the remote instance. Created if it does not exist.",
+    ),
+    project_id: str | None = typer.Option(
+        None,
+        "--project-id",
+        help="Target project UUID (alternative to --project).",
+    ),
+    environments_file: str | None = typer.Option(
+        None,
+        "--environments-file",
+        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
+    ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Langflow instance URL (inline override — skips config file lookup).",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the Langflow instance (used with --target or to override config).",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would be pushed without making any changes.",
+    ),
+    normalize: bool = typer.Option(
+        True,
+        "--normalize/--no-normalize",
+        help="Normalize (strip volatile fields, sort keys) before pushing.",
+    ),
+    strip_secrets: bool = typer.Option(
+        True,
+        "--strip-secrets/--keep-secrets",
+        help="Clear password/load_from_db field values before pushing.",
+    ),
+) -> None:
+    """Push Langflow flows to a remote instance using stable IDs for upsert (lazy-loaded)."""
+    from lfx.cli.push import push_command
+
+    push_command(
+        flow_paths=flow_paths or [],
+        env=env,
+        dir_path=dir_path,
+        project=project,
+        project_id=project_id,
+        environments_file=environments_file,
+        target=target,
+        api_key=api_key,
+        dry_run=dry_run,
+        normalize=normalize,
+        strip_secrets=strip_secrets,
+    )
+
+
+@app.command(name="pull", help="Pull flows from a remote Langflow instance to local files", rich_help_panel="Remote")
+def pull_command_wrapper(
+    env: str | None = typer.Option(
+        None,
+        "--env",
+        "-e",
+        help="Environment name from .lfx/environments.yaml. Uses [defaults] if omitted.",
+    ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output-dir",
+        "-d",
+        help="Directory to write pulled flows into (default: flows/).",
+    ),
+    flow_id: str | None = typer.Option(
+        None,
+        "--flow-id",
+        help="Pull a single flow by UUID.",
+    ),
+    project: str | None = typer.Option(
+        None,
+        "--project",
+        "-p",
+        help="Pull all flows in a named project.",
+    ),
+    project_id: str | None = typer.Option(
+        None,
+        "--project-id",
+        help="Pull all flows in a project by UUID.",
+    ),
+    environments_file: str | None = typer.Option(
+        None,
+        "--environments-file",
+        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
+    ),
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        help="Langflow instance URL (inline override — skips config file lookup).",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the Langflow instance (used with --target or to override config).",
+    ),
+    strip_secrets: bool = typer.Option(
+        True,
+        "--strip-secrets/--keep-secrets",
+        help="Clear password/load_from_db field values (default: strip).",
+    ),
+    indent: int = typer.Option(
+        2,
+        "--indent",
+        help="JSON indentation level.",
+    ),
+) -> None:
+    """Pull and normalize flows from a remote Langflow instance (lazy-loaded)."""
+    from lfx.cli.pull import pull_command
+
+    pull_command(
+        env=env,
+        output_dir=output_dir,
+        flow_id=flow_id,
+        project=project,
+        project_id=project_id,
+        environments_file=environments_file,
+        target=target,
+        api_key=api_key,
+        strip_secrets=strip_secrets,
+        indent=indent,
+    )
+
+
+@app.command(
+    name="export", help="Normalize flow JSON for git (local) or pull from a remote instance", rich_help_panel="Remote"
+)
 def export_command_wrapper(
     flow_paths: list[str] = typer.Argument(
         default=None,
@@ -502,210 +715,6 @@ def export_command_wrapper(
         strip_secrets=strip_secrets,
         code_as_lines=code_as_lines,
         strip_node_volatile=strip_node_volatile,
-        indent=indent,
-    )
-
-
-@app.command(name="status", help="Compare local flow files against a remote Langflow instance")
-def status_command_wrapper(
-    flow_paths: list[str] = typer.Argument(
-        default=None,
-        help="Specific flow JSON file(s) to check. Omit to scan --dir (default: flows/).",
-    ),
-    env: str | None = typer.Option(
-        None,
-        "--env",
-        "-e",
-        help="Environment name from .lfx/environments.yaml. Uses [defaults] if omitted.",
-    ),
-    dir_path: str | None = typer.Option(
-        None,
-        "--dir",
-        "-d",
-        help="Directory of flow JSON files to compare (default: flows/ in cwd).",
-    ),
-    environments_file: str | None = typer.Option(
-        None,
-        "--environments-file",
-        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
-    ),
-    target: str | None = typer.Option(
-        None,
-        "--target",
-        help="Langflow instance URL (inline override — skips config file lookup).",
-    ),
-    api_key: str | None = typer.Option(
-        None,
-        "--api-key",
-        help="API key for the Langflow instance (used with --target or to override config).",
-    ),
-    show_remote_only: bool = typer.Option(
-        False,
-        "--remote-only",
-        help="Also list flows that exist on the server but have no local file.",
-    ),
-) -> None:
-    """Show whether local flow files are in sync, ahead, or missing vs the remote instance."""
-    from lfx.cli.status import status_command
-
-    status_command(
-        dir_path=dir_path,
-        flow_paths=flow_paths or [],
-        env=env,
-        environments_file=environments_file,
-        target=target,
-        api_key=api_key,
-        show_remote_only=show_remote_only,
-    )
-
-
-@app.command(name="push", help="Push flow JSON to a remote Langflow instance (upsert by stable ID)")
-def push_command_wrapper(
-    flow_paths: list[str] = typer.Argument(
-        default=None,
-        help="Path(s) to flow JSON file(s) to push. Use --dir for a whole directory.",
-    ),
-    env: str | None = typer.Option(
-        None,
-        "--env",
-        "-e",
-        help="Environment name from .lfx/environments.yaml. Use --target for inline configuration.",
-    ),
-    dir_path: str | None = typer.Option(
-        None,
-        "--dir",
-        "-d",
-        help="Directory of flow JSON files to push (pushes all *.json files). Defaults to flows/.",
-    ),
-    project: str | None = typer.Option(
-        None,
-        "--project",
-        "-p",
-        help="Target project name on the remote instance. Created if it does not exist.",
-    ),
-    project_id: str | None = typer.Option(
-        None,
-        "--project-id",
-        help="Target project UUID (alternative to --project).",
-    ),
-    environments_file: str | None = typer.Option(
-        None,
-        "--environments-file",
-        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
-    ),
-    target: str | None = typer.Option(
-        None,
-        "--target",
-        help="Langflow instance URL (inline override — skips config file lookup).",
-    ),
-    api_key: str | None = typer.Option(
-        None,
-        "--api-key",
-        help="API key for the Langflow instance (used with --target or to override config).",
-    ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Show what would be pushed without making any changes.",
-    ),
-    normalize: bool = typer.Option(
-        True,
-        "--normalize/--no-normalize",
-        help="Normalize (strip volatile fields, sort keys) before pushing.",
-    ),
-    strip_secrets: bool = typer.Option(
-        True,
-        "--strip-secrets/--keep-secrets",
-        help="Clear password/load_from_db field values before pushing.",
-    ),
-) -> None:
-    """Push Langflow flows to a remote instance using stable IDs for upsert (lazy-loaded)."""
-    from lfx.cli.push import push_command
-
-    push_command(
-        flow_paths=flow_paths or [],
-        env=env,
-        dir_path=dir_path,
-        project=project,
-        project_id=project_id,
-        environments_file=environments_file,
-        target=target,
-        api_key=api_key,
-        dry_run=dry_run,
-        normalize=normalize,
-        strip_secrets=strip_secrets,
-    )
-
-
-@app.command(name="pull", help="Pull flows from a remote Langflow instance to local files")
-def pull_command_wrapper(
-    env: str | None = typer.Option(
-        None,
-        "--env",
-        "-e",
-        help="Environment name from .lfx/environments.yaml. Uses [defaults] if omitted.",
-    ),
-    output_dir: str | None = typer.Option(
-        None,
-        "--output-dir",
-        "-d",
-        help="Directory to write pulled flows into (default: flows/).",
-    ),
-    flow_id: str | None = typer.Option(
-        None,
-        "--flow-id",
-        help="Pull a single flow by UUID.",
-    ),
-    project: str | None = typer.Option(
-        None,
-        "--project",
-        "-p",
-        help="Pull all flows in a named project.",
-    ),
-    project_id: str | None = typer.Option(
-        None,
-        "--project-id",
-        help="Pull all flows in a project by UUID.",
-    ),
-    environments_file: str | None = typer.Option(
-        None,
-        "--environments-file",
-        help="Path to environments config file (.yaml or .toml; overrides default lookup).",
-    ),
-    target: str | None = typer.Option(
-        None,
-        "--target",
-        help="Langflow instance URL (inline override — skips config file lookup).",
-    ),
-    api_key: str | None = typer.Option(
-        None,
-        "--api-key",
-        help="API key for the Langflow instance (used with --target or to override config).",
-    ),
-    strip_secrets: bool = typer.Option(
-        True,
-        "--strip-secrets/--keep-secrets",
-        help="Clear password/load_from_db field values (default: strip).",
-    ),
-    indent: int = typer.Option(
-        2,
-        "--indent",
-        help="JSON indentation level.",
-    ),
-) -> None:
-    """Pull and normalize flows from a remote Langflow instance (lazy-loaded)."""
-    from lfx.cli.pull import pull_command
-
-    pull_command(
-        env=env,
-        output_dir=output_dir,
-        flow_id=flow_id,
-        project=project,
-        project_id=project_id,
-        environments_file=environments_file,
-        target=target,
-        api_key=api_key,
-        strip_secrets=strip_secrets,
         indent=indent,
     )
 

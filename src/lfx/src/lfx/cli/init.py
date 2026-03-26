@@ -187,7 +187,7 @@ def init_command(
         try:
             _create(
                 "hello-world",
-                template="basic-chatbot",
+                template="hello-world",
                 output_dir=target / "flows",
                 overwrite=overwrite,
             )
@@ -251,7 +251,7 @@ def init_command(
         console.print("  4. [bold]lfx serve flows/hello-world.json[/bold]     (run it locally)")
         console.print("  5. [bold]lfx push --dir flows/ --env local[/bold]    (deploy to Langflow)")
     else:
-        console.print("  3. [bold]lfx create my-flow --template basic-chatbot[/bold]")
+        console.print("  3. [bold]lfx create my-flow --template hello-world[/bold]")
         console.print("  4. [bold]lfx push --dir flows/ --env local[/bold]")
     console.print(f"  {'6' if example else '5'}. [bold]pytest tests/ --langflow-env local[/bold]")
     console.print()
