@@ -63,10 +63,12 @@ from lfx.mcp.registry import (
     search_registry,
 )
 
-# Per-session state (contextvars isolate concurrent sessions, e.g. multiple
-# agents connecting over SSE).
+# Session state. Module-level singletons for stdio (single agent), with
+# contextvars overlay for SSE (multiple concurrent agents).
 _client_var: contextvars.ContextVar[LangflowClient | None] = contextvars.ContextVar("_client", default=None)
 _registry_var: contextvars.ContextVar[dict[str, dict] | None] = contextvars.ContextVar("_registry", default=None)
+_shared_client: LangflowClient | None = None
+_shared_registry: dict[str, dict] | None = None
 
 mcp = FastMCP(
     "langflow-mcp",
@@ -91,19 +93,32 @@ mcp = FastMCP(
 
 
 def _get_client() -> LangflowClient:
+    # Try contextvar first (SSE sessions), fall back to shared (stdio)
     client = _client_var.get()
-    if client is None:
-        client = LangflowClient()
-        _client_var.set(client)
-    return client
+    if client is not None:
+        return client
+    global _shared_client  # noqa: PLW0603
+    if _shared_client is None:
+        _shared_client = LangflowClient()
+    return _shared_client
+
+
+def _set_client(client: LangflowClient) -> None:
+    global _shared_client  # noqa: PLW0603
+    _client_var.set(client)
+    _shared_client = client
 
 
 async def _get_registry() -> dict[str, dict]:
     registry = _registry_var.get()
-    if registry is None:
-        registry = await load_registry(_get_client())
-        _registry_var.set(registry)
-    return registry
+    if registry is not None:
+        return registry
+    global _shared_registry  # noqa: PLW0603
+    if _shared_registry is not None:
+        return _shared_registry
+    _shared_registry = await load_registry(_get_client())
+    _registry_var.set(_shared_registry)
+    return _shared_registry
 
 
 async def _get_flow(flow_id: str) -> dict:
@@ -132,12 +147,14 @@ async def login(username: str, password: str, server_url: str | None = None) -> 
         password: Langflow password.
         server_url: Server URL (defaults to LANGFLOW_SERVER_URL env var or http://localhost:7860).
     """
-    old_client = _client_var.get()
+    old_client = _client_var.get() or _shared_client
     if old_client is not None:
         await old_client.close()
     client = LangflowClient(server_url=server_url)
-    _client_var.set(client)
+    _set_client(client)
     _registry_var.set(None)
+    global _shared_registry  # noqa: PLW0603
+    _shared_registry = None
     await client.login(username, password)
     return {"status": "authenticated", "server_url": client.server_url}
 

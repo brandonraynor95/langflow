@@ -163,7 +163,7 @@ class LangflowClient:
 
             # Create API key
             resp = await client.post(
-                self._url("/api_key"),
+                self._url("/api_key/"),
                 headers=self._headers(),
                 json={"name": "mcp-client"},
                 timeout=30.0,
