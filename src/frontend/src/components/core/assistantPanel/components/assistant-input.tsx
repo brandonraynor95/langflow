@@ -139,7 +139,7 @@ export function AssistantInput({
   const showCharCount = message.length > MAX_MESSAGE_LENGTH * 0.8;
 
   return (
-    <div className="relative px-2 pb-1">
+    <div className="relative px-2 pb-2">
       {/* Glow effect below input */}
       <div
         className="pointer-events-none absolute -bottom-2 left-1/2 h-16 w-3/4 -translate-x-1/2 rounded-full opacity-60 blur-2xl"
