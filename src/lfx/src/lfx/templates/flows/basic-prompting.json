@@ -1,0 +1,168 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "name": "Basic Prompting",
+  "description": "A chat flow with a system prompt and an LLM — swap in your model of choice.",
+  "is_component": false,
+  "data": {
+    "nodes": [
+      {
+        "id": "ChatInput-001",
+        "type": "genericNode",
+        "position": {"x": 50, "y": 400},
+        "data": {
+          "id": "ChatInput-001",
+          "type": "ChatInput",
+          "display_name": "Chat Input",
+          "description": "Get chat inputs from the Playground.",
+          "node": {
+            "base_classes": ["Message"],
+            "display_name": "Chat Input",
+            "description": "Get chat inputs from the Playground.",
+            "outputs": [
+              {
+                "name": "message",
+                "display_name": "Chat Message",
+                "types": ["Message"],
+                "selected": "Message",
+                "method": "message_response"
+              }
+            ],
+            "template": {"_type": "Component"}
+          }
+        }
+      },
+      {
+        "id": "Prompt-001",
+        "type": "genericNode",
+        "position": {"x": 50, "y": 100},
+        "data": {
+          "id": "Prompt-001",
+          "type": "Prompt",
+          "display_name": "Prompt",
+          "description": "Create a prompt template with dynamic variables.",
+          "node": {
+            "base_classes": ["Message"],
+            "display_name": "Prompt",
+            "description": "Create a prompt template with dynamic variables.",
+            "outputs": [
+              {
+                "name": "prompt",
+                "display_name": "Prompt Message",
+                "types": ["Message"],
+                "selected": "Message",
+                "method": "build_prompt"
+              }
+            ],
+            "template": {
+              "_type": "Component",
+              "template": {
+                "name": "template",
+                "display_name": "Template",
+                "type": "str",
+                "required": true,
+                "list": false,
+                "multiline": true,
+                "value": "You are a helpful assistant."
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "LanguageModel-001",
+        "type": "genericNode",
+        "position": {"x": 450, "y": 300},
+        "data": {
+          "id": "LanguageModel-001",
+          "type": "LanguageModelComponent",
+          "display_name": "Language Model",
+          "description": "Generate text using a large language model.",
+          "node": {
+            "base_classes": ["Message"],
+            "display_name": "Language Model",
+            "description": "Generate text using a large language model.",
+            "outputs": [
+              {
+                "name": "text_output",
+                "display_name": "Text",
+                "types": ["Message"],
+                "selected": "Message",
+                "method": "text_response"
+              }
+            ],
+            "template": {
+              "_type": "Component",
+              "input_value": {
+                "name": "input_value",
+                "display_name": "Input",
+                "type": "str",
+                "required": false,
+                "list": false,
+                "inputTypes": ["Message"]
+              },
+              "system_message": {
+                "name": "system_message",
+                "display_name": "System Message",
+                "type": "str",
+                "required": false,
+                "list": false,
+                "inputTypes": ["Message"]
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "ChatOutput-001",
+        "type": "genericNode",
+        "position": {"x": 850, "y": 300},
+        "data": {
+          "id": "ChatOutput-001",
+          "type": "ChatOutput",
+          "display_name": "Chat Output",
+          "description": "Display a chat message in the Playground.",
+          "node": {
+            "base_classes": ["Message"],
+            "display_name": "Chat Output",
+            "description": "Display a chat message in the Playground.",
+            "outputs": [],
+            "template": {
+              "_type": "Component",
+              "input_value": {
+                "name": "input_value",
+                "display_name": "Text",
+                "type": "str",
+                "required": false,
+                "list": false,
+                "inputTypes": ["Message", "Data", "DataFrame"]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "ChatInput-001-message-LanguageModel-001-input_value",
+        "source": "ChatInput-001",
+        "target": "LanguageModel-001",
+        "sourceHandle": "{\"dataType\": \"ChatInput\", \"id\": \"ChatInput-001\", \"name\": \"message\", \"output_types\": [\"Message\"]}",
+        "targetHandle": "{\"fieldName\": \"input_value\", \"id\": \"LanguageModel-001\", \"inputTypes\": [\"Message\"], \"type\": \"str\"}"
+      },
+      {
+        "id": "Prompt-001-prompt-LanguageModel-001-system_message",
+        "source": "Prompt-001",
+        "target": "LanguageModel-001",
+        "sourceHandle": "{\"dataType\": \"Prompt\", \"id\": \"Prompt-001\", \"name\": \"prompt\", \"output_types\": [\"Message\"]}",
+        "targetHandle": "{\"fieldName\": \"system_message\", \"id\": \"LanguageModel-001\", \"inputTypes\": [\"Message\"], \"type\": \"str\"}"
+      },
+      {
+        "id": "LanguageModel-001-text_output-ChatOutput-001-input_value",
+        "source": "LanguageModel-001",
+        "target": "ChatOutput-001",
+        "sourceHandle": "{\"dataType\": \"LanguageModelComponent\", \"id\": \"LanguageModel-001\", \"name\": \"text_output\", \"output_types\": [\"Message\"]}",
+        "targetHandle": "{\"fieldName\": \"input_value\", \"id\": \"ChatOutput-001\", \"inputTypes\": [\"Message\", \"Data\", \"DataFrame\"], \"type\": \"str\"}"
+      }
+    ]
+  }
+}

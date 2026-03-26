@@ -208,6 +208,52 @@ def requirements_command_wrapper(
         typer.echo(content, nl=False)
 
 
+@app.command(name="create", help="Create a new flow JSON from a built-in template")
+def create_command_wrapper(
+    name: str = typer.Argument(help="Display name for the new flow (also used as the filename)."),
+    template: str = typer.Option(
+        "basic-chatbot",
+        "--template",
+        "-t",
+        help="Template to use. Run with --list to see all available templates.",
+    ),
+    output_dir: str = typer.Option(
+        "flows",
+        "--output-dir",
+        "-o",
+        help="Directory to write the new flow JSON into (created if absent; default: flows/).",
+    ),
+    *,
+    list_templates: bool = typer.Option(
+        False,
+        "--list",
+        "-l",
+        help="Print available templates and exit.",
+        is_eager=True,
+    ),
+    overwrite: bool = typer.Option(
+        False,
+        "--overwrite",
+        help="Overwrite the destination file if it already exists.",
+    ),
+) -> None:
+    """Scaffold a new Langflow flow JSON from a built-in template (lazy-loaded)."""
+    from pathlib import Path
+
+    from lfx.cli.create import create_command, print_templates
+
+    if list_templates:
+        print_templates()
+        raise typer.Exit(0)
+
+    create_command(
+        name=name,
+        template=template,
+        output_dir=Path(output_dir),
+        overwrite=overwrite,
+    )
+
+
 @app.command(name="init", help="Scaffold a new Flow DevOps project")
 def init_command_wrapper(
     project_dir: str = typer.Argument(
@@ -224,13 +270,23 @@ def init_command_wrapper(
         "--overwrite",
         help="Write files even if the target directory already contains files.",
     ),
+    example: bool = typer.Option(
+        True,
+        "--example/--no-example",
+        help="Seed flows/ with a hello-world.json starter flow (default: true).",
+    ),
 ) -> None:
     """Scaffold a Flow DevOps project: flows/, tests/, environments config, and CI templates."""
     from pathlib import Path
 
     from lfx.cli.init import init_command
 
-    init_command(project_dir=Path(project_dir), github_actions=github_actions, overwrite=overwrite)
+    init_command(
+        project_dir=Path(project_dir),
+        github_actions=github_actions,
+        overwrite=overwrite,
+        example=example,
+    )
 
 
 @app.command(name="status", help="Compare local flow files against a remote Langflow instance")

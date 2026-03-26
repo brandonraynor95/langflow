@@ -1,0 +1,73 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "name": "Basic Chatbot",
+  "description": "A minimal echo chatbot — wire in an LLM to add intelligence.",
+  "is_component": false,
+  "data": {
+    "nodes": [
+      {
+        "id": "ChatInput-001",
+        "type": "genericNode",
+        "position": {"x": 100, "y": 300},
+        "data": {
+          "id": "ChatInput-001",
+          "type": "ChatInput",
+          "display_name": "Chat Input",
+          "description": "Get chat inputs from the Playground.",
+          "node": {
+            "base_classes": ["Message"],
+            "display_name": "Chat Input",
+            "description": "Get chat inputs from the Playground.",
+            "outputs": [
+              {
+                "name": "message",
+                "display_name": "Chat Message",
+                "types": ["Message"],
+                "selected": "Message",
+                "method": "message_response"
+              }
+            ],
+            "template": {"_type": "Component"}
+          }
+        }
+      },
+      {
+        "id": "ChatOutput-001",
+        "type": "genericNode",
+        "position": {"x": 500, "y": 300},
+        "data": {
+          "id": "ChatOutput-001",
+          "type": "ChatOutput",
+          "display_name": "Chat Output",
+          "description": "Display a chat message in the Playground.",
+          "node": {
+            "base_classes": ["Message"],
+            "display_name": "Chat Output",
+            "description": "Display a chat message in the Playground.",
+            "outputs": [],
+            "template": {
+              "_type": "Component",
+              "input_value": {
+                "name": "input_value",
+                "display_name": "Text",
+                "type": "str",
+                "required": false,
+                "list": false,
+                "info": "Message to be passed as output."
+              }
+            }
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "ChatInput-001-message-ChatOutput-001-input_value",
+        "source": "ChatInput-001",
+        "target": "ChatOutput-001",
+        "sourceHandle": "{\"dataType\": \"ChatInput\", \"id\": \"ChatInput-001\", \"name\": \"message\", \"output_types\": [\"Message\"]}",
+        "targetHandle": "{\"fieldName\": \"input_value\", \"id\": \"ChatOutput-001\", \"inputTypes\": [\"Message\"], \"type\": \"str\"}"
+      }
+    ]
+  }
+}

@@ -162,6 +162,7 @@ def init_command(
     *,
     github_actions: bool,
     overwrite: bool,
+    example: bool = True,
 ) -> None:
     """Scaffold a Flow DevOps project at *project_dir*."""
     target = project_dir.resolve()
@@ -180,7 +181,22 @@ def init_command(
 
     # flows/
     (target / "flows").mkdir(exist_ok=True)
-    _write(target / "flows" / ".gitkeep", "", "versioned empty directory", **kw)
+    if example:
+        from lfx.cli.create import create_command as _create
+
+        try:
+            _create(
+                "hello-world",
+                template="basic-chatbot",
+                output_dir=target / "flows",
+                overwrite=overwrite,
+            )
+            created.append(("flows/hello-world.json", "starter flow — edit or replace"))
+        except Exception:  # noqa: BLE001
+            # Don't let a template failure block the rest of init
+            console.print("[yellow]Warning:[/yellow] Could not seed starter flow; skipping.")
+    else:
+        _write(target / "flows" / ".gitkeep", "", "versioned empty directory", **kw)
 
     # tests/
     _write(target / "tests" / "__init__.py", "", "", **kw)
@@ -230,8 +246,12 @@ def init_command(
     console.print("[bold green]✓ Project scaffolded.[/bold green]  Next steps:\n")
     console.print("  1. Edit [bold].lfx/environments.yaml[/bold] with your instance URL")
     console.print("  2. [bold]export LANGFLOW_LOCAL_API_KEY=<key>[/bold]   (Settings → API Keys)")
-    console.print("  3. [bold]lfx pull --env local --output-dir flows/[/bold]")
-    console.print("  4. [bold]lfx status --env local[/bold]")
-    console.print("  5. [bold]lfx push --dir flows/ --env local[/bold]")
-    console.print("  6. [bold]pytest tests/ --langflow-env local[/bold]")
+    if example:
+        console.print("  3. [bold]lfx validate flows/hello-world.json[/bold]  (check the starter flow)")
+        console.print("  4. [bold]lfx serve flows/hello-world.json[/bold]     (run it locally)")
+        console.print("  5. [bold]lfx push --dir flows/ --env local[/bold]    (deploy to Langflow)")
+    else:
+        console.print("  3. [bold]lfx create my-flow --template basic-chatbot[/bold]")
+        console.print("  4. [bold]lfx push --dir flows/ --env local[/bold]")
+    console.print(f"  {'6' if example else '5'}. [bold]pytest tests/ --langflow-env local[/bold]")
     console.print()
