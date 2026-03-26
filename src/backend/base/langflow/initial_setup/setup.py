@@ -67,13 +67,6 @@ def update_projects_components_with_latest_component_versions(project_data, all_
     node_changes_log = defaultdict(list)
     project_data_copy = deepcopy(project_data)
 
-    def sanitize_metadata(metadata):
-        if not isinstance(metadata, dict):
-            return metadata
-        sanitized = deepcopy(metadata)
-        sanitized.pop("hash_history", None)
-        return sanitized
-
     for node in project_data_copy.get("nodes", []):
         node_data = node.get("data").get("node")
         node_type = node.get("data").get("type")
@@ -159,10 +152,6 @@ def update_projects_components_with_latest_component_versions(project_data, all_
                 for attr in NODE_FORMAT_ATTRIBUTES:
                     latest_attr_value = latest_node.get(attr)
                     current_attr_value = node_data.get(attr)
-
-                    if attr == "metadata":
-                        latest_attr_value = sanitize_metadata(latest_attr_value)
-                        current_attr_value = sanitize_metadata(current_attr_value)
 
                     if (
                         attr in latest_node
