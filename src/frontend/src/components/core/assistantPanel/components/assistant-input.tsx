@@ -208,31 +208,31 @@ export function AssistantInput({
                 {charsRemaining}
               </span>
             )}
-          {isProcessing ? (
-            <button
-              type="button"
-              onClick={onStop}
-              title="Stop generation"
-              data-testid="assistant-stop-button"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted-foreground/15 text-muted-foreground transition-colors hover:bg-muted-foreground/25"
-            >
-              <ForwardedIconComponent
-                name="Square"
-                className="h-3 w-3 fill-current"
-              />
-            </button>
-          ) : (
-            <Button
-              size="icon"
-              data-testid="assistant-send-button"
-              className="h-8 w-8 rounded-lg"
-              onClick={handleSend}
-              disabled={!canSend}
-              title="Send message"
-            >
-              <ForwardedIconComponent name="ArrowUp" className="h-4 w-4" />
-            </Button>
-          )}
+            {isProcessing ? (
+              <button
+                type="button"
+                onClick={onStop}
+                title="Stop generation"
+                data-testid="assistant-stop-button"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted-foreground/15 text-muted-foreground transition-colors hover:bg-muted-foreground/25"
+              >
+                <ForwardedIconComponent
+                  name="Square"
+                  className="h-3 w-3 fill-current"
+                />
+              </button>
+            ) : (
+              <Button
+                size="icon"
+                data-testid="assistant-send-button"
+                className="h-8 w-8 rounded-lg"
+                onClick={handleSend}
+                disabled={!canSend}
+                title="Send message"
+              >
+                <ForwardedIconComponent name="ArrowUp" className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
