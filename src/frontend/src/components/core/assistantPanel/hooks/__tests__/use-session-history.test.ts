@@ -156,10 +156,7 @@ describe("useSessionHistory", () => {
         lastActiveAt: SAMPLE_DATE.toISOString(),
         messages: [],
       }));
-      localStorageMock.setItem(
-        STORAGE_KEY,
-        JSON.stringify(existingSessions),
-      );
+      localStorageMock.setItem(STORAGE_KEY, JSON.stringify(existingSessions));
 
       const messages = [createMessage({ content: "overflow" })];
       const { result } = renderHook(() =>
@@ -180,9 +177,7 @@ describe("useSessionHistory", () => {
 
       act(() => result.current.saveCurrentSession());
 
-      const stored = JSON.parse(
-        localStorageMock.getItem(STORAGE_KEY) || "[]",
-      );
+      const stored = JSON.parse(localStorageMock.getItem(STORAGE_KEY) || "[]");
       expect(stored).toHaveLength(1);
       expect(stored[0].sessionId).toBe("s1");
     });
@@ -283,9 +278,7 @@ describe("useSessionHistory", () => {
 
       act(() => result.current.deleteSession("s1"));
 
-      const stored = JSON.parse(
-        localStorageMock.getItem(STORAGE_KEY) || "[]",
-      );
+      const stored = JSON.parse(localStorageMock.getItem(STORAGE_KEY) || "[]");
       expect(stored).toEqual([]);
     });
 

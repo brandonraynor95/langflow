@@ -224,17 +224,14 @@ export function useAssistantChat(): UseAssistantChatReturn {
     setSessionId(newId);
   }, []);
 
-  const loadSession = useCallback(
-    (id: string, msgs: AssistantMessage[]) => {
-      abortControllerRef.current?.abort();
-      setMessages(msgs);
-      setCurrentStep(null);
-      setIsProcessing(false);
-      sessionIdRef.current = id;
-      setSessionId(id);
-    },
-    [],
-  );
+  const loadSession = useCallback((id: string, msgs: AssistantMessage[]) => {
+    abortControllerRef.current?.abort();
+    setMessages(msgs);
+    setCurrentStep(null);
+    setIsProcessing(false);
+    sessionIdRef.current = id;
+    setSessionId(id);
+  }, []);
 
   return {
     messages,

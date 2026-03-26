@@ -15,7 +15,9 @@ const TEST_STORAGE_KEY = "test-sessions";
 const SAMPLE_TIMESTAMP = new Date("2026-03-20T10:00:00Z");
 const SAMPLE_TIMESTAMP_ISO = "2026-03-20T10:00:00.000Z";
 
-function createUserMessage(overrides?: Partial<AssistantMessage>): AssistantMessage {
+function createUserMessage(
+  overrides?: Partial<AssistantMessage>,
+): AssistantMessage {
   return {
     id: "msg-1",
     role: "user",
@@ -26,7 +28,9 @@ function createUserMessage(overrides?: Partial<AssistantMessage>): AssistantMess
   };
 }
 
-function createAssistantMessage(overrides?: Partial<AssistantMessage>): AssistantMessage {
+function createAssistantMessage(
+  overrides?: Partial<AssistantMessage>,
+): AssistantMessage {
   return {
     id: "msg-2",
     role: "assistant",
@@ -43,7 +47,9 @@ function createAssistantMessage(overrides?: Partial<AssistantMessage>): Assistan
   };
 }
 
-function createSessionEntry(overrides?: Partial<SessionHistoryEntry>): SessionHistoryEntry {
+function createSessionEntry(
+  overrides?: Partial<SessionHistoryEntry>,
+): SessionHistoryEntry {
   return {
     sessionId: "session-1",
     firstUserMessage: "Create a component",
@@ -57,10 +63,18 @@ function createSessionEntry(overrides?: Partial<SessionHistoryEntry>): SessionHi
 const store: Record<string, string> = {};
 const localStorageMock: Storage = {
   getItem: (key: string) => store[key] ?? null,
-  setItem: (key: string, value: string) => { store[key] = value; },
-  removeItem: (key: string) => { delete store[key]; },
-  clear: () => { for (const key in store) delete store[key]; },
-  get length() { return Object.keys(store).length; },
+  setItem: (key: string, value: string) => {
+    store[key] = value;
+  },
+  removeItem: (key: string) => {
+    delete store[key];
+  },
+  clear: () => {
+    for (const key in store) delete store[key];
+  },
+  get length() {
+    return Object.keys(store).length;
+  },
   key: (index: number) => Object.keys(store)[index] ?? null,
 };
 
@@ -104,7 +118,9 @@ describe("serializeMessages", () => {
     const result = serializeMessages(messages);
 
     expect(result[0].result).toBeDefined();
-    expect(result[0].result?.componentCode).toBe("class MyComponent(Component): pass");
+    expect(result[0].result?.componentCode).toBe(
+      "class MyComponent(Component): pass",
+    );
     expect(result[0].result?.className).toBe("MyComponent");
     expect(result[0].result?.validated).toBe(true);
   });
@@ -152,7 +168,13 @@ describe("serializeMessages", () => {
 describe("deserializeMessages", () => {
   it("should_convert_iso_string_back_to_date", () => {
     const serialized: SerializedAssistantMessage[] = [
-      { id: "1", role: "user", content: "hi", timestamp: SAMPLE_TIMESTAMP_ISO, status: "complete" },
+      {
+        id: "1",
+        role: "user",
+        content: "hi",
+        timestamp: SAMPLE_TIMESTAMP_ISO,
+        status: "complete",
+      },
     ];
 
     const result = deserializeMessages(serialized);
@@ -224,7 +246,10 @@ describe("saveSessionsToStorage", () => {
   });
 
   it("should_overwrite_existing_data", () => {
-    localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify([createSessionEntry()]));
+    localStorage.setItem(
+      TEST_STORAGE_KEY,
+      JSON.stringify([createSessionEntry()]),
+    );
 
     saveSessionsToStorage(TEST_STORAGE_KEY, []);
 
@@ -244,6 +269,8 @@ describe("serialize_deserialize_roundtrip", () => {
     expect(restored[0].content).toBe("Create a component");
     expect(restored[0].timestamp.toISOString()).toBe(SAMPLE_TIMESTAMP_ISO);
     expect(restored[1].result?.className).toBe("MyComponent");
-    expect(restored[1].result?.componentCode).toBe("class MyComponent(Component): pass");
+    expect(restored[1].result?.componentCode).toBe(
+      "class MyComponent(Component): pass",
+    );
   });
 });
