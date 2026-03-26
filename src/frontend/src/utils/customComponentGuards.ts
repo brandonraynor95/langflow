@@ -1,5 +1,6 @@
 import useFlowStore from "@/stores/flowStore";
 import { useTypesStore } from "@/stores/typesStore";
+import { useUtilityStore } from "@/stores/utilityStore";
 
 function getStoredNode(nodeId: string) {
   const flowState = useFlowStore.getState();
@@ -22,6 +23,12 @@ export function isNodeOutdated(
   nodeId: string,
   currentCodeValue?: string,
 ): boolean {
+  const allowCustomComponents =
+    useUtilityStore.getState().allowCustomComponents;
+  if (allowCustomComponents) {
+    return false;
+  }
+
   // Fast path: check componentsToUpdate
   const componentsToUpdate = useFlowStore.getState().componentsToUpdate;
   const blockedEntry = componentsToUpdate.some(
@@ -31,6 +38,10 @@ export function isNodeOutdated(
 
   // Slow path: compare node code against server templates
   const nodeType = getStoredNode(nodeId)?.data?.type;
+  if (nodeType === "CustomComponent") {
+    return true;
+  }
+
   if (nodeType && currentCodeValue !== undefined) {
     const templates = useTypesStore.getState().templates;
     const serverTemplate = templates[nodeType]?.template;

@@ -103,6 +103,7 @@ import useFlowStore, {
   completeNodeUpdate,
   waitForNodeUpdates,
 } from "../flowStore";
+import { useUtilityStore } from "../utilityStore";
 
 describe("useFlowStore", () => {
   // Mock data
@@ -130,6 +131,7 @@ describe("useFlowStore", () => {
 
     // Reset store state to basics
     act(() => {
+      useUtilityStore.setState({ allowCustomComponents: true });
       useFlowStore.setState({
         playgroundPage: false,
         positionDictionary: {},
@@ -721,6 +723,36 @@ describe("useFlowStore", () => {
         blocked: true,
         outdated: false,
       });
+    });
+
+    it("updateComponentsToUpdate should pass the custom-component policy flag into code validation", () => {
+      const { result } = renderHook(() => useFlowStore());
+      const mockedCheckCodeValidity = checkCodeValidity as jest.Mock;
+
+      mockedCheckCodeValidity.mockReturnValue({
+        outdated: false,
+        blocked: true,
+        breakingChange: false,
+        userEdited: false,
+      });
+
+      act(() => {
+        useUtilityStore.setState({ allowCustomComponents: false });
+        useFlowStore.setState({
+          nodes: [updatedNode],
+          componentsToUpdate: [],
+        });
+      });
+
+      act(() => {
+        result.current.updateComponentsToUpdate(result.current.nodes);
+      });
+
+      expect(mockedCheckCodeValidity).toHaveBeenCalledWith(
+        updatedNode.data,
+        {},
+        false,
+      );
     });
   });
 

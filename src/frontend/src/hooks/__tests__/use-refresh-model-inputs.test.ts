@@ -685,6 +685,25 @@ describe("refreshAllModelInputs — outdated component guard", () => {
     expect(mockSetNode).not.toHaveBeenCalled();
   });
 
+  it("should skip API calls for CustomComponent nodes even when the generic template exists", async () => {
+    const customComponentNode = createMockCustomComponentModelNode("node-1");
+    mockNodes = [customComponentNode];
+    mockAllowCustomComponents = false;
+    mockComponentsToUpdate = [];
+    mockTemplates = {
+      CustomComponent: {
+        template: {
+          code: { value: "user custom code" },
+        },
+      },
+    };
+
+    await refreshAllModelInputs(mockQueryClient as any);
+
+    expect(api.post).not.toHaveBeenCalled();
+    expect(mockSetNode).not.toHaveBeenCalled();
+  });
+
   it("should suppress 403 as fallback when guards miss due to missing node code", async () => {
     const modelNode = createMockModelNode("node-1");
     delete (modelNode.data.node.template as Record<string, unknown>).code;
@@ -783,6 +802,44 @@ function createMockModelNode(id: string): AllNodeType {
           code: {
             type: "code",
             value: "test code",
+            required: false,
+            list: false,
+            show: false,
+            readonly: true,
+          },
+        },
+        tool_mode: false,
+      },
+    },
+  } as unknown as AllNodeType;
+}
+
+function createMockCustomComponentModelNode(id: string): AllNodeType {
+  return {
+    id,
+    type: "genericNode",
+    position: { x: 0, y: 0 },
+    data: {
+      id,
+      type: "CustomComponent",
+      showNode: true,
+      node: {
+        display_name: "Custom Component",
+        description: "User-defined custom component",
+        documentation: "",
+        template: {
+          model: {
+            type: "model",
+            value: "gpt-4",
+            options: ["gpt-4"],
+            required: true,
+            list: false,
+            show: true,
+            readonly: false,
+          },
+          code: {
+            type: "code",
+            value: "user custom code",
             required: false,
             list: false,
             show: false,

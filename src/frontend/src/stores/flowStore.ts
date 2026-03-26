@@ -148,9 +148,15 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
   updateComponentsToUpdate: (nodes) => {
     const outdatedNodes: ComponentsToUpdateType[] = [];
     const templates = useTypesStore.getState().templates;
+    const allowCustomComponents =
+      useUtilityStore.getState().allowCustomComponents;
     nodes.forEach((node) => {
       if (node.type === "genericNode") {
-        const codeValidity = checkCodeValidity(node.data, templates);
+        const codeValidity = checkCodeValidity(
+          node.data,
+          templates,
+          allowCustomComponents,
+        );
         if (codeValidity && (codeValidity.outdated || codeValidity.blocked))
           outdatedNodes.push({
             id: node.id,

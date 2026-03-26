@@ -4,6 +4,7 @@ import {
   DEFAULT_TIMEOUT,
 } from "@/constants/constants";
 import { EventDeliveryType } from "@/constants/enums";
+import useFlowStore from "@/stores/flowStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import { useUtilityStore } from "@/stores/utilityStore";
 import type { useQueryFunctionType } from "../../../../types/api";
@@ -101,7 +102,11 @@ export const useGetConfig: useQueryFunctionType<
       // Set fields present in both public and full config
       setMaxFileSizeUpload(data.max_file_size_upload);
       setEventDelivery(data.event_delivery ?? EventDeliveryType.POLLING);
-      setAllowCustomComponents(data.allow_custom_components ?? true);
+      const allowCustomComponents = data.allow_custom_components ?? true;
+      setAllowCustomComponents(allowCustomComponents);
+      useFlowStore
+        .getState()
+        .updateComponentsToUpdate(useFlowStore.getState().nodes);
 
       // Set authenticated-only fields if present (full config)
       if (isFullConfig(data)) {

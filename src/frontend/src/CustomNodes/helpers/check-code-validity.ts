@@ -60,6 +60,7 @@ const codeHasBreakingChange = (
 export const checkCodeValidity = (
   data: NodeDataType,
   templates: { [key: string]: any },
+  allowCustomComponents = true,
 ): CodeValidityType | undefined => {
   if (!data?.node || !templates) return;
   const template = templates[data.type]?.template;
@@ -71,7 +72,11 @@ export const checkCodeValidity = (
   const userTemplate = data.node?.template;
   const hasNodeCode =
     typeof thisNodesCode === "string" && thisNodesCode.length > 0;
-  const isBlocked = hasNodeCode && !template;
+  const isBlockedCustomComponent =
+    hasNodeCode &&
+    data.type === "CustomComponent" &&
+    !allowCustomComponents;
+  const isBlocked = isBlockedCustomComponent || (hasNodeCode && !template);
 
   if (isBlocked) {
     return {
