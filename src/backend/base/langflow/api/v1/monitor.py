@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlmodel import apaginate
-from sqlmodel import col, select
+from sqlmodel import col, delete, select
 
 from langflow.api.utils import DbSession, custom_params
 from langflow.schema.message import MessageResponse
