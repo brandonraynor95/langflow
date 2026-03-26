@@ -76,6 +76,7 @@ def _fake_remote_flow(flow_id: UUID = _FLOW_ID, flow_dict: dict | None = None) -
     remote = MagicMock()
     remote.id = flow_id
     remote.name = (flow_dict or _FLOW_DICT).get("name", "Remote Flow")
+    remote.updated_at = None
     # model_dump returns a copy of the dict so hash comparison works correctly
     remote.model_dump.return_value = dict(flow_dict or _FLOW_DICT)
     return remote

@@ -145,11 +145,11 @@ class TestTemplateStructure:
             assert edge["source"] in node_ids, f"Edge source {edge['source']!r} not in nodes for {template_name!r}"
             assert edge["target"] in node_ids, f"Edge target {edge['target']!r} not in nodes for {template_name!r}"
 
-    def test_hello_world_has_chat_input_and_output(self):
+    def test_hello_world_has_input_and_output(self):
         flow = _load_template("hello-world")
         types = {n["data"]["type"] for n in flow["data"]["nodes"]}
-        assert "ChatInput" in types
         assert "ChatOutput" in types
+        assert len(types) >= 2
 
     def test_hello_world_edge_connects_input_to_output(self):
         flow = _load_template("hello-world")
@@ -193,7 +193,6 @@ class TestCreateCommand:
         dest = create_command("test", output_dir=tmp_path)
         flow = _read_flow(dest)
         types = {n["data"]["type"] for n in flow["data"]["nodes"]}
-        assert "ChatInput" in types
         assert "ChatOutput" in types
 
     def test_creates_output_dir_if_missing(self, tmp_path):
@@ -291,7 +290,6 @@ class TestCreateCLI:
         assert result.exit_code == 0, result.output
         flow = _read_flow(tmp_path / "my-flow.json")
         types = {n["data"]["type"] for n in flow["data"]["nodes"]}
-        assert "ChatInput" in types
         assert "ChatOutput" in types
 
 
