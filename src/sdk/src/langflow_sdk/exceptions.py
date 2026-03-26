@@ -32,6 +32,14 @@ class LangflowConnectionError(LangflowError):
     """Could not connect to the Langflow instance."""
 
 
+class LangflowTimeoutError(LangflowError):
+    """A background job or polling operation exceeded its timeout.
+
+    Adapted from ``LangflowV2TimeoutError`` in langflow-ai/sdk PR #1
+    (Janardan Singh Kavia, IBM Corp., Apache 2.0).
+    """
+
+
 class EnvironmentNotFoundError(LangflowError):
     """The named environment is not defined in the environments config."""
 

@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
+from langflow_sdk.background_job import BackgroundJob
 from langflow_sdk.exceptions import (
     LangflowAuthError,
     LangflowConnectionError,
@@ -624,6 +625,51 @@ class AsyncLangflowClient:
                 tweaks=tweaks,
             ),
         )
+
+    async def run_background(
+        self,
+        flow_id_or_endpoint: UUID | str,
+        input_value: str = "",
+        *,
+        input_type: str = "chat",
+        output_type: str = "chat",
+        tweaks: dict[str, Any] | None = None,
+    ) -> BackgroundJob:
+        """Start a flow run as a background asyncio task and return immediately.
+
+        The returned :class:`BackgroundJob` lets you poll status or await
+        completion without blocking the event loop::
+
+            job = await client.run_background("my-flow", input_value="Hello!")
+
+            # …do other work…
+
+            response = await job.wait_for_completion(timeout=60.0)
+            print(response.get_chat_output())
+
+        Args:
+            flow_id_or_endpoint: Flow UUID or named endpoint.
+            input_value: Text input passed to the flow.
+            input_type: Langflow input type (default ``"chat"``).
+            output_type: Langflow output type (default ``"chat"``).
+            tweaks: Optional component tweaks dict.
+
+        Returns:
+            A :class:`BackgroundJob` wrapping the in-flight asyncio task.
+
+        Adapted from ``BackgroundJob`` in langflow-ai/sdk PR #1
+        (Janardan Singh Kavia, IBM Corp., Apache 2.0).
+        """
+        task: asyncio.Task[RunResponse] = asyncio.create_task(
+            self.run(
+                flow_id_or_endpoint,
+                input_value,
+                input_type=input_type,
+                output_type=output_type,
+                tweaks=tweaks,
+            )
+        )
+        return BackgroundJob(task)
 
     def stream(
         self,
