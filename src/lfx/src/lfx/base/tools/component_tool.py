@@ -268,7 +268,7 @@ class ComponentToolkit:
                         name=formatted_name,
                         description=build_description(self.component),
                         coroutine=_build_output_async_function(
-                            self.component, output_method, event_manager, output.name
+                            self.component, output_method, event_manager, TOOL_OUTPUT_NAME
                         ),
                         args_schema=args_schema,
                         handle_tool_error=True,
@@ -285,7 +285,7 @@ class ComponentToolkit:
                     StructuredTool(
                         name=formatted_name,
                         description=build_description(self.component),
-                        func=_build_output_function(self.component, output_method, event_manager, output.name),
+                        func=_build_output_function(self.component, output_method, event_manager, TOOL_OUTPUT_NAME),
                         args_schema=args_schema,
                         handle_tool_error=True,
                         callbacks=callbacks,
