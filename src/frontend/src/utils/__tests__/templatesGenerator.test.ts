@@ -107,6 +107,26 @@ describe("templatesGenerator", () => {
       expect(templates["URL"]).toBe(templates["URLComponent"]);
     });
 
+    it("should add the legacy lowercase 'parser' alias for ParserComponent", () => {
+      const data = asApiObject({
+        processing: {
+          ParserComponent: {
+            template: {
+              code: { value: "parser_code" },
+              _type: "Component",
+            },
+            display_name: "Parser",
+          },
+        },
+      });
+
+      const templates = templatesGenerator(data);
+      expect(templates).toHaveProperty("ParserComponent");
+      expect(templates).toHaveProperty("Parser");
+      expect(templates).toHaveProperty("parser");
+      expect(templates["parser"]).toBe(templates["ParserComponent"]);
+    });
+
     it("should handle components without metadata gracefully", () => {
       const data = asApiObject({
         category: {

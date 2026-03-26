@@ -459,6 +459,44 @@ class TestBuildCodeHashLookups:
             type_to_current_hash=type_to_current_hash,
         )
 
+    def test_parser_alias_allows_legacy_builtin_nodes(self):
+        current_code = "current_parser_code"
+        all_types_dict = {
+            "processing": {
+                "ParserComponent": {
+                    "metadata": {"code_hash": _hash(current_code)},
+                    "display_name": "Parser",
+                    "template": {
+                        "_type": "Component",
+                        "code": {"value": current_code},
+                    },
+                }
+            }
+        }
+
+        type_to_current_hash, all_known_hashes = collect_component_hash_lookups(all_types_dict)
+
+        assert type_to_current_hash["ParserComponent"] == _hash(current_code)
+        assert type_to_current_hash["Parser"] == _hash(current_code)
+        assert type_to_current_hash["parser"] == _hash(current_code)
+        assert all_known_hashes == {_hash(current_code)}
+
+        flow_data = {
+            "nodes": [
+                _make_node(
+                    code=current_code,
+                    node_type="parser",
+                    display_name="Legacy Parser",
+                )
+            ]
+        }
+
+        check_flow_and_raise(
+            flow_data,
+            allow_custom_components=False,
+            type_to_current_hash=type_to_current_hash,
+        )
+
     def test_non_dict_values_in_all_types_dict_skipped(self):
         from lfx.interface.components import ComponentCache, _build_code_hash_lookups
 

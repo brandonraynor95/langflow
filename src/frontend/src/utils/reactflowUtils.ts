@@ -2134,6 +2134,7 @@ const getTemplateAliases = (
 ): string[] => {
   const aliases = [componentKey, component?.name, component?.display_name];
   const legacyAliases: Record<string, string[]> = {
+    ParserComponent: ["parser"],
     "Prompt Template": ["Prompt"],
   };
   const componentType = component?.template?._type;

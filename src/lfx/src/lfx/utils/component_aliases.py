@@ -8,6 +8,7 @@ from typing import Any
 # `name`, and `display_name`.
 LEGACY_TYPE_ALIASES: dict[str, str] = {
     "Prompt": "Prompt Template",
+    "parser": "ParserComponent",
 }
 
 
