@@ -119,7 +119,7 @@ export function AssistantInput({
 
   const handleSend = () => {
     const trimmedMessage = message.trim();
-    if (!trimmedMessage || disabled) return;
+    if (!trimmedMessage || disabled || isProcessing) return;
     onSend(trimmedMessage, selectedModel);
     setMessage("");
   };

@@ -48,6 +48,11 @@ async def _run_graph_with_events(
                 graph.context["request_variables"] = {}
             graph.context["request_variables"].update(global_variables)
 
+        flow_id = (global_variables or {}).get("FLOW_ID")
+        if flow_id:
+            graph.flow_id = flow_id
+        graph.flow_name = graph.flow_name or "Assistant Flow"
+
         graph.prepare()
         inputs = InputValueRequest(input_value=input_value) if input_value else None
 
@@ -107,6 +112,11 @@ async def execute_flow_file(
             if "request_variables" not in graph.context:
                 graph.context["request_variables"] = {}
             graph.context["request_variables"].update(global_variables)
+
+        flow_id = (global_variables or {}).get("FLOW_ID")
+        if flow_id:
+            graph.flow_id = flow_id
+        graph.flow_name = graph.flow_name or flow_filename
 
         graph.prepare()
         inputs = InputValueRequest(input_value=input_value) if input_value else None

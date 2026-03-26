@@ -14,7 +14,7 @@ import { useAssistantChat, useEnabledModels } from "./hooks";
 
 const PANEL_SIZE_KEY = "langflow-assistant-panel-size";
 const DEFAULT_SIZE = { width: 620, height: 600 };
-const MIN_SIZE = { width: 400, height: 400 };
+const MIN_SIZE = { width: 436, height: 400 };
 const MAX_SIZE = { width: 900, height: 800 };
 
 function getStoredSize(): { width: number; height: number } {
@@ -202,16 +202,19 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
   const containerClasses = cn(
     "flex flex-col transition-[opacity,transform] duration-200 fixed shadow-xl will-change-[opacity,transform]",
     "z-50 bottom-16 left-[calc(50%+140px)] -translate-x-1/2 rounded-2xl border border-border",
-    "opacity-100 translate-y-0",
+    "opacity-100 translate-y-0 max-w-[calc(100vw-2rem)]",
   );
 
   const containerStyle = useExpandedSize
     ? {
         width: panelSize.width,
         height: panelSize.height,
+        minWidth: "27.25rem",
+        minHeight: MIN_SIZE.height,
       }
     : {
         width: panelSize.width,
+        minWidth: "27.25rem",
       };
 
   return (
@@ -265,15 +268,18 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
             />
           </StickToBottom>
         ) : (
-          <AssistantInput
-            onSend={handleSend}
-            onStop={handleStopGeneration}
-            disabled={false}
-            isProcessing={isProcessing}
-            currentStep={currentStep}
-            compact={hasExpandedOnce}
-            autoFocus={isOpen}
-          />
+          <>
+            {hasExpandedOnce && <div className="flex-1" />}
+            <AssistantInput
+              onSend={handleSend}
+              onStop={handleStopGeneration}
+              disabled={false}
+              isProcessing={isProcessing}
+              currentStep={currentStep}
+              compact={hasExpandedOnce}
+              autoFocus={isOpen}
+            />
+          </>
         )}
       </div>
 

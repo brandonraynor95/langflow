@@ -496,6 +496,220 @@ class TestExecuteFlowFileStreamingEvents:
         assert exc_info.value.status_code == 500
 
 
+class TestTracingIntegration:
+    """Tests for flow_id and flow_name propagation to enable tracing."""
+
+    @pytest.mark.asyncio
+    async def test_run_graph_should_set_flow_id_from_global_variables(self):
+        """Should set graph.flow_id from FLOW_ID in global_variables."""
+        mock_graph = MagicMock()
+        mock_graph.context = {}
+        mock_graph.flow_name = None
+        mock_graph.prepare = MagicMock()
+
+        async def mock_async_start(**_kwargs):
+            yield {"result": "ok"}
+
+        mock_graph.async_start = mock_async_start
+
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
+        execution_result = FlowExecutionResult()
+
+        await _run_graph_with_events(
+            graph=mock_graph,
+            input_value="test",
+            global_variables={"FLOW_ID": "abc-123"},
+            user_id=None,
+            session_id=None,
+            event_manager=MagicMock(),
+            event_queue=event_queue,
+            execution_result=execution_result,
+        )
+
+        assert mock_graph.flow_id == "abc-123"
+
+    @pytest.mark.asyncio
+    async def test_run_graph_should_set_flow_name_when_missing(self):
+        """Should set graph.flow_name to 'Assistant Flow' when not already set."""
+        mock_graph = MagicMock()
+        mock_graph.context = {}
+        mock_graph.flow_name = None
+        mock_graph.prepare = MagicMock()
+
+        async def mock_async_start(**_kwargs):
+            yield {"result": "ok"}
+
+        mock_graph.async_start = mock_async_start
+
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
+        execution_result = FlowExecutionResult()
+
+        await _run_graph_with_events(
+            graph=mock_graph,
+            input_value="test",
+            global_variables=None,
+            user_id=None,
+            session_id=None,
+            event_manager=MagicMock(),
+            event_queue=event_queue,
+            execution_result=execution_result,
+        )
+
+        assert mock_graph.flow_name == "Assistant Flow"
+
+    @pytest.mark.asyncio
+    async def test_run_graph_should_preserve_existing_flow_name(self):
+        """Should not overwrite flow_name if already set on graph."""
+        mock_graph = MagicMock()
+        mock_graph.context = {}
+        mock_graph.flow_name = "My Custom Flow"
+        mock_graph.prepare = MagicMock()
+
+        async def mock_async_start(**_kwargs):
+            yield {"result": "ok"}
+
+        mock_graph.async_start = mock_async_start
+
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
+        execution_result = FlowExecutionResult()
+
+        await _run_graph_with_events(
+            graph=mock_graph,
+            input_value="test",
+            global_variables={"FLOW_ID": "abc"},
+            user_id=None,
+            session_id=None,
+            event_manager=MagicMock(),
+            event_queue=event_queue,
+            execution_result=execution_result,
+        )
+
+        assert mock_graph.flow_name == "My Custom Flow"
+
+    @pytest.mark.asyncio
+    async def test_run_graph_should_not_set_flow_id_when_missing(self):
+        """Should not set flow_id when FLOW_ID not in global_variables."""
+        mock_graph = MagicMock()
+        mock_graph.context = {}
+        mock_graph.flow_name = None
+        mock_graph.flow_id = None
+        mock_graph.prepare = MagicMock()
+
+        async def mock_async_start(**_kwargs):
+            yield {"result": "ok"}
+
+        mock_graph.async_start = mock_async_start
+
+        event_queue: asyncio.Queue[str] = asyncio.Queue()
+        execution_result = FlowExecutionResult()
+
+        await _run_graph_with_events(
+            graph=mock_graph,
+            input_value="test",
+            global_variables={"OTHER_KEY": "value"},
+            user_id=None,
+            session_id=None,
+            event_manager=MagicMock(),
+            event_queue=event_queue,
+            execution_result=execution_result,
+        )
+
+        assert mock_graph.flow_id is None
+
+    @pytest.mark.asyncio
+    async def test_execute_flow_file_should_set_flow_id_from_global_variables(self):
+        """Should set graph.flow_id from FLOW_ID in global_variables."""
+        mock_graph = MagicMock()
+        mock_graph.context = {}
+        mock_graph.flow_name = None
+        mock_graph.prepare = MagicMock()
+
+        async def mock_async_start(**_kwargs):
+            yield {"result": "ok"}
+
+        mock_graph.async_start = mock_async_start
+
+        with (
+            patch(f"{MODULE}.resolve_flow_path", return_value=(Path("/fake/test.json"), "json")),
+            patch(f"{MODULE}.load_graph_for_execution", new_callable=AsyncMock, return_value=mock_graph),
+        ):
+            await execute_flow_file(
+                "test.json",
+                input_value="test",
+                global_variables={"FLOW_ID": "flow-uuid-456"},
+            )
+
+        assert mock_graph.flow_id == "flow-uuid-456"
+
+    @pytest.mark.asyncio
+    async def test_execute_flow_file_should_set_flow_name_to_filename(self):
+        """Should set graph.flow_name to flow_filename when not already set."""
+        mock_graph = MagicMock()
+        mock_graph.context = {}
+        mock_graph.flow_name = None
+        mock_graph.prepare = MagicMock()
+
+        async def mock_async_start(**_kwargs):
+            yield {"result": "ok"}
+
+        mock_graph.async_start = mock_async_start
+
+        with (
+            patch(f"{MODULE}.resolve_flow_path", return_value=(Path("/fake/MyFlow.json"), "json")),
+            patch(f"{MODULE}.load_graph_for_execution", new_callable=AsyncMock, return_value=mock_graph),
+        ):
+            await execute_flow_file(
+                "MyFlow.json",
+                input_value="test",
+                global_variables=None,
+            )
+
+        assert mock_graph.flow_name == "MyFlow.json"
+
+    @pytest.mark.asyncio
+    async def test_execute_flow_file_should_preserve_existing_flow_name(self):
+        """Should not overwrite flow_name if already set on graph."""
+        mock_graph = MagicMock()
+        mock_graph.context = {}
+        mock_graph.flow_name = "Existing Name"
+        mock_graph.prepare = MagicMock()
+
+        async def mock_async_start(**_kwargs):
+            yield {"result": "ok"}
+
+        mock_graph.async_start = mock_async_start
+
+        with (
+            patch(f"{MODULE}.resolve_flow_path", return_value=(Path("/fake/test.json"), "json")),
+            patch(f"{MODULE}.load_graph_for_execution", new_callable=AsyncMock, return_value=mock_graph),
+        ):
+            await execute_flow_file("test.json", input_value="test", global_variables={"FLOW_ID": "id"})
+
+        assert mock_graph.flow_name == "Existing Name"
+
+    @pytest.mark.asyncio
+    async def test_execute_flow_file_should_not_set_flow_id_when_global_vars_none(self):
+        """Should not crash or set flow_id when global_variables is None."""
+        mock_graph = MagicMock()
+        mock_graph.context = {}
+        mock_graph.flow_name = None
+        mock_graph.flow_id = None
+        mock_graph.prepare = MagicMock()
+
+        async def mock_async_start(**_kwargs):
+            yield {"result": "ok"}
+
+        mock_graph.async_start = mock_async_start
+
+        with (
+            patch(f"{MODULE}.resolve_flow_path", return_value=(Path("/fake/test.json"), "json")),
+            patch(f"{MODULE}.load_graph_for_execution", new_callable=AsyncMock, return_value=mock_graph),
+        ):
+            await execute_flow_file("test.json", input_value="test", global_variables=None)
+
+        assert mock_graph.flow_id is None
+
+
 class TestBugsAndEdgeCases:
     """Tests that challenge the code — exposing real bugs and untested edge cases."""
 
