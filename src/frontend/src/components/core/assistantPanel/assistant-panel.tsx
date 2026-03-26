@@ -10,11 +10,11 @@ import { AssistantHeader } from "./components/assistant-header";
 import { AssistantInput } from "./components/assistant-input";
 import { AssistantMessageItem } from "./components/assistant-message";
 import { AssistantNoModelsState } from "./components/assistant-no-models-state";
-import { useAssistantChat, useEnabledModels } from "./hooks";
+import { useAssistantChat, useEnabledModels, useSessionHistory } from "./hooks";
 
 const PANEL_SIZE_KEY = "langflow-assistant-panel-size";
 const DEFAULT_SIZE = { width: 620, height: 600 };
-const MIN_SIZE = { width: 436, height: 400 };
+const MIN_SIZE = { width: 456, height: 400 };
 const MAX_SIZE = { width: 900, height: 800 };
 
 function getStoredSize(): { width: number; height: number } {
@@ -106,13 +106,24 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
   }, [isOpen, onClose]);
   const {
     messages,
+    sessionId,
     isProcessing,
     currentStep,
     handleSend,
     handleApprove,
     handleStopGeneration,
     handleClearHistory,
+    loadSession,
   } = useAssistantChat();
+
+  const { sessions, saveCurrentSession, switchSession, deleteSession } =
+    useSessionHistory(sessionId, messages, loadSession);
+
+  const handleNewSession = useCallback(() => {
+    handleStopGeneration();
+    saveCurrentSession();
+    handleClearHistory();
+  }, [handleStopGeneration, saveCurrentSession, handleClearHistory]);
 
   const handleApproveAndClose = (messageId: string) => {
     handleApprove(messageId);
@@ -209,12 +220,12 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
     ? {
         width: panelSize.width,
         height: panelSize.height,
-        minWidth: "27.25rem",
+        minWidth: "28.5rem",
         minHeight: MIN_SIZE.height,
       }
     : {
         width: panelSize.width,
-        minWidth: "27.25rem",
+        minWidth: "28.5rem",
       };
 
   return (
@@ -229,8 +240,13 @@ export function AssistantPanel({ isOpen, onClose }: AssistantPanelProps) {
       <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden">
         <AssistantHeader
           onClose={onClose}
-          onNewSession={handleClearHistory}
+          onNewSession={handleNewSession}
           hasMessages={hasMessages}
+          sessions={sessions}
+          activeSessionId={sessionId}
+          onSelectSession={switchSession}
+          onDeleteSession={deleteSession}
+          isExpanded={useExpandedSize}
         />
         {!hasEnabledModels ? (
           <>

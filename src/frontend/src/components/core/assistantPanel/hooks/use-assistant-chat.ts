@@ -17,12 +17,14 @@ const uid = new ShortUniqueId();
 
 interface UseAssistantChatReturn {
   messages: AssistantMessage[];
+  sessionId: string;
   isProcessing: boolean;
   currentStep: AgenticStepType | null;
   handleSend: (content: string, model: AssistantModel | null) => Promise<void>;
   handleApprove: (messageId: string) => Promise<void>;
   handleStopGeneration: () => void;
   handleClearHistory: () => void;
+  loadSession: (id: string, msgs: AssistantMessage[]) => void;
 }
 
 export function useAssistantChat(): UseAssistantChatReturn {
@@ -31,6 +33,7 @@ export function useAssistantChat(): UseAssistantChatReturn {
   const [currentStep, setCurrentStep] = useState<AgenticStepType | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const sessionIdRef = useRef<string>(uid.randomUUID(16));
+  const [sessionId, setSessionId] = useState<string>(sessionIdRef.current);
 
   const currentFlowId = useFlowsManagerStore((state) => state.currentFlowId);
   const addComponent = useAddComponent();
@@ -216,16 +219,32 @@ export function useAssistantChat(): UseAssistantChatReturn {
     setMessages([]);
     setCurrentStep(null);
     setIsProcessing(false);
-    sessionIdRef.current = uid.randomUUID(16);
+    const newId = uid.randomUUID(16);
+    sessionIdRef.current = newId;
+    setSessionId(newId);
   }, []);
+
+  const loadSession = useCallback(
+    (id: string, msgs: AssistantMessage[]) => {
+      abortControllerRef.current?.abort();
+      setMessages(msgs);
+      setCurrentStep(null);
+      setIsProcessing(false);
+      sessionIdRef.current = id;
+      setSessionId(id);
+    },
+    [],
+  );
 
   return {
     messages,
+    sessionId,
     isProcessing,
     currentStep,
     handleSend,
     handleApprove,
     handleStopGeneration,
     handleClearHistory,
+    loadSession,
   };
 }

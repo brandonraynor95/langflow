@@ -13,6 +13,11 @@ describe("AssistantHeader", () => {
     onClose: jest.fn(),
     onNewSession: jest.fn(),
     hasMessages: false,
+    sessions: [],
+    activeSessionId: "test-session",
+    onSelectSession: jest.fn(),
+    onDeleteSession: jest.fn(),
+    isExpanded: false,
   };
 
   beforeEach(() => {
