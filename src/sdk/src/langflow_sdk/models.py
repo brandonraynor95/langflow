@@ -154,6 +154,20 @@ class RunOutput(BaseModel):
                 return str(text)
         return None
 
+    def has_errors(self) -> bool:
+        """Return ``True`` if any component output in this block contains an error.
+
+        Checks each component output dict for an ``"error"`` key, and also
+        inspects the top-level ``artifacts`` dict.
+
+        Adapted from ``WorkflowResponse.has_errors()`` in langflow-ai/sdk
+        (Janardan Singh Kavia, IBM Corp., Apache 2.0).
+        """
+        for component_out in self.outputs:
+            if component_out.get("error"):
+                return True
+        return bool(self.artifacts.get("error"))
+
 
 class RunResponse(BaseModel):
     """The full response from a flow run."""
@@ -185,6 +199,77 @@ class RunResponse(BaseModel):
             assert len(texts) == 2
         """
         return [text for output in self.outputs if (text := output.first_text()) is not None]
+
+    # ------------------------------------------------------------------
+    # WorkflowResponse-style helpers
+    # (adapted from langflow-ai/sdk, Janardan Singh Kavia, IBM Corp.,
+    #  Apache 2.0 — https://github.com/langflow-ai/sdk/pull/1)
+    # ------------------------------------------------------------------
+
+    def get_chat_output(self) -> str | None:
+        """Return the first chat text output, or ``None``.
+
+        Convenience alias for :meth:`first_text_output` using the naming
+        convention from the Langflow V2 SDK::
+
+            text = response.get_chat_output()
+        """
+        return self.first_text_output()
+
+    def get_all_outputs(self) -> list[RunOutput]:
+        """Return all output blocks as a list.
+
+        Useful when iterating over every component's output::
+
+            for out in response.get_all_outputs():
+                print(out.first_text())
+        """
+        return list(self.outputs)
+
+    def get_text_outputs(self) -> list[str]:
+        """Return all non-empty text values across every output block.
+
+        Alias for :meth:`all_text_outputs` using V2-SDK naming::
+
+            texts = response.get_text_outputs()
+        """
+        return self.all_text_outputs()
+
+    def has_errors(self) -> bool:
+        """Return ``True`` if any output block reports an error.
+
+        Adapted from ``WorkflowResponse.has_errors()`` in langflow-ai/sdk
+        (Janardan Singh Kavia, IBM Corp., Apache 2.0).
+        """
+        return any(output.has_errors() for output in self.outputs)
+
+    def is_completed(self) -> bool:
+        """Return ``True`` when the run finished with at least one output and no errors.
+
+        For V1 synchronous runs this is equivalent to checking that the
+        server returned usable output.  Adapted from
+        ``WorkflowResponse.is_completed()`` in langflow-ai/sdk
+        (Janardan Singh Kavia, IBM Corp., Apache 2.0).
+        """
+        return bool(self.outputs) and not self.has_errors()
+
+    def is_failed(self) -> bool:
+        """Return ``True`` when the run produced no outputs or contains errors.
+
+        Adapted from ``WorkflowResponse.is_failed()`` in langflow-ai/sdk
+        (Janardan Singh Kavia, IBM Corp., Apache 2.0).
+        """
+        return not self.outputs or self.has_errors()
+
+    def is_in_progress(self) -> bool:
+        """Always ``False`` for V1 synchronous runs.
+
+        Included for API parity with :class:`BackgroundJob` and the Langflow
+        V2 SDK (Janardan Singh Kavia, IBM Corp., Apache 2.0) so that callers
+        can use a uniform status-check pattern across both sync and background
+        execution paths.
+        """
+        return False
 
 
 # ---------------------------------------------------------------------------
