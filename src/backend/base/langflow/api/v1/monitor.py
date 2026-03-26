@@ -213,15 +213,94 @@ async def delete_messages_session(
     session: DbSession,
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
+    """Delete messages for a single session.
+
+    Only deletes messages from sessions belonging to flows owned by the current user.
+    """
     try:
         # Keep endpoint idempotent (204) while enforcing ownership in CRUD.
         # If the session belongs to another user, this becomes a safe no-op.
         # This preserves existing client behavior while blocking cross-user deletes.
         await delete_messages_for_user_by_session(session, current_user.id, session_id)
     except Exception as e:
+        await session.rollback()
         raise HTTPException(status_code=500, detail=str(e)) from e
 
     return {"message": "Messages deleted successfully"}
+
+
+@router.delete("/messages/sessions", status_code=200, dependencies=[Depends(get_current_active_user)])
+async def delete_messages_sessions(
+    session_ids: list[str],
+    session: DbSession,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    """Bulk delete messages for multiple sessions at once.
+
+    Only deletes messages from sessions belonging to flows owned by the current user.
+
+    Args:
+        session_ids: List of session IDs to delete (max 500)
+        session: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        Confirmation message with count of deleted sessions
+
+    Raises:
+        HTTPException: 400 if session_ids list exceeds 500 items
+        HTTPException: 500 if database operation fails
+    """
+    # Validate input size to prevent massive SQL IN clauses
+    max_sessions_per_request = 500
+    if len(session_ids) > max_sessions_per_request:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete more than {max_sessions_per_request} sessions at once. Please batch your requests.",
+        )
+
+    if not session_ids:
+        return {"message": "No sessions to delete", "deleted_count": 0}
+
+    try:
+        # First, get distinct session IDs that have messages belonging to the user's flows
+        session_stmt = select(MessageTable.session_id).distinct()
+        session_stmt = session_stmt.join(Flow, MessageTable.flow_id == Flow.id)
+        session_stmt = session_stmt.where(Flow.user_id == current_user.id)
+        session_stmt = session_stmt.where(col(MessageTable.session_id).in_(session_ids))
+
+        result = await session.exec(session_stmt)
+        affected_session_ids = list(result)
+        affected_count = len(affected_session_ids)
+
+        if not affected_session_ids:
+            # No messages found for this user's flows with these session_ids
+            return {"message": "No sessions to delete", "deleted_count": 0}
+
+        # Get message IDs to delete
+        msg_stmt = select(MessageTable.id)
+        msg_stmt = msg_stmt.join(Flow, MessageTable.flow_id == Flow.id)
+        msg_stmt = msg_stmt.where(Flow.user_id == current_user.id)
+        msg_stmt = msg_stmt.where(col(MessageTable.session_id).in_(affected_session_ids))
+
+        msg_result = await session.exec(msg_stmt)
+        message_ids = list(msg_result)
+
+        # Delete only the messages that belong to the user
+        await session.exec(
+            delete(MessageTable)
+            .where(col(MessageTable.id).in_(message_ids))
+            .execution_options(synchronize_session="fetch")
+        )
+        await session.commit()
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+    return {
+        "message": f"Messages deleted successfully for {affected_count} session{'s' if affected_count != 1 else ''}",
+        "deleted_count": affected_count,
+    }
 
 
 @router.get("/transactions", dependencies=[Depends(get_current_active_user)])
