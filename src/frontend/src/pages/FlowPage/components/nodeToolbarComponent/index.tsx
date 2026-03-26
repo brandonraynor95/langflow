@@ -368,7 +368,7 @@ const NodeToolbarComponent = memo(
             FreezeAllVertices({ flowId: currentFlowId, stopNodeId: data.id });
             break;
           case "code":
-            setOpenModal(!openModal);
+            handleCodeModal();
             break;
           case "advanced":
             setShowModalAdvanced(true);
@@ -503,7 +503,7 @@ const NodeToolbarComponent = memo(
               className={isCustomComponent ? "animate-pulse-pink" : ""}
               icon="Code"
               label="Code"
-              onClick={() => setOpenModal(true)}
+              onClick={handleCodeModal}
               shortcut={shortcuts.find((s) =>
                 s.name.toLowerCase().startsWith("code"),
               )}
@@ -600,8 +600,10 @@ const NodeToolbarComponent = memo(
         </>
       ),
       [
-        hasCode,
+        canEditCode,
+        isCustomComponent,
         nodeLength,
+        inspectionPanelVisible,
         hasToolMode,
         toolMode,
         data.id,
@@ -611,6 +613,7 @@ const NodeToolbarComponent = memo(
         shortcuts,
         frozen,
         handleSelectChange,
+        handleCodeModal,
       ],
     );
 

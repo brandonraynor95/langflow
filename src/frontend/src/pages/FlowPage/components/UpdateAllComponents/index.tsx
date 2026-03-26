@@ -52,6 +52,9 @@ export default function UpdateAllComponents() {
 
   const dismissedNodes = useFlowStore((state) => state.dismissedNodes);
   const addDismissedNodes = useFlowStore((state) => state.addDismissedNodes);
+  const removeDismissedNodes = useFlowStore(
+    (state) => state.removeDismissedNodes,
+  );
   const allowCustomComponents = useUtilityStore(
     (state) => state.allowCustomComponents,
   );
@@ -192,8 +195,11 @@ export default function UpdateAllComponents() {
 
     Promise.all(updatePromises)
       .then(() => {
-        if (updatedCount > 0) {
+        const updatedNodeIds = updates.map(({ nodeId }) => nodeId);
+
+        if (updatedNodeIds.length > 0) {
           updateAllNodes(updates);
+          removeDismissedNodes(updatedNodeIds);
 
           useAlertStore.getState().setSuccessData({
             title: getSuccessTitle(updatedCount),

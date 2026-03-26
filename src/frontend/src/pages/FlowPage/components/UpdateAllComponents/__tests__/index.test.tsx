@@ -1,12 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UpdateAllComponents from "../index";
 
 const mockAddDismissedNodes = jest.fn();
+const mockRemoveDismissedNodes = jest.fn();
 const mockSetErrorData = jest.fn();
+const mockSetSuccessData = jest.fn();
 const mockTakeSnapshot = jest.fn();
+const mockUpdateAllNodes = jest.fn();
+const mockValidateComponentCode = jest.fn();
+const mockProcessNodeAdvancedFields = jest.fn();
 
 let flowStoreState: any;
+let mockTemplates: Record<string, any>;
 
 jest.mock("@xyflow/react", () => ({
   useUpdateNodeInternals: () => jest.fn(),
@@ -20,12 +26,13 @@ jest.mock("framer-motion", () => ({
 }));
 
 jest.mock("@/CustomNodes/helpers/process-node-advanced-fields", () => ({
-  processNodeAdvancedFields: jest.fn(),
+  processNodeAdvancedFields: (...args: any[]) =>
+    mockProcessNodeAdvancedFields(...args),
 }));
 
 jest.mock("@/CustomNodes/hooks/use-update-all-nodes", () => ({
   __esModule: true,
-  default: () => jest.fn(),
+  default: () => mockUpdateAllNodes,
 }));
 
 jest.mock("@/components/ui/button", () => ({
@@ -40,7 +47,7 @@ jest.mock(
   "@/controllers/API/queries/nodes/use-post-validate-component-code",
   () => ({
     usePostValidateComponentCode: () => ({
-      mutateAsync: jest.fn(),
+      mutateAsync: mockValidateComponentCode,
     }),
   }),
 );
@@ -52,12 +59,12 @@ jest.mock("@/stores/alertStore", () => {
     selector({
       setErrorData: mockSetErrorData,
       setNoticeData: jest.fn(),
-      setSuccessData: jest.fn(),
+      setSuccessData: mockSetSuccessData,
     });
   useAlertStore.getState = () => ({
     setErrorData: mockSetErrorData,
     setNoticeData: jest.fn(),
-    setSuccessData: jest.fn(),
+    setSuccessData: mockSetSuccessData,
   });
 
   return {
@@ -90,7 +97,7 @@ jest.mock("@/stores/flowsManagerStore", () => ({
 jest.mock("@/stores/typesStore", () => ({
   useTypesStore: (selector: any) =>
     selector({
-      templates: {},
+      templates: mockTemplates,
     }),
 }));
 
@@ -110,6 +117,7 @@ const mockSetNodes = jest.fn();
 describe("UpdateAllComponents", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockTemplates = {};
 
     flowStoreState = {
       componentsToUpdate: [
@@ -140,6 +148,7 @@ describe("UpdateAllComponents", () => {
       setNodes: mockSetNodes,
       dismissedNodes: [],
       addDismissedNodes: mockAddDismissedNodes,
+      removeDismissedNodes: mockRemoveDismissedNodes,
       isBuilding: false,
       buildInfo: null,
     };
@@ -154,5 +163,85 @@ describe("UpdateAllComponents", () => {
 
     expect(mockAddDismissedNodes).toHaveBeenCalledWith(["node-1"]);
     expect(mockSetNodes).toHaveBeenCalled();
+  });
+
+  it("clears dismissed nodes after a successful bulk update", async () => {
+    const user = userEvent.setup();
+
+    mockTemplates = {
+      Prompt: {
+        template: {
+          code: { value: "server_code" },
+        },
+        outputs: [],
+      },
+    };
+
+    mockValidateComponentCode.mockResolvedValue({
+      data: {
+        display_name: "Prompt",
+        description: "Prompt component",
+        template: {
+          code: { value: "server_code" },
+        },
+        outputs: [],
+      },
+      type: "Prompt",
+    });
+
+    mockProcessNodeAdvancedFields.mockReturnValue({
+      display_name: "Prompt",
+      description: "Prompt component",
+      template: {
+        code: { value: "server_code" },
+      },
+      outputs: [],
+    });
+
+    flowStoreState = {
+      componentsToUpdate: [
+        {
+          id: "node-1",
+          display_name: "Prompt",
+          icon: "FileText",
+          outdated: true,
+          blocked: false,
+          breakingChange: false,
+          userEdited: true,
+        },
+      ],
+      nodes: [
+        {
+          id: "node-1",
+          type: "genericNode",
+          data: {
+            id: "node-1",
+            type: "Prompt",
+            node: {
+              edited: true,
+              display_name: "Prompt",
+              template: { code: { value: "old_code" } },
+              outputs: [],
+            },
+          },
+        },
+      ],
+      edges: [],
+      setNodes: mockSetNodes,
+      dismissedNodes: ["node-1"],
+      addDismissedNodes: mockAddDismissedNodes,
+      removeDismissedNodes: mockRemoveDismissedNodes,
+      isBuilding: false,
+      buildInfo: null,
+    };
+
+    render(<UpdateAllComponents />);
+
+    await user.click(screen.getByTestId("update-all-button"));
+
+    await waitFor(() => {
+      expect(mockUpdateAllNodes).toHaveBeenCalledTimes(1);
+      expect(mockRemoveDismissedNodes).toHaveBeenCalledWith(["node-1"]);
+    });
   });
 });
