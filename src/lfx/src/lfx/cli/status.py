@@ -253,10 +253,7 @@ def status_command(
             if remote_updated_at and remote_updated_at.tzinfo is None:
                 remote_updated_at = remote_updated_at.replace(tzinfo=timezone.utc)
 
-            if remote_updated_at and remote_updated_at > local_mtime:
-                status = _STATUS_BEHIND
-            else:
-                status = _STATUS_AHEAD
+            status = _STATUS_BEHIND if remote_updated_at and remote_updated_at > local_mtime else _STATUS_AHEAD
             statuses.append(FlowStatus(name=name, status=status, path=path, flow_id=flow_id))
 
     # ------------------------------------------------------------------ #
