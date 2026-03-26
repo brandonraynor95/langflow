@@ -173,14 +173,17 @@ export const BotMessage = memo(
                         </span>
                         <span className="flex items-center gap-1 font-mono text-xs text-accent-emerald-foreground">
                           {formattedTokenCount && (
-                            <>
+                            <span
+                              className="flex items-center gap-1"
+                              data-testid="chat-message-token-usage"
+                            >
                               <ForwardedIconComponent
                                 name="Coins"
                                 className="h-3 w-3 text-muted-foreground"
                               />
                               <span>{formattedTokenCount}</span>
                               <span className="text-muted-foreground">|</span>
-                            </>
+                            </span>
                           )}
                           <span>{formatSeconds(displayTime)}</span>
                         </span>
