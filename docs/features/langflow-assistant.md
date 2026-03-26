@@ -124,14 +124,14 @@ Configuration for available LLM providers.
 - **Invariants**:
   - At least one provider must be enabled to use assistant
   - API key must be valid and non-empty for provider to be enabled
-  - Provider preference order: OpenAI > Anthropic > others
+  - Provider preference order: Anthropic > OpenAI > Google Generative AI > Groq
 
 #### Model Selection Behavior
 
 The frontend implements automatic model selection to ensure a valid model is always sent to the backend:
 
 - **Auto-selection**: When no model is explicitly selected, the first available model from enabled providers is automatically selected
-- **Persistence**: Selected model is stored in localStorage (`assistant_model`)
+- **Persistence**: Selected model is stored in localStorage (`langflow-assistant-selected-model`)
 - **Validation**: On load, persisted model is validated to ensure it has required fields (`provider`, `name`). Invalid entries are cleared
 - **Invariant**: A request must never be sent without a valid model selection to prevent backend fallback to unexpected providers
 
@@ -227,7 +227,7 @@ The frontend implements automatic model selection to ensure a valid model is alw
 
 ### Scenario: New session resets conversation memory
 - **Given** I have messages in the assistant chat
-- **When** I click "+ New session" in the header (direct button next to the close button)
+- **When** I click "New session" in the header (direct button next to the close button)
 - **Then** all messages should be cleared
 - **And** a new session ID should be generated
 - **And** subsequent messages should not reference previous conversation
@@ -306,7 +306,7 @@ The frontend implements automatic model selection to ensure a valid model is alw
 
 ### Scenario: Clear conversation history
 - **Given** I have multiple messages in the chat
-- **When** I click the "+ New session" button
+- **When** I click the "New session" button
 - **Then** all messages should be removed
 - **And** a new `session_id` should be generated
 - **And** the panel should stay at expanded size
@@ -679,7 +679,7 @@ Event: `cancelled`
 
 #### POST /api/v1/agentic/assist
 
-**Purpose**: Non-streaming version of assist (deprecated, prefer streaming)
+**Purpose**: Non-streaming version of assist (prefer streaming for better UX)
 
 **Request**: Same as `/assist/stream`
 
@@ -760,11 +760,7 @@ Event: `cancelled`
 
 ### 8.1 Feature Flags
 
-| Flag | Purpose | Default | Rollout Strategy |
-|------|---------|---------|------------------|
-| `assistant_enabled` | Enable/disable the assistant feature globally | on | 100% (GA) |
-| `assistant_retry_enabled` | Enable automatic validation retries | on | 100% |
-| `assistant_translation_flow` | Enable multi-language support via TranslationFlow | on | 100% |
+No dedicated feature flags are currently implemented. The assistant is always enabled when the agentic backend is available. Feature flags may be added in the future for granular control.
 
 ### 8.2 Database Migrations
 

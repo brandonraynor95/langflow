@@ -44,6 +44,7 @@ function useAnimatedPlaceholder(
 }
 
 const ASSISTANT_MODEL_STORAGE_KEY = "langflow-assistant-selected-model";
+const MAX_MESSAGE_LENGTH = 500;
 
 interface AssistantInputProps {
   onSend: (message: string, model: AssistantModel | null) => void;
@@ -134,6 +135,8 @@ export function AssistantInput({
   };
 
   const canSend = message.trim().length > 0 && !disabled;
+  const charsRemaining = MAX_MESSAGE_LENGTH - message.length;
+  const showCharCount = message.length > MAX_MESSAGE_LENGTH * 0.8;
 
   return (
     <div className="relative px-2 pb-1">
@@ -156,6 +159,7 @@ export function AssistantInput({
           <Textarea
             ref={textareaRef}
             value={message}
+            maxLength={MAX_MESSAGE_LENGTH}
             onChange={(e) => setMessage(e.target.value)}
             data-testid="assistant-input-textarea"
             onKeyDown={handleKeyDown}
@@ -191,6 +195,19 @@ export function AssistantInput({
               onModelChange={setSelectedModel}
             />
           </div>
+          <div className="flex items-center gap-2">
+            {showCharCount && (
+              <span
+                className={cn(
+                  "text-xs tabular-nums",
+                  charsRemaining <= 20
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
+                {charsRemaining}
+              </span>
+            )}
           {isProcessing ? (
             <button
               type="button"
@@ -216,6 +233,7 @@ export function AssistantInput({
               <ForwardedIconComponent name="ArrowUp" className="h-4 w-4" />
             </Button>
           )}
+          </div>
         </div>
       </div>
     </div>
