@@ -65,13 +65,33 @@ def flatten_schema(root_schema: dict[str, Any]) -> dict[str, Any]:
     required_list: list[str] = []
 
     def _resolve_if_ref(schema: dict[str, Any]) -> dict[str, Any]:
+        visited: set[str] = set()
         while "$ref" in schema:
             ref_name = schema["$ref"].split("/")[-1]
+            if ref_name in visited:
+                return {}  # Circular $ref chain — stop
+            visited.add(ref_name)
             schema = defs.get(ref_name, {})
         return schema
 
-    def _walk(name: str, schema: dict[str, Any], *, inherited_req: bool) -> None:
-        schema = _resolve_if_ref(schema)
+    def _walk(
+        name: str,
+        schema: dict[str, Any],
+        *,
+        inherited_req: bool,
+        _visiting_refs: frozenset[str] = frozenset(),
+    ) -> None:
+        # Resolve $ref while tracking which refs are currently being expanded
+        visited: set[str] = set()
+        while "$ref" in schema:
+            ref_name = schema["$ref"].split("/")[-1]
+            if ref_name in _visiting_refs or ref_name in visited:
+                return  # Self-referential schema — stop recursion
+            visited.add(ref_name)
+            schema = defs.get(ref_name, {})
+        # Merge newly resolved refs into the visiting set for nested calls
+        new_visiting = _visiting_refs | visited
+
         t = schema.get("type")
 
         # ── objects ─────────────────────────────────────────────────────────
@@ -79,13 +99,18 @@ def flatten_schema(root_schema: dict[str, Any]) -> dict[str, Any]:
             req_here = set(schema.get("required", []))
             for k, subschema in schema.get("properties", {}).items():
                 child_name = f"{name}.{k}" if name else k
-                _walk(name=child_name, schema=subschema, inherited_req=inherited_req and k in req_here)
+                _walk(
+                    name=child_name,
+                    schema=subschema,
+                    inherited_req=inherited_req and k in req_here,
+                    _visiting_refs=new_visiting,
+                )
             return
 
         # ── arrays (always recurse into the first item as "[0]") ───────────
         if t == "array":
             items = schema.get("items", {})
-            _walk(name=f"{name}[0]", schema=items, inherited_req=inherited_req)
+            _walk(name=f"{name}[0]", schema=items, inherited_req=inherited_req, _visiting_refs=new_visiting)
             return
 
         leaf: dict[str, Any] = {
