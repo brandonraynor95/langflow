@@ -201,10 +201,10 @@ The **Write File** component's "Local" storage option is hidden from the Sortabl
 
 | Directory | Component | Notes |
 |-----------|-----------|-------|
-| `google` | Gmail Loader, Google Drive Search, Google Drive, Google OAuth Token | Legacy; require local credentials files |
+| `google` | Gmail Loader, Google Drive Loader, Google Drive Search, Google OAuth Token | Legacy; require local credentials files |
 | `deactivated` | Various | Deprecated components; should not be used |
-| `homeassistant` | Home Assistant Control, List States | Requires local network Home Assistant instance (`192.168.x.x`) |
-| `git` | Git Loader, Git Extractor | Clones repos to local temp dirs; requires `git` CLI |
+| `homeassistant` | Home Assistant Control, List Home Assistant States | Requires local network Home Assistant instance (`192.168.x.x`) |
+| `git` | Git, GitExtractor | Clones repos to local temp dirs; requires `git` CLI |
 
 > **Note on legacy Google components:** These are marked `legacy = True` with replacements suggested. They require local credentials JSON files which won't work on ephemeral pods. They're already hidden when "Show Legacy" is off.
 

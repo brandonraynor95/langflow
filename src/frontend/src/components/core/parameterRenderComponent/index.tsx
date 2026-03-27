@@ -12,7 +12,13 @@ import { ENABLE_INSPECTION_PANEL } from "@/customization/feature-flags";
 import { useCloudModeStore } from "@/stores/cloudModeStore";
 import { useTypesStore } from "@/stores/typesStore";
 import type { APIClassType, InputFieldType } from "@/types/api";
-import { withCurrentCloudMetadata } from "@/utils/cloudMetadataUtils";
+import {
+  filterCloudCompatibleOptions,
+  getCloudFieldOverride,
+  getCloudIncompatibleOptions,
+  getCloudUiMetadata,
+  withCurrentCloudMetadata,
+} from "@/utils/cloudMetadataUtils";
 import AccordionPromptComponent from "./components/accordionPromptComponent";
 import DictComponent from "./components/dictComponent";
 import { EmptyParameterComponent } from "./components/emptyParameterComponent";
@@ -69,13 +75,12 @@ export function ParameterRenderComponent({
   const cloudOnly = useCloudModeStore((state) => state.cloudOnly);
   const templates = useTypesStore((state) => state.templates);
 
-  const resolvedNodeType =
-    nodeType ??
-    (typeof nodeClass?.type === "string" ? nodeClass.type : undefined);
   const effectiveNodeClass =
-    cloudOnly && resolvedNodeType
-      ? (withCurrentCloudMetadata(nodeClass, templates[resolvedNodeType]) ??
-        nodeClass)
+    cloudOnly && nodeType
+      ? (withCurrentCloudMetadata(
+          nodeClass,
+          templates[nodeType] as APIClassType | undefined,
+        ) ?? nodeClass)
       : nodeClass;
 
   const id = (
@@ -85,15 +90,7 @@ export function ParameterRenderComponent({
     templateData.name
   ).toLowerCase();
 
-  const nodeMetadata = effectiveNodeClass?.metadata as
-    | {
-        cloud_default_overrides?: Record<
-          string,
-          { value?: unknown; placeholder?: string }
-        >;
-        cloud_incompatible_options?: Record<string, unknown[]>;
-      }
-    | undefined;
+  const nodeMetadata = getCloudUiMetadata(effectiveNodeClass?.metadata);
 
   const shouldUseCloudPlaceholder =
     cloudOnly &&
@@ -102,7 +99,7 @@ export function ParameterRenderComponent({
       templateValue === null);
 
   const cloudOverride = shouldUseCloudPlaceholder
-    ? nodeMetadata?.cloud_default_overrides?.[name]
+    ? getCloudFieldOverride(nodeMetadata, name)
     : undefined;
 
   const renderComponent = (): React.ReactElement<InputProps> => {
@@ -311,21 +308,16 @@ export function ParameterRenderComponent({
       }
       case "sortableList": {
         // Filter out cloud-incompatible options when cloud mode is active
-        let sortableOptions = templateData?.options;
-        let cloudIncompatibleOptions: unknown[] = [];
-        if (cloudOnly && nodeMetadata?.cloud_incompatible_options) {
-          const incompatible = nodeMetadata.cloud_incompatible_options[name];
-          if (incompatible && Array.isArray(incompatible)) {
-            cloudIncompatibleOptions = incompatible;
-            sortableOptions = sortableOptions?.filter((opt: unknown) => {
-              const optionName =
-                typeof opt === "object" && opt !== null && "name" in opt
-                  ? ((opt as { name?: unknown }).name ?? opt)
-                  : opt;
-              return !incompatible.includes(optionName);
-            });
-          }
-        }
+        const cloudIncompatibleOptions = cloudOnly
+          ? getCloudIncompatibleOptions(nodeMetadata, name)
+          : [];
+        const sortableOptions =
+          cloudOnly && cloudIncompatibleOptions.length > 0
+            ? filterCloudCompatibleOptions(
+                templateData?.options,
+                cloudIncompatibleOptions,
+              )
+            : templateData?.options;
         return (
           <SortableListComponent
             {...baseInputProps}

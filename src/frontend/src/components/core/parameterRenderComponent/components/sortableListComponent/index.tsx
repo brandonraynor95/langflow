@@ -4,6 +4,7 @@ import { ReactSortable } from "react-sortablejs";
 import ListSelectionComponent from "@/CustomNodes/GenericNode/components/ListSelectionComponent";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
+import { isCloudIncompatibleOption as isCloudIncompatibleListOption } from "@/utils/cloudMetadataUtils";
 import { cn } from "@/utils/utils";
 import type { InputProps } from "../../types";
 import HelperTextComponent from "../helperTextComponent";
@@ -113,14 +114,9 @@ const SortableListComponent = ({
   // Convert value to an array if it exists, otherwise use empty array
   const listData = useMemo(() => (Array.isArray(value) ? value : []), [value]);
 
-  const isCloudIncompatibleOption = useCallback(
+  const isCloudIncompatibleSelection = useCallback(
     (item: unknown) => {
-      const itemName =
-        typeof item === "object" && item !== null && "name" in item
-          ? ((item as { name?: unknown }).name ?? item)
-          : item;
-
-      return cloudIncompatibleOptions.some((option) => option === itemName);
+      return isCloudIncompatibleListOption(item, cloudIncompatibleOptions);
     },
     [cloudIncompatibleOptions],
   );
@@ -224,7 +220,7 @@ const SortableListComponent = ({
                 index={index}
                 onRemove={createRemoveHandler(index)}
                 limit={limit}
-                showCloudIncompatibleWarning={isCloudIncompatibleOption(data)}
+                showCloudIncompatibleWarning={isCloudIncompatibleSelection(data)}
               />
             ))}
           </ReactSortable>

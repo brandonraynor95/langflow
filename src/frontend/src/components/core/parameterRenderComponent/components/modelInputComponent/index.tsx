@@ -76,27 +76,30 @@ export default function ModelInputComponent({
 
   const cloudOnly = useCloudModeStore((state) => state.cloudOnly);
 
+  const enabledOptions = useMemo(
+    () =>
+      options.filter((option) => {
+        if (option.metadata?.is_disabled_provider) {
+          return false;
+        }
+
+        const provider = option.provider || "Unknown";
+        const providerModels = enabledModelsData?.enabled_models?.[provider];
+
+        return providerModels?.[option.name] !== false;
+      }),
+    [enabledModelsData?.enabled_models, options],
+  );
+
   // Groups models by their provider name for sectioned display in dropdown.
-  // Filters out models from disabled providers, disabled models,
-  // and cloud-incompatible providers when cloud mode is active.
+  // Filters out cloud-incompatible providers when cloud mode is active.
   const groupedOptions = useMemo(() => {
     const grouped: Record<string, ModelOption[]> = {};
-    for (const option of options) {
-      if (option.metadata?.is_disabled_provider) continue;
+    for (const option of enabledOptions) {
       const provider = option.provider || "Unknown";
 
-      // Filter out cloud-incompatible providers when cloud mode is active
       if (cloudOnly && CLOUD_INCOMPATIBLE_PROVIDERS.has(provider)) {
         continue;
-      }
-
-      // Filter out disabled models using client-side enabled models data
-      // This provides a reliable fallback when backend filtering fails
-      if (enabledModelsData?.enabled_models) {
-        const providerModels = enabledModelsData.enabled_models[provider];
-        if (providerModels && providerModels[option.name] === false) {
-          continue; // Skip disabled models
-        }
       }
 
       if (!grouped[provider]) {
@@ -106,7 +109,7 @@ export default function ModelInputComponent({
       grouped[provider].push(option);
     }
     return grouped;
-  }, [options, enabledModelsData, cloudOnly]);
+  }, [enabledOptions, cloudOnly]);
 
   // Flattened array of all enabled options for efficient lookups by name
   const flatOptions = useMemo(
@@ -162,13 +165,30 @@ export default function ModelInputComponent({
     [cloudOnly, selectedModel?.provider],
   );
 
+  const cloudFilteredOptionCount = useMemo(
+    () =>
+      cloudOnly
+        ? enabledOptions.filter((option) =>
+            CLOUD_INCOMPATIBLE_PROVIDERS.has(option.provider || "Unknown"),
+          ).length
+        : 0,
+    [cloudOnly, enabledOptions],
+  );
+
   const showNoCompatibleCloudModels = useMemo(
     () =>
       cloudOnly &&
-      options.length > 0 &&
+      enabledOptions.length > 0 &&
       flatOptions.length === 0 &&
+      cloudFilteredOptionCount > 0 &&
       !selectedModel,
-    [cloudOnly, options.length, flatOptions.length, selectedModel],
+    [
+      cloudFilteredOptionCount,
+      cloudOnly,
+      enabledOptions.length,
+      flatOptions.length,
+      selectedModel,
+    ],
   );
 
   const effectiveShowEmptyState = showEmptyState || showNoCompatibleCloudModels;

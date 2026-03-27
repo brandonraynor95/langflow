@@ -75,9 +75,12 @@ jest.mock("@/controllers/API/queries/models/use-get-model-providers", () => ({
   })),
 }));
 
+let mockEnabledModelsData: { enabled_models: Record<string, Record<string, boolean>> } =
+  { enabled_models: {} };
+
 jest.mock("@/controllers/API/queries/models/use-get-enabled-models", () => ({
   useGetEnabledModels: jest.fn(() => ({
-    data: { enabled_models: {} },
+    data: mockEnabledModelsData,
     isLoading: false,
   })),
 }));
@@ -185,6 +188,8 @@ const renderWithQueryClient = (component: React.ReactElement) => {
 describe("ModelInputComponent", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCloudOnly = false;
+    mockEnabledModelsData = { enabled_models: {} };
   });
 
   describe("Rendering", () => {
@@ -558,6 +563,39 @@ describe("ModelInputComponent", () => {
       expect(screen.queryByTestId("llama3-option")).not.toBeInTheDocument();
 
       mockCloudOnly = false;
+    });
+
+    it("should keep the generic empty state when models are disabled instead of cloud-filtered", () => {
+      mockCloudOnly = true;
+      mockEnabledModelsData = {
+        enabled_models: {
+          OpenAI: {
+            "gpt-4": false,
+          },
+        },
+      };
+
+      renderWithQueryClient(
+        <ModelInputComponent
+          {...defaultProps}
+          options={[
+            {
+              id: "gpt-4",
+              name: "gpt-4",
+              icon: "Bot",
+              provider: "OpenAI",
+              metadata: {},
+            },
+          ]}
+          value={[]}
+          showEmptyState={true}
+        />,
+      );
+
+      expect(screen.getByText("No models enabled")).toBeInTheDocument();
+      expect(
+        screen.queryByText("No cloud-compatible models"),
+      ).not.toBeInTheDocument();
     });
 
     it("should show all providers when cloud mode is inactive", () => {
