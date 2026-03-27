@@ -29,7 +29,6 @@ from lfx.services.settings.service import SettingsService
 from lfx.utils.flow_validation import (
     code_hash_matches_any_template,
     is_custom_component_validation_error_message,
-    validate_flow_for_current_settings,
 )
 from sqlmodel import select
 
@@ -468,11 +467,6 @@ async def _run_flow_internal(
     start_time = time.perf_counter()
 
     if stream:
-        try:
-            validate_flow_for_current_settings(flow.data)
-        except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-
         asyncio_queue: asyncio.Queue = asyncio.Queue()
         asyncio_queue_client_consumed: asyncio.Queue = asyncio.Queue()
         event_manager = create_stream_tokens_event_manager(queue=asyncio_queue)
@@ -766,11 +760,6 @@ async def webhook_run_flow(
     start_time = time.perf_counter()
     await logger.adebug("Received webhook request")
     error_msg = ""
-
-    try:
-        validate_flow_for_current_settings(flow.data)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     # Get the appropriate user for webhook execution based on auth settings
     webhook_user = await get_auth_service().get_webhook_user(flow_id_or_name, request)

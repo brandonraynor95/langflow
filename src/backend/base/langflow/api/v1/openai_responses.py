@@ -9,10 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from lfx.log.logger import logger
 from lfx.schema.openai_responses_schemas import create_openai_error, create_openai_error_chunk
-from lfx.utils.flow_validation import (
-    is_custom_component_validation_error_message,
-    validate_flow_for_current_settings,
-)
+from lfx.utils.flow_validation import is_custom_component_validation_error_message
 
 from langflow.api.utils import extract_global_variables_from_headers
 from langflow.api.v1.endpoints import consume_and_yield, run_flow_generator, simple_run_flow
@@ -647,21 +644,6 @@ async def create_response(
             code="flow_not_found",
         )
         return OpenAIErrorResponse(error=error_response["error"])
-
-    if request.stream:
-        try:
-            validate_flow_for_current_settings(flow.data)
-        except ValueError as exc:
-            error_response = create_openai_error(
-                message=str(exc),
-                type_="invalid_request_error",
-                code=(
-                    "custom_components_blocked"
-                    if is_custom_component_validation_error_message(str(exc))
-                    else "invalid_flow_request"
-                ),
-            )
-            return OpenAIErrorResponse(error=error_response["error"])
 
     try:
         # Process the request

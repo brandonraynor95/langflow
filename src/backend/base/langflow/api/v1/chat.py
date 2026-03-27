@@ -328,7 +328,6 @@ async def build_vertex(
             graph.set_run_id(run_id)
         else:
             graph = cache.get("result")
-            validate_flow_for_current_settings(graph)
             await graph.initialize_run()
             run_id = graph.run_id
         vertex = graph.get_vertex(vertex_id)
@@ -465,7 +464,6 @@ async def _stream_vertex(flow_id: str, vertex_id: str, chat_service: ChatService
             return
         else:
             graph = cache.get("result")
-            validate_flow_for_current_settings(graph)
 
         try:
             vertex: InterfaceVertex = graph.get_vertex(vertex_id)
@@ -649,8 +647,8 @@ async def build_public_tmp(
         client_id = request.cookies.get("client_id")
         owner_user, new_flow_id = await verify_public_flow_and_get_user(flow_id=flow_id, client_id=client_id)
 
-        # Validate the stored flow data only after the public-access boundary
-        # has been enforced. Public flows never accept client-supplied data.
+        # Validate the stored flow data after the public-access boundary.
+        # Public flows never accept client-supplied data.
         async with session_scope() as session:
             flow = await session.get(Flow, flow_id)
             if flow and flow.data:
