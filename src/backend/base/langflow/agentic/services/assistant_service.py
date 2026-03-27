@@ -9,7 +9,9 @@ from fastapi import HTTPException
 from lfx.log.logger import logger
 
 from langflow.agentic.helpers.code_extraction import extract_component_code
+from langflow.agentic.helpers.code_security import scan_code_security
 from langflow.agentic.helpers.error_handling import extract_friendly_error
+from langflow.agentic.helpers.input_sanitization import REFUSAL_MESSAGE, sanitize_input
 from langflow.agentic.helpers.sse import (
     format_cancelled_event,
     format_complete_event,
@@ -25,6 +27,7 @@ from langflow.agentic.services.flow_executor import (
 )
 from langflow.agentic.services.flow_types import (
     MAX_VALIDATION_RETRIES,
+    OFF_TOPIC_REFUSAL_MESSAGE,
     VALIDATION_RETRY_TEMPLATE,
     VALIDATION_UI_DELAY_SECONDS,
 )
@@ -54,7 +57,13 @@ async def execute_flow_with_validation(
     If validation fails, re-executes the flow with error context.
     Continues until valid code is generated or max retries reached.
     """
-    current_input = input_value
+    # Layer 1: Input sanitization
+    sanitization = sanitize_input(input_value)
+    if not sanitization.is_safe:
+        logger.warning(f"Input sanitization blocked request: {sanitization.violation}")
+        return {"result": REFUSAL_MESSAGE}
+
+    current_input = sanitization.sanitized_input
     attempt = 0
 
     while attempt <= max_retries:
@@ -82,6 +91,24 @@ async def execute_flow_with_validation(
 
         logger.info("Validating generated component code...")
         validation = validate_component_code(code)
+
+        # Layer 3: Security scan on generated code
+        security_result = scan_code_security(code)
+        if not security_result.is_safe:
+            violations_str = "; ".join(security_result.violations)
+            logger.warning(f"Code security violations detected: {violations_str}")
+            if attempt > max_retries:
+                return {
+                    **result,
+                    "validated": False,
+                    "validation_error": f"Security violations: {violations_str}",
+                    "validation_attempts": attempt,
+                }
+            current_input = VALIDATION_RETRY_TEMPLATE.format(
+                error=f"Security violations: {violations_str}. Do NOT use dangerous functions.",
+                code=code,
+            )
+            continue
 
         if validation.is_valid:
             logger.info(f"Component '{validation.class_name}' validated successfully!")
@@ -143,20 +170,33 @@ async def execute_flow_with_validation_streaming(
 
     Note: Component generation is detected by analyzing the user's input.
     """
-    current_input = input_value
+    # Layer 1: Input sanitization (before any LLM call)
+    sanitization = sanitize_input(input_value)
+    if not sanitization.is_safe:
+        logger.warning(f"Input sanitization blocked request: {sanitization.violation}")
+        yield format_complete_event({"result": REFUSAL_MESSAGE})
+        return
+
+    current_input = sanitization.sanitized_input
 
     # Classify intent using LLM (handles multi-language support)
     # This translates the input and determines if user wants to generate a component or ask a question
     # Use a separate session for intent classification to prevent
     # TranslationFlow messages from contaminating the assistant's memory
     intent_result = await classify_intent(
-        text=input_value,
+        text=current_input,
         global_variables=global_variables,
         user_id=user_id,
         provider=provider,
         model_name=model_name,
         api_key_var=api_key_var,
     )
+
+    # Layer 4: Off-topic rejection (saves LLM API costs)
+    if intent_result.intent == "off_topic":
+        logger.info("Off-topic request detected, returning refusal")
+        yield format_complete_event({"result": OFF_TOPIC_REFUSAL_MESSAGE})
+        return
 
     # Check if this is a component generation request based on LLM classification
     is_component_request = intent_result.intent == "generate_component"
@@ -306,6 +346,49 @@ async def execute_flow_with_validation_streaming(
             await asyncio.sleep(VALIDATION_UI_DELAY_SECONDS)
 
             validation = validate_component_code(code)
+
+            # Layer 3: Security scan on generated code
+            security_result = scan_code_security(code)
+            if not security_result.is_safe:
+                violations_str = "; ".join(security_result.violations)
+                logger.warning(f"Code security violations detected: {violations_str}")
+                yield format_progress_event(
+                    "validation_failed",
+                    attempt,
+                    max_retries,
+                    message="Security violations detected in generated code",
+                    error=f"Security violations: {violations_str}",
+                    component_code=code,
+                )
+                await asyncio.sleep(VALIDATION_UI_DELAY_SECONDS)
+
+                if attempt >= max_retries:
+                    yield format_complete_event(
+                        {
+                            **result,
+                            "validated": False,
+                            "validation_error": f"Security violations: {violations_str}",
+                            "validation_attempts": attempt,
+                            "component_code": code,
+                        }
+                    )
+                    return
+
+                yield format_progress_event(
+                    "retrying",
+                    attempt,
+                    max_retries,
+                    message=f"Retrying with security context (attempt {attempt + 1}/{max_retries})...",
+                    error=f"Security violations: {violations_str}",
+                )
+                await asyncio.sleep(VALIDATION_UI_DELAY_SECONDS)
+                current_input = VALIDATION_RETRY_TEMPLATE.format(
+                    error=f"Security violations: {violations_str}. "
+                    "Do NOT use dangerous functions like os.system, subprocess, exec, eval. "
+                    "Use Langflow's built-in integrations instead.",
+                    code=code,
+                )
+                continue
 
             if validation.is_valid:
                 # Step 5a: Validated successfully
