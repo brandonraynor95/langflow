@@ -46,6 +46,16 @@ class FlowBase(SQLModel):
     tags: list[str] | None = None
     locked: bool | None = Field(default=False, nullable=True)
     mcp_enabled: bool | None = Field(default=False, nullable=True, description="Can be exposed in the MCP server")
+    a2a_enabled: bool | None = Field(default=False, nullable=True, description="Can be exposed as an A2A agent")
+    a2a_name: str | None = Field(default=None, nullable=True, description="Public agent name for A2A")
+    a2a_description: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="Public agent description for A2A",
+    )
+    a2a_agent_slug: str | None = Field(default=None, nullable=True, index=True, description="URL slug for A2A agent")
+    a2a_input_mode: str | None = Field(default="chat", nullable=True, description="A2A input mode")
+    a2a_output_mode: str | None = Field(default="text", nullable=True, description="A2A output mode")
     action_name: str | None = Field(
         default=None, nullable=True, description="The name of the action associated with the flow"
     )

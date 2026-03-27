@@ -533,6 +533,12 @@ def create_app():
     app.include_router(health_check_router)
     app.include_router(log_router)
 
+    # A2A public protocol endpoints — mounted at /a2a/{agent_slug}/
+    # These are separate from /api/ because they follow the A2A protocol URL scheme.
+    from langflow.api.router import _a2a_public_router
+
+    app.include_router(_a2a_public_router)
+
     # Discover and register additional routers from plugins (langflow.plugins entry-point)
     load_plugin_routes(app)
 

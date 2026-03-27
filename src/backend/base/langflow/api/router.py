@@ -80,6 +80,18 @@ router_v2.include_router(mcp_router_v2)
 router_v2.include_router(registration_router_v2)
 router_v2.include_router(workflow_router_v2)
 
+# A2A routers - lazy import to avoid circular dependency
+def _include_a2a_routers():
+    from langflow.api.a2a.router import a2a_config_router, a2a_router
+
+    router_v1.include_router(a2a_config_router)
+    # a2a_router is mounted at the top level (not under /api/)
+    # because A2A protocol endpoints use /a2a/{slug}/ paths
+    return a2a_router
+
+
+_a2a_public_router = _include_a2a_routers()
+
 router = APIRouter(
     prefix="/api",
 )
