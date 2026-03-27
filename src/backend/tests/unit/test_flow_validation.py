@@ -16,6 +16,7 @@ from types import SimpleNamespace
 import pytest
 from lfx.interface.components import component_cache
 from lfx.utils.flow_validation import (
+    CustomComponentValidationError,
     _compute_code_hash,
     _get_invalid_components,
     check_flow_and_raise,
@@ -199,14 +200,14 @@ class TestCheckFlowAndRaise:
         """Primary path: unknown component type is blocked even with edited=False."""
         hash_dict = _make_type_hash_dict({"ChatInput": "known_code"})
         flow_data = {"nodes": [_make_node(code="evil_code", node_type="CustomEvil", edited=False)]}
-        with pytest.raises(ValueError, match="custom components are not allowed"):
+        with pytest.raises(CustomComponentValidationError, match="custom components are not allowed"):
             check_flow_and_raise(flow_data, allow_custom_components=False, type_to_current_hash=hash_dict)
 
     def test_blocks_outdated_components(self):
         """Primary path: outdated code (hash mismatch for known type) is blocked."""
         hash_dict = _make_type_hash_dict({"ChatInput": "v2_code"})
         flow_data = {"nodes": [_make_node(code="v1_code", node_type="ChatInput")]}
-        with pytest.raises(ValueError, match="outdated components must be updated"):
+        with pytest.raises(CustomComponentValidationError, match="outdated components must be updated"):
             check_flow_and_raise(flow_data, allow_custom_components=False, type_to_current_hash=hash_dict)
 
     def test_allows_current_code(self):
@@ -223,13 +224,13 @@ class TestCheckFlowAndRaise:
         we block execution rather than falling back to the client-controlled edited flag.
         """
         flow_data = {"nodes": [_make_node(edited=False)]}
-        with pytest.raises(ValueError, match="component templates are still initializing"):
+        with pytest.raises(CustomComponentValidationError, match="component templates are still initializing"):
             check_flow_and_raise(flow_data, allow_custom_components=False)
 
     def test_fail_closed_blocks_edited_true_without_cache(self):
         """Fail-closed blocks even edited=True nodes when cache is unavailable."""
         flow_data = {"nodes": [_make_node(edited=True, display_name="Edited")]}
-        with pytest.raises(ValueError, match="component templates are still initializing"):
+        with pytest.raises(CustomComponentValidationError, match="component templates are still initializing"):
             check_flow_and_raise(flow_data, allow_custom_components=False)
 
     def test_security_edited_false_custom_code_blocked(self):
@@ -249,7 +250,7 @@ class TestCheckFlowAndRaise:
                 )
             ]
         }
-        with pytest.raises(ValueError, match="outdated components must be updated"):
+        with pytest.raises(CustomComponentValidationError, match="outdated components must be updated"):
             check_flow_and_raise(flow_data, allow_custom_components=False, type_to_current_hash=hash_dict)
 
 
@@ -276,7 +277,7 @@ class TestValidateFlowForCurrentSettings:
             ]
         }
 
-        with pytest.raises(ValueError, match="custom components are not allowed"):
+        with pytest.raises(CustomComponentValidationError, match="custom components are not allowed"):
             validate_flow_for_current_settings(flow_data)
 
     def test_validator_fail_closed_when_component_hashes_missing(self, monkeypatch):

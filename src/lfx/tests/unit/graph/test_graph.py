@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 from lfx.graph import Graph
+from lfx.utils.flow_validation import CustomComponentValidationError
 from lfx.graph.graph.utils import (
     find_last_node,
     process_flow,
@@ -122,7 +123,7 @@ def test_from_payload_blocks_custom_components_when_disabled(monkeypatch):
     monkeypatch.setattr(component_cache, "type_to_current_hash", {"ChatInput": "known-hash"})
     monkeypatch.setattr(component_cache, "all_types_dict", None)
 
-    with pytest.raises(ValueError, match="custom components are not allowed"):
+    with pytest.raises(CustomComponentValidationError, match="custom components are not allowed"):
         Graph.from_payload(_blocked_custom_flow())
 
 

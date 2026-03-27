@@ -9,7 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from lfx.log.logger import logger
 from lfx.schema.openai_responses_schemas import create_openai_error, create_openai_error_chunk
-from lfx.utils.flow_validation import is_custom_component_validation_error_message
+from lfx.utils.flow_validation import CustomComponentValidationError
 
 from langflow.api.utils import extract_global_variables_from_headers
 from langflow.api.v1.endpoints import consume_and_yield, run_flow_generator, simple_run_flow
@@ -655,15 +655,19 @@ async def create_response(
             variables=variables,
         )
 
+    except CustomComponentValidationError as exc:
+        error_response = create_openai_error(
+            message=str(exc),
+            type_="invalid_request_error",
+            code="custom_components_blocked",
+        )
+        return OpenAIErrorResponse(error=error_response["error"])
+
     except ValueError as exc:
         error_response = create_openai_error(
             message=str(exc),
             type_="invalid_request_error",
-            code=(
-                "custom_components_blocked"
-                if is_custom_component_validation_error_message(str(exc))
-                else "invalid_flow_request"
-            ),
+            code="invalid_flow_request",
         )
         return OpenAIErrorResponse(error=error_response["error"])
 

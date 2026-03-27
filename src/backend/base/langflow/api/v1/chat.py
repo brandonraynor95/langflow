@@ -14,7 +14,7 @@ from lfx.log.logger import logger
 from lfx.schema.schema import InputValueRequest, OutputValue
 from lfx.services.cache.utils import CacheMiss
 from lfx.utils.flow_validation import (
-    is_custom_component_validation_error_message,
+    CustomComponentValidationError,
     validate_flow_for_current_settings,
 )
 
@@ -134,7 +134,7 @@ async def retrieve_vertices_order(
         )
         if "stream or streaming set to True" in str(exc):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        if is_custom_component_validation_error_message(str(exc)):
+        if isinstance(exc, CustomComponentValidationError):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         await logger.aexception("Error checking build status")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -189,8 +189,10 @@ async def build_flow(
             validate_flow_for_current_settings(data.model_dump())
         elif flow and flow.data:
             validate_flow_for_current_settings(flow.data)
-    except ValueError as exc:
+    except CustomComponentValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     job_id = await start_flow_build(
         flow_id=flow_id,
@@ -437,7 +439,7 @@ async def build_vertex(
                 component_run_id=run_id if "run_id" in locals() else None,
             ),
         )
-        if is_custom_component_validation_error_message(str(exc)):
+        if isinstance(exc, CustomComponentValidationError):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         await logger.aexception("Error building Component")
         message = parse_exception(exc)

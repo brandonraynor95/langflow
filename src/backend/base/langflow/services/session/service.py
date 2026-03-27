@@ -24,12 +24,6 @@ class SessionService(Service):
         else:
             value = await asyncio.to_thread(self.cache_service.get, key)
         if not isinstance(value, CacheMiss):
-            from lfx.utils.flow_validation import validate_flow_for_current_settings
-
-            if isinstance(value, tuple) and value:
-                graph = value[0]
-                if graph is not None:
-                    validate_flow_for_current_settings(graph)
             return value
 
         if key is None:

@@ -15,6 +15,15 @@ INITIALIZING_COMPONENT_TEMPLATES_MESSAGE = (
 SETTINGS_SERVICE_REQUIRED_MESSAGE = "Settings service must be initialized before validating flows."
 
 
+class CustomComponentValidationError(ValueError):
+    """Raised when a flow fails custom-component policy validation.
+
+    Subclasses ValueError so existing ``except ValueError`` handlers
+    still catch it, but callers can catch this specifically to
+    distinguish policy errors from other ValueErrors.
+    """
+
+
 def _compute_code_hash(code: str) -> str:
     """Compute the 12-char SHA256 prefix used by the component index."""
     return hashlib.sha256(code.encode("utf-8")).hexdigest()[:12]
@@ -161,7 +170,7 @@ def check_flow_and_raise(
             "Flow validation requested but component hash lookups are not yet loaded. "
             "Blocking execution as a safety measure."
         )
-        raise ValueError(INITIALIZING_COMPONENT_TEMPLATES_MESSAGE)
+        raise CustomComponentValidationError(INITIALIZING_COMPONENT_TEMPLATES_MESSAGE)
 
     blocked, outdated = _get_invalid_components(nodes, type_to_current_hash)
 
@@ -169,25 +178,14 @@ def check_flow_and_raise(
         blocked_names = ", ".join(blocked)
         logger.warning(f"Flow build blocked: unrecognized component code: {blocked_names}")
         message = f"Flow build blocked: custom components are not allowed: {blocked_names}"
-        raise ValueError(message)
+        raise CustomComponentValidationError(message)
 
     if outdated:
         outdated_names = ", ".join(outdated)
         logger.warning(f"Flow build blocked: outdated components must be updated: {outdated_names}")
         message = f"Flow build blocked: outdated components must be updated before running: {outdated_names}"
-        raise ValueError(message)
+        raise CustomComponentValidationError(message)
 
-
-def is_custom_component_validation_error_message(message: str) -> bool:
-    """Return whether a message came from custom-component policy validation."""
-    return any(
-        marker in message
-        for marker in (
-            "component templates are still initializing",
-            "custom components are not allowed",
-            "outdated components must be updated before running",
-        )
-    )
 
 
 def _get_component_hash_lookups_for_validation() -> dict[str, str] | None:

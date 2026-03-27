@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
+from lfx.utils.flow_validation import CustomComponentValidationError
 from langflow.agentic.services.helpers.flow_loader import (
     _load_graph_from_python,
     _temporary_sys_path,
@@ -310,7 +311,7 @@ class TestLoadGraphFromPython:
             mock_spec_from_file.return_value = mock_spec
             mock_module_from_spec.return_value = mock_module
 
-            with pytest.raises(ValueError, match="custom components are not allowed"):
+            with pytest.raises(CustomComponentValidationError, match="custom components are not allowed"):
                 await _load_graph_from_python(Path("/test/flow.py"))
 
     @pytest.mark.asyncio

@@ -15,6 +15,7 @@ import pytest
 from langflow.api.v2.workflow_reconstruction import reconstruct_workflow_response_from_job_id
 from langflow.services.database.models.vertex_builds.model import VertexBuildTable
 from lfx.interface.components import component_cache
+from lfx.utils.flow_validation import CustomComponentValidationError
 
 
 class TestWorkflowReconstruction:
@@ -194,7 +195,7 @@ class TestWorkflowReconstruction:
 
         with patch("langflow.api.v2.workflow_reconstruction.get_vertex_builds_by_job_id") as mock_get_vb:
             mock_get_vb.return_value = [mock_vertex_build]
-            with pytest.raises(ValueError, match="custom components are not allowed"):
+            with pytest.raises(CustomComponentValidationError, match="custom components are not allowed"):
                 await reconstruct_workflow_response_from_job_id(
                     session=mock_session,
                     flow=mock_flow,

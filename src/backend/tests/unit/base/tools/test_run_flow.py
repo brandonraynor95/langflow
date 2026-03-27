@@ -6,6 +6,7 @@ from lfx.base.tools.run_flow import RunFlowBaseComponent
 from lfx.graph.graph.base import Graph
 from lfx.graph.vertex.base import Vertex
 from lfx.interface.components import component_cache
+from lfx.utils.flow_validation import CustomComponentValidationError
 from lfx.schema.data import Data
 from lfx.schema.dotdict import dotdict
 from lfx.services.cache.utils import CacheMiss
@@ -263,7 +264,7 @@ class TestRunFlowBaseComponentFlowRetrieval:
 
         with patch.object(component, "get_flow", new_callable=AsyncMock) as mock_get_flow:
             mock_get_flow.return_value = blocked_flow
-            with pytest.raises(ValueError, match="custom components are not allowed"):
+            with pytest.raises(CustomComponentValidationError, match="custom components are not allowed"):
                 await component.get_graph(flow_name_selected="blocked-flow", flow_id_selected=str(uuid4()))
 
 
