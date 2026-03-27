@@ -106,12 +106,15 @@ function useSearchParameters({ contextualSearch, ...props }) {
 
 function patchDocSearchButtonSvg() {
   if (typeof document === "undefined") return;
-  document.querySelectorAll(".DocSearch-Button svg").forEach((svg) => {
+  const svgs = document.querySelectorAll(".DocSearch-Button svg");
+  svgs.forEach((svg, index) => {
     if (svg.getAttribute("aria-label") || svg.getAttribute("aria-labelledby")) return;
-    if (svg.querySelector("title")) return;
-    svg.setAttribute("aria-hidden", "true");
+    const existingTitle = svg.querySelector("title");
+    if (existingTitle) return;
+    const label = index === 0 ? "Option key shortcut icon" : "K key shortcut icon";
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", label);
     svg.setAttribute("focusable", "false");
-    svg.setAttribute("role", "presentation");
   });
 }
 
@@ -129,6 +132,9 @@ function DocSearch({ externalUrlRegex, ...props }) {
 
   React.useEffect(() => {
     patchDocSearchButtonSvg();
+    const observer = new MutationObserver(() => patchDocSearchButtonSvg());
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [isOpen, currentPlaceholder]);
 
   const prepareSearchContainer = useCallback(() => {
