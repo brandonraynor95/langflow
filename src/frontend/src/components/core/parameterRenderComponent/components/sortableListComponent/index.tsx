@@ -117,7 +117,7 @@ const SortableListComponent = ({
     (item: unknown) => {
       const itemName =
         typeof item === "object" && item !== null && "name" in item
-          ? (item as { name?: unknown }).name ?? item
+          ? ((item as { name?: unknown }).name ?? item)
           : item;
 
       return cloudIncompatibleOptions.some((option) => option === itemName);

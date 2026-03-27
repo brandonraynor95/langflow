@@ -163,7 +163,11 @@ export default function ModelInputComponent({
   );
 
   const showNoCompatibleCloudModels = useMemo(
-    () => cloudOnly && options.length > 0 && flatOptions.length === 0 && !selectedModel,
+    () =>
+      cloudOnly &&
+      options.length > 0 &&
+      flatOptions.length === 0 &&
+      !selectedModel,
     [cloudOnly, options.length, flatOptions.length, selectedModel],
   );
 
