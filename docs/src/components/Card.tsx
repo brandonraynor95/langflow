@@ -17,7 +17,15 @@ export default function Card({ title, href, icon, children }: CardProps) {
       {children && <div className="lf-card-body">{children}</div>}
       {href && (
         <div className="lf-card-arrow">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+            focusable="false"
+            role="presentation"
+          >
             <path
               d="M6 3L11 8L6 13"
               stroke="currentColor"

@@ -277,6 +277,11 @@ body {
 .header-discord-link {
   opacity: 0.5;
   transition: opacity 0.15s ease;
+  padding: 0.25rem 0.35rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-github-link:hover,
@@ -621,8 +626,13 @@ body {
 
 /* Light theme: increase contrast for sidebar section labels ("BUILD", etc) */
 html[data-theme="light"] .sidebar-group-label {
-  color: #4b4b55;
-  opacity: 1;
+  color: #2f2f35 !important;
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .sidebar-group-label {
+  color: #c7c7d0 !important;
+  opacity: 1 !important;
 }
 
 /* Sidebar Category Icons */
@@ -950,7 +960,7 @@ html[data-theme="light"] .sidebar-group-label {
   border: none;
   padding: 0;
   font-size: 0.875rem;
-  color: var(--ifm-color-emphasis-600);
+  color: #44444d;
 }
 
 .breadcrumbs__link:hover {
@@ -960,8 +970,16 @@ html[data-theme="light"] .sidebar-group-label {
 
 .breadcrumbs__item--active .breadcrumbs__link {
   background: none;
-  color: var(--ifm-color-emphasis-800);
+  color: #2f2f35;
   font-weight: 500;
+}
+
+[data-theme="dark"] .breadcrumbs__link {
+  color: #c7c7d0;
+}
+
+[data-theme="dark"] .breadcrumbs__item--active .breadcrumbs__link {
+  color: #e5e5ec;
 }
 
 /* Style the native Docusaurus breadcrumb separator */

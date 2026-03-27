@@ -23,11 +23,21 @@ export default function Icon({
   const LucideIcon = LucideIcons[name as keyof typeof LucideIcons] as
     | React.FC<React.ComponentProps<LucideIcons.LucideIcon>>
     | undefined;
-  return LucideIcon ? (
+  if (!LucideIcon) return null;
+
+  const hasAccessibleName =
+    "aria-label" in props ||
+    "aria-labelledby" in props ||
+    ("title" in props && Boolean(props.title));
+
+  return (
     <LucideIcon
       size={size}
       className={clsx("lf-inline-icon", className)}
+      aria-hidden={hasAccessibleName ? undefined : true}
+      focusable={hasAccessibleName ? undefined : false}
+      role={hasAccessibleName ? undefined : "presentation"}
       {...props}
     />
-  ) : null;
+  );
 }
