@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+const STORAGE_KEY = "cloudOnly";
+
 interface CloudModeStoreType {
   cloudOnly: boolean;
   setCloudOnly: (value: boolean) => void;
@@ -7,11 +9,18 @@ interface CloudModeStoreType {
 
 export const useCloudModeStore = create<CloudModeStoreType>((set) => ({
   cloudOnly: (() => {
-    const stored = window.localStorage.getItem("cloudOnly");
-    return stored === "true";
+    try {
+      return window.localStorage.getItem(STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
   })(),
   setCloudOnly: (value) => {
     set({ cloudOnly: value });
-    window.localStorage.setItem("cloudOnly", value.toString());
+    try {
+      window.localStorage.setItem(STORAGE_KEY, value.toString());
+    } catch {
+      // localStorage may be unavailable in private browsing or SSR
+    }
   },
 }));

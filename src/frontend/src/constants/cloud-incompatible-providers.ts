@@ -5,4 +5,6 @@
  * When cloud-only mode is active, models from these providers are hidden
  * from the unified Language Model and Embedding Model dropdowns.
  */
-export const CLOUD_INCOMPATIBLE_PROVIDERS = new Set(["Ollama"]);
+export const CLOUD_INCOMPATIBLE_PROVIDERS: ReadonlySet<string> = new Set([
+  "Ollama",
+]);
