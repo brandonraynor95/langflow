@@ -10,6 +10,6 @@ This security policy applies to all public projects under the langflow-ai organi
 ## Report a vulnerability
 
 Please do not report security vulnerabilities through public GitHub issues or GitHub security advisories.
-To report a vulnerability, submit a report on [HackerOne](https://hackerone.com).
+To report a vulnerability, submit a report on [HackerOne](https://hackerone.com/ibm).
 Include a clear description of the issue, steps to reproduce, the Langflow version, and any known or suggested mitigations.
 Our team aims to respond to all new vulnerability reports within **7 business days**.
