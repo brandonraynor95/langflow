@@ -96,11 +96,12 @@ jest.mock("@/utils/utils", () => ({
 // Note: Some utility modules may not exist in test environment
 // The store should handle missing utilities gracefully
 
-import type { AllNodeType, EdgeType } from "@/types/flow";
 import { checkCodeValidity } from "@/CustomNodes/helpers/check-code-validity";
+import type { AllNodeType, EdgeType } from "@/types/flow";
 import useFlowStore, {
-  registerNodeUpdate,
   completeNodeUpdate,
+  recomputeComponentsToUpdateIfNeeded,
+  registerNodeUpdate,
   waitForNodeUpdates,
 } from "../flowStore";
 import { useUtilityStore } from "../utilityStore";
@@ -119,7 +120,7 @@ describe("useFlowStore", () => {
     },
   } as AllNodeType;
 
-  const mockEdge: EdgeType = {
+  const _mockEdge: EdgeType = {
     id: "edge-1",
     source: "node-1",
     target: "node-2",
@@ -753,6 +754,48 @@ describe("useFlowStore", () => {
         {},
         false,
       );
+    });
+
+    it("recomputeComponentsToUpdateIfNeeded should skip recalculation when there are no nodes", () => {
+      act(() => {
+        useFlowStore.setState({
+          nodes: [],
+          componentsToUpdate: [outdatedEntry],
+        });
+      });
+
+      recomputeComponentsToUpdateIfNeeded();
+
+      expect(checkCodeValidity).not.toHaveBeenCalled();
+      expect(useFlowStore.getState().componentsToUpdate).toEqual([
+        outdatedEntry,
+      ]);
+    });
+
+    it("recomputeComponentsToUpdateIfNeeded should recalculate when nodes exist", () => {
+      const mockedCheckCodeValidity = checkCodeValidity as jest.Mock;
+      mockedCheckCodeValidity.mockReturnValue({
+        outdated: false,
+        blocked: false,
+        breakingChange: false,
+        userEdited: false,
+      });
+
+      act(() => {
+        useFlowStore.setState({
+          nodes: [updatedNode],
+          componentsToUpdate: [outdatedEntry],
+        });
+      });
+
+      recomputeComponentsToUpdateIfNeeded();
+
+      expect(mockedCheckCodeValidity).toHaveBeenCalledWith(
+        updatedNode.data,
+        {},
+        true,
+      );
+      expect(useFlowStore.getState().componentsToUpdate).toEqual([]);
     });
   });
 

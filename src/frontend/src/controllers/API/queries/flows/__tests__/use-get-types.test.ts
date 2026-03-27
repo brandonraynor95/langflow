@@ -1,7 +1,6 @@
 const mockApiGet = jest.fn();
 const mockSetTypes = jest.fn();
-const mockUpdateComponentsToUpdate = jest.fn();
-let mockNodes = [{ id: "node-1" }];
+const mockRecomputeComponentsToUpdateIfNeeded = jest.fn();
 
 const mockUseTypesStore = Object.assign(
   jest.fn((selector: (state: { setTypes: typeof mockSetTypes }) => unknown) =>
@@ -15,13 +14,6 @@ const mockUseTypesStore = Object.assign(
     }),
   },
 );
-
-const mockFlowStore = Object.assign(jest.fn(), {
-  getState: () => ({
-    nodes: mockNodes,
-    updateComponentsToUpdate: mockUpdateComponentsToUpdate,
-  }),
-});
 
 jest.mock("@/controllers/API/api", () => ({
   api: {
@@ -55,7 +47,7 @@ jest.mock("@/controllers/API/services/request-processor", () => ({
 
 jest.mock("@/stores/flowStore", () => ({
   __esModule: true,
-  default: mockFlowStore,
+  recomputeComponentsToUpdateIfNeeded: mockRecomputeComponentsToUpdateIfNeeded,
 }));
 
 jest.mock("@/stores/flowsManagerStore", () => ({
@@ -75,7 +67,6 @@ import { useGetTypes } from "../use-get-types";
 describe("useGetTypes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockNodes = [{ id: "node-1" }];
   });
 
   it("recomputes componentsToUpdate after templates load", async () => {
@@ -93,25 +84,6 @@ describe("useGetTypes", () => {
     await Promise.resolve();
 
     expect(mockSetTypes).toHaveBeenCalledWith(responseData);
-    expect(mockUpdateComponentsToUpdate).toHaveBeenCalledWith(mockNodes);
-  });
-
-  it("skips componentsToUpdate recompute when no nodes are present", async () => {
-    const responseData = {
-      test_category: {
-        TestComponent: {
-          template: {},
-        },
-      },
-    };
-    mockNodes = [];
-    mockApiGet.mockResolvedValue({ data: responseData });
-
-    useGetTypes();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(mockSetTypes).toHaveBeenCalledWith(responseData);
-    expect(mockUpdateComponentsToUpdate).not.toHaveBeenCalled();
+    expect(mockRecomputeComponentsToUpdateIfNeeded).toHaveBeenCalledTimes(1);
   });
 });

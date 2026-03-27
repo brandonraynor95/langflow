@@ -1306,4 +1306,11 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
   },
 }));
 
+export function recomputeComponentsToUpdateIfNeeded(): void {
+  const { nodes, updateComponentsToUpdate } = useFlowStore.getState();
+  if (nodes.length > 0) {
+    updateComponentsToUpdate(nodes);
+  }
+}
+
 export default useFlowStore;

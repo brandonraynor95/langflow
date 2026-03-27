@@ -4,7 +4,7 @@ import {
   DEFAULT_TIMEOUT,
 } from "@/constants/constants";
 import { EventDeliveryType } from "@/constants/enums";
-import useFlowStore from "@/stores/flowStore";
+import { recomputeComponentsToUpdateIfNeeded } from "@/stores/flowStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import { useUtilityStore } from "@/stores/utilityStore";
 import type { useQueryFunctionType } from "../../../../types/api";
@@ -30,7 +30,7 @@ export interface ConfigResponse extends BaseConfig {
   auto_saving: boolean;
   auto_saving_interval: number;
   health_check_max_retries: number;
-  feature_flags: Record<string, any>;
+  feature_flags: Record<string, unknown>;
   webhook_polling_interval: number;
   serialization_max_items_length: number;
   webhook_auth_enable: boolean;
@@ -104,10 +104,7 @@ export const useGetConfig: useQueryFunctionType<
       setEventDelivery(data.event_delivery ?? EventDeliveryType.POLLING);
       const allowCustomComponents = data.allow_custom_components ?? true;
       setAllowCustomComponents(allowCustomComponents);
-      const { nodes, updateComponentsToUpdate } = useFlowStore.getState();
-      if (nodes.length > 0) {
-        updateComponentsToUpdate(nodes);
-      }
+      recomputeComponentsToUpdateIfNeeded();
 
       // Set authenticated-only fields if present (full config)
       if (isFullConfig(data)) {
