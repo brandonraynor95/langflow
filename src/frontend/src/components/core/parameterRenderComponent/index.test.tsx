@@ -1,11 +1,16 @@
-import type { ComponentProps } from "react";
 import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
+import type { APIClassType } from "@/types/api";
 import { ParameterRenderComponent } from ".";
 
 let mockCloudOnly = false;
+let mockTemplates: Record<string, unknown> = {};
 type CloudModeState = {
   cloudOnly: boolean;
   setCloudOnly: jest.Mock;
+};
+type TypesStoreState = {
+  templates: Record<string, unknown>;
 };
 type StrRenderProps = {
   value?: string | number | readonly string[] | null;
@@ -20,6 +25,11 @@ type SortableListRenderProps = {
 jest.mock("@/stores/cloudModeStore", () => ({
   useCloudModeStore: <T,>(selector: (state: CloudModeState) => T) =>
     selector({ cloudOnly: mockCloudOnly, setCloudOnly: jest.fn() }),
+}));
+
+jest.mock("@/stores/typesStore", () => ({
+  useTypesStore: <T,>(selector: (state: TypesStoreState) => T) =>
+    selector({ templates: mockTemplates }),
 }));
 
 jest.mock("./components/strRenderComponent", () => ({
@@ -55,7 +65,19 @@ jest.mock("./components/sortableListComponent", () => ({
 describe("ParameterRenderComponent", () => {
   beforeEach(() => {
     mockCloudOnly = false;
+    mockTemplates = {};
   });
+
+  const createNodeClass = (
+    overrides: Record<string, unknown> = {},
+  ): APIClassType =>
+    ({
+      description: "Test component",
+      template: {},
+      display_name: "Test Component",
+      documentation: "Test component documentation",
+      ...overrides,
+    }) as APIClassType;
 
   const baseProps: ComponentProps<typeof ParameterRenderComponent> = {
     handleOnNewValue: jest.fn(),
@@ -65,11 +87,8 @@ describe("ParameterRenderComponent", () => {
     showParameter: true,
     inspectionPanel: false,
     handleNodeClass: jest.fn(),
-    nodeClass: {
-      description: "Test component",
-      template: {},
-      display_name: "Test Component",
-      documentation: "Test component documentation",
+    templateValue: "",
+    nodeClass: createNodeClass({
       metadata: {
         cloud_default_overrides: {
           url: {
@@ -78,7 +97,7 @@ describe("ParameterRenderComponent", () => {
           },
         },
       },
-    },
+    }),
     disabled: false,
     templateData: { type: "str", name: "url", placeholder: "Local URL" },
   };
@@ -114,6 +133,38 @@ describe("ParameterRenderComponent", () => {
     );
   });
 
+  it("backfills the cloud placeholder from the current catalog for older saved nodes", () => {
+    mockCloudOnly = true;
+    mockTemplates = {
+      File: createNodeClass({
+        display_name: "Read File",
+        documentation: "",
+        metadata: {
+          cloud_default_overrides: {
+            url: {
+              placeholder: "Enter your cloud URL",
+            },
+          },
+        },
+      }),
+    };
+
+    render(
+      <ParameterRenderComponent
+        {...baseProps}
+        nodeType="File"
+        nodeClass={createNodeClass()}
+        templateValue=""
+      />,
+    );
+
+    const renderedProps = screen.getByTestId("str-render-props");
+    expect(renderedProps).toHaveAttribute(
+      "data-placeholder",
+      "Enter your cloud URL",
+    );
+  });
+
   it("preserves incompatible sortable values while filtering them from the chooser in cloud mode", () => {
     mockCloudOnly = true;
 
@@ -128,14 +179,49 @@ describe("ParameterRenderComponent", () => {
           options: [{ name: "Local" }, { name: "AWS" }],
           limit: 1,
         }}
-        nodeClass={{
-          ...baseProps.nodeClass,
+        nodeClass={createNodeClass({
           metadata: {
             cloud_incompatible_options: {
               storage_location: ["Local"],
             },
           },
+        })}
+      />,
+    );
+
+    const renderedProps = screen.getByTestId("sortable-list-props");
+    expect(renderedProps).toHaveAttribute("data-value", "Local");
+    expect(renderedProps).toHaveAttribute("data-options", "AWS");
+    expect(renderedProps).toHaveAttribute("data-cloud-incompatible", "Local");
+  });
+
+  it("backfills cloud-incompatible sortable options from the current catalog for older saved nodes", () => {
+    mockCloudOnly = true;
+    mockTemplates = {
+      File: createNodeClass({
+        display_name: "Read File",
+        documentation: "",
+        metadata: {
+          cloud_incompatible_options: {
+            storage_location: ["Local"],
+          },
+        },
+      }),
+    };
+
+    render(
+      <ParameterRenderComponent
+        {...baseProps}
+        nodeType="File"
+        name="storage_location"
+        templateValue={[{ name: "Local" }]}
+        templateData={{
+          type: "sortableList",
+          name: "storage_location",
+          options: [{ name: "Local" }, { name: "AWS" }],
+          limit: 1,
         }}
+        nodeClass={createNodeClass()}
       />,
     );
 

@@ -14,19 +14,20 @@ import { ICON_STROKE_WIDTH } from "../../constants/constants";
 import NodeToolbarComponent from "../../pages/FlowPage/components/nodeToolbarComponent";
 import { useChangeOnUnfocus } from "../../shared/hooks/use-change-on-unfocus";
 import useAlertStore from "../../stores/alertStore";
+import { useCloudModeStore } from "../../stores/cloudModeStore";
 import useFlowStore from "../../stores/flowStore";
 import useFlowsManagerStore from "../../stores/flowsManagerStore";
 import { useShortcutsStore } from "../../stores/shortcuts";
 import { useTypesStore } from "../../stores/typesStore";
 import type { OutputFieldType, VertexBuildTypeAPI } from "../../types/api";
 import type { NodeDataType } from "../../types/flow";
+import { withCurrentCloudMetadata } from "../../utils/cloudMetadataUtils";
 import { scapedJSONStringfy } from "../../utils/reactflowUtils";
 import { classNames, cn } from "../../utils/utils";
 import { processNodeAdvancedFields } from "../helpers/process-node-advanced-fields";
 import useUpdateNodeCode from "../hooks/use-update-node-code";
-import NodeDescription from "./components/NodeDescription";
-import { useCloudModeStore } from "../../stores/cloudModeStore";
 import NodeCloudIncompatibleComponent from "./components/NodeCloudIncompatibleComponent";
+import NodeDescription from "./components/NodeDescription";
 import NodeLegacyComponent from "./components/NodeLegacyComponent";
 import NodeName from "./components/NodeName";
 import NodeOutputs from "./components/NodeOutputParameter/NodeOutputs";
@@ -374,9 +375,17 @@ function GenericNode({
   );
 
   const cloudOnly = useCloudModeStore((state) => state.cloudOnly);
+  const effectiveNodeClass = useMemo(
+    () =>
+      cloudOnly
+        ? (withCurrentCloudMetadata(data.node, templates[data.type]) ??
+          data.node)
+        : data.node,
+    [cloudOnly, data.node, data.type, templates],
+  );
   const shouldShowCloudIncompatible = useMemo(
-    () => cloudOnly && data.node?.cloud_compatible === false,
-    [cloudOnly, data.node?.cloud_compatible],
+    () => cloudOnly && effectiveNodeClass?.cloud_compatible === false,
+    [cloudOnly, effectiveNodeClass?.cloud_compatible],
   );
 
   const memoizedNodeToolbarComponent = useMemo(() => {

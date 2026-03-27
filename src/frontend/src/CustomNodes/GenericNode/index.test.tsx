@@ -1,9 +1,9 @@
+import { render, screen } from "@testing-library/react";
 import type {
   ButtonHTMLAttributes,
   ComponentProps,
   PropsWithChildren,
 } from "react";
-import { render, screen } from "@testing-library/react";
 
 let mockCloudOnly = false;
 type Selector<TState, TResult = unknown> = (state: TState) => TResult;
@@ -24,6 +24,11 @@ type ShortcutsStoreState = {
 type TypesStoreState = {
   types: Record<string, unknown>;
   templates: Record<string, unknown>;
+};
+
+const typesStoreState: TypesStoreState = {
+  types: {},
+  templates: {},
 };
 
 const flowStoreState = {
@@ -121,10 +126,7 @@ jest.mock("../../stores/shortcuts", () => ({
 
 jest.mock("../../stores/typesStore", () => ({
   useTypesStore: <T,>(selector: Selector<TypesStoreState, T>) =>
-    selector({
-      types: {},
-      templates: {},
-    }),
+    selector(typesStoreState),
 }));
 
 jest.mock("../helpers/process-node-advanced-fields", () => ({
@@ -206,6 +208,8 @@ describe("GenericNode", () => {
     flowStoreState.dismissedNodesLegacy = [];
     flowStoreState.componentsToUpdate = [];
     flowStoreState.nodes = [];
+    typesStoreState.types = {};
+    typesStoreState.templates = {};
   });
 
   it("renders legacy and cloud incompatibility warnings together", () => {
@@ -229,6 +233,36 @@ describe("GenericNode", () => {
     render(<GenericNode data={data} />);
 
     expect(screen.getByText("Legacy")).toBeInTheDocument();
+    expect(screen.getByTestId("cloud-incompatible-banner")).toBeInTheDocument();
+  });
+
+  it("backfills cloud incompatibility from the current catalog for older saved nodes", () => {
+    mockCloudOnly = true;
+    typesStoreState.templates = {
+      Directory: {
+        description: "Reads local directories",
+        display_name: "Directory",
+        documentation: "",
+        template: {},
+        cloud_compatible: false,
+      },
+    };
+
+    const data: ComponentProps<typeof GenericNode>["data"] = {
+      id: "legacy-directory-node",
+      type: "Directory",
+      showNode: true,
+      node: {
+        display_name: "Directory",
+        description: "Reads local directories",
+        documentation: "",
+        template: {},
+        outputs: [],
+      },
+    };
+
+    render(<GenericNode data={data} />);
+
     expect(screen.getByTestId("cloud-incompatible-banner")).toBeInTheDocument();
   });
 });

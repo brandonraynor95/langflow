@@ -5,12 +5,14 @@ import SliderComponent from "@/components/core/parameterRenderComponent/componen
 import TableNodeComponent from "@/components/core/parameterRenderComponent/components/TableNodeComponent";
 import TabComponent from "@/components/core/parameterRenderComponent/components/tabComponent";
 import { TEXT_FIELD_TYPES } from "@/constants/constants";
-import { useCloudModeStore } from "@/stores/cloudModeStore";
 import CustomConnectionComponent from "@/customization/components/custom-connectionComponent";
 import CustomInputFileComponent from "@/customization/components/custom-input-file";
 import CustomLinkComponent from "@/customization/components/custom-linkComponent";
 import { ENABLE_INSPECTION_PANEL } from "@/customization/feature-flags";
+import { useCloudModeStore } from "@/stores/cloudModeStore";
+import { useTypesStore } from "@/stores/typesStore";
 import type { APIClassType, InputFieldType } from "@/types/api";
+import { withCurrentCloudMetadata } from "@/utils/cloudMetadataUtils";
 import AccordionPromptComponent from "./components/accordionPromptComponent";
 import DictComponent from "./components/dictComponent";
 import { EmptyParameterComponent } from "./components/emptyParameterComponent";
@@ -36,10 +38,11 @@ export function ParameterRenderComponent({
   templateData,
   templateValue,
   editNode,
-  showParameter,
+  showParameter = true,
   inspectionPanel = false,
   handleNodeClass,
   nodeClass,
+  nodeType,
   disabled,
   placeholder,
   isToolMode,
@@ -53,16 +56,27 @@ export function ParameterRenderComponent({
   templateData: Partial<InputFieldType>;
   templateValue: unknown;
   editNode: boolean;
-  showParameter: boolean;
-  inspectionPanel: boolean;
+  showParameter?: boolean;
+  inspectionPanel?: boolean;
   handleNodeClass: (value: unknown, code?: string, type?: string) => void;
   nodeClass: APIClassType;
+  nodeType?: string;
   disabled: boolean;
   placeholder?: string;
   isToolMode?: boolean;
   nodeInformationMetadata?: NodeInfoType;
 }) {
   const cloudOnly = useCloudModeStore((state) => state.cloudOnly);
+  const templates = useTypesStore((state) => state.templates);
+
+  const resolvedNodeType =
+    nodeType ??
+    (typeof nodeClass?.type === "string" ? nodeClass.type : undefined);
+  const effectiveNodeClass =
+    cloudOnly && resolvedNodeType
+      ? (withCurrentCloudMetadata(nodeClass, templates[resolvedNodeType]) ??
+        nodeClass)
+      : nodeClass;
 
   const id = (
     templateData.type +
@@ -71,7 +85,7 @@ export function ParameterRenderComponent({
     templateData.name
   ).toLowerCase();
 
-  const nodeMetadata = nodeClass?.metadata as
+  const nodeMetadata = effectiveNodeClass?.metadata as
     | {
         cloud_default_overrides?: Record<
           string,
@@ -98,7 +112,7 @@ export function ParameterRenderComponent({
       editNode,
       handleOnNewValue: handleOnNewValue as handleOnNewValueType,
       disabled,
-      nodeClass,
+      nodeClass: effectiveNodeClass,
       handleNodeClass,
       nodeId,
       helperText: templateData?.helper_text,
@@ -143,7 +157,7 @@ export function ParameterRenderComponent({
         <StrRenderComponent
           {...baseInputProps}
           nodeId={nodeId}
-          nodeClass={nodeClass}
+          nodeClass={effectiveNodeClass}
           handleNodeClass={handleNodeClass}
           templateData={templateData}
           name={name}
@@ -218,14 +232,14 @@ export function ParameterRenderComponent({
         return ENABLE_INSPECTION_PANEL && !baseInputProps.editNode ? (
           <AccordionPromptComponent
             {...baseInputProps}
-            readonly={!!nodeClass.flow}
+            readonly={!!effectiveNodeClass.flow}
             field_name={name}
             id={`promptarea_${id}`}
           />
         ) : (
           <PromptAreaComponent
             {...baseInputProps}
-            readonly={!!nodeClass.flow}
+            readonly={!!effectiveNodeClass.flow}
             field_name={name}
             id={`promptarea_${id}`}
           />
@@ -234,7 +248,7 @@ export function ParameterRenderComponent({
         return ENABLE_INSPECTION_PANEL && !baseInputProps.editNode ? (
           <AccordionPromptComponent
             {...baseInputProps}
-            readonly={!!nodeClass.flow}
+            readonly={!!effectiveNodeClass.flow}
             field_name={name}
             id={`mustachepromptarea_${id}`}
             isDoubleBrackets={true}
@@ -242,7 +256,7 @@ export function ParameterRenderComponent({
         ) : (
           <MustachePromptAreaComponent
             {...baseInputProps}
-            readonly={!!nodeClass.flow}
+            readonly={!!effectiveNodeClass.flow}
             field_name={name}
             id={`mustachepromptarea_${id}`}
           />
@@ -269,9 +283,9 @@ export function ParameterRenderComponent({
           <ToolsComponent
             {...baseInputProps}
             description={templateData.info || "Add or edit data"}
-            title={nodeClass?.display_name ?? "Tools"}
-            icon={nodeClass?.icon ?? ""}
-            template={nodeClass?.template}
+            title={effectiveNodeClass?.display_name ?? "Tools"}
+            icon={effectiveNodeClass?.icon ?? ""}
+            template={effectiveNodeClass?.template}
           />
         );
       case "slider": {
@@ -338,7 +352,7 @@ export function ParameterRenderComponent({
             {...baseInputProps}
             name={name}
             nodeId={nodeId}
-            nodeClass={nodeClass}
+            nodeClass={effectiveNodeClass}
             helperText={templateData?.helper_text}
             helperMetadata={templateData?.helper_text_metadata}
             options={templateData?.options}
