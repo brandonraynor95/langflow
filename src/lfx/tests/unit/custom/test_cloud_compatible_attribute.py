@@ -78,13 +78,7 @@ class TestCloudCompatibleAttribute:
         display_name,
     ):
         """Audited cloud-hostile components should ship as incompatible in the production index."""
-        component_index_path = (
-            Path(__file__).resolve().parents[3]
-            / "src"
-            / "lfx"
-            / "_assets"
-            / "component_index.json"
-        )
+        component_index_path = Path(__file__).resolve().parents[3] / "src" / "lfx" / "_assets" / "component_index.json"
 
         with component_index_path.open(encoding="utf-8") as index_file:
             component_index = json.load(index_file)
@@ -92,11 +86,7 @@ class TestCloudCompatibleAttribute:
         matching_component = None
         for _entry_category, components in component_index["entries"]:
             matching_component = next(
-                (
-                    component
-                    for component in components.values()
-                    if component.get("display_name") == display_name
-                ),
+                (component for component in components.values() if component.get("display_name") == display_name),
                 None,
             )
             if matching_component:
