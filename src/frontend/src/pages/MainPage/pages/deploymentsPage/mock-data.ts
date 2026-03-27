@@ -1,5 +1,9 @@
-import type { ConnectionItem } from "./components/step-attach-flows";
-import type { Deployment, DeploymentProvider, ProviderAccount } from "./types";
+import type {
+  ConnectionItem,
+  Deployment,
+  DeploymentProvider,
+  ProviderAccount,
+} from "./types";
 
 export const MOCK_PROVIDERS: DeploymentProvider[] = [
   {
@@ -14,6 +18,7 @@ export const MOCK_PROVIDERS: DeploymentProvider[] = [
 export const MOCK_PROVIDER_INSTANCES: ProviderAccount[] = [
   {
     id: "550e8400-e29b-41d4-a716-446655440001",
+    name: "Production",
     provider_tenant_id: "tenant-prod",
     provider_key: "watsonx_orchestrate",
     provider_url: "https://api.us-south.assistant.watson.cloud.ibm.com/prod",
@@ -22,6 +27,7 @@ export const MOCK_PROVIDER_INSTANCES: ProviderAccount[] = [
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440002",
+    name: "Staging",
     provider_tenant_id: "tenant-staging",
     provider_key: "watsonx_orchestrate",
     provider_url: "https://api.us-south.assistant.watson.cloud.ibm.com/staging",
@@ -30,6 +36,7 @@ export const MOCK_PROVIDER_INSTANCES: ProviderAccount[] = [
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440003",
+    name: "Development",
     provider_tenant_id: null,
     provider_key: "watsonx_orchestrate",
     provider_url:

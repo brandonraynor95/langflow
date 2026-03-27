@@ -11,20 +11,16 @@ import type { FlowType } from "@/types/flow";
 import type { FlowVersionEntry } from "@/types/flow/version";
 import { cn } from "@/utils/utils";
 import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
-import { MOCK_CONNECTIONS } from "../mock-data";
-import { RadioSelectItem } from "./radio-select-item";
-
-export interface ConnectionItem {
-  id: string;
-  name: string;
-  variableCount: number;
-}
+import type { ConnectionItem } from "../types";
+import { CheckboxSelectItem, RadioSelectItem } from "./radio-select-item";
 
 type RightPanelView = "versions" | "connections";
 type ConnectionTab = "available" | "create";
 
 export default function StepAttachFlows() {
   const {
+    connections,
+    setConnections,
     selectedVersionByFlow,
     handleSelectVersion: onSelectVersion,
     attachedConnectionByFlow,
@@ -49,15 +45,14 @@ export default function StepAttachFlows() {
     );
   }, [flowsData, currentFolderId]);
   // TODO: replace with real API data
-  const connections = MOCK_CONNECTIONS;
 
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
   const [pendingVersion, setPendingVersion] = useState<string | null>(null);
   const [rightPanel, setRightPanel] = useState<RightPanelView>("versions");
   const [connectionTab, setConnectionTab] =
     useState<ConnectionTab>("available");
-  const [selectedConnection, setSelectedConnection] = useState<string | null>(
-    null,
+  const [selectedConnections, setSelectedConnections] = useState<Set<string>>(
+    new Set(),
   );
   const [newConnectionName, setNewConnectionName] = useState("");
   const [newConnectionDescription, setNewConnectionDescription] = useState("");
@@ -90,35 +85,49 @@ export default function StepAttachFlows() {
       );
       setPendingVersion(null);
       setRightPanel("connections");
-      setSelectedConnection(
-        attachedConnectionByFlow.get(selectedFlowId) ?? null,
+      setSelectedConnections(
+        new Set(attachedConnectionByFlow.get(selectedFlowId) ?? []),
       );
     }
   };
 
   const handleAttachConnection = () => {
     if (!selectedFlowId) return;
-    if (connectionTab === "available" && selectedConnection) {
+    if (connectionTab === "available" && selectedConnections.size > 0) {
       onAttachConnection((prev) => {
         const next = new Map(prev);
-        next.set(selectedFlowId, selectedConnection);
+        next.set(selectedFlowId, Array.from(selectedConnections));
         return next;
       });
       setRightPanel("versions");
-      setSelectedConnection(null);
+      setSelectedConnections(new Set());
     }
-    // TODO: handle "create" tab
+  };
+
+  const handleCreateConnection = () => {
+    const newConn: ConnectionItem = {
+      id: crypto.randomUUID(),
+      name: newConnectionName.trim(),
+      variableCount: envVars.filter((v) => v.key.trim()).length,
+    };
+    setConnections((prev) => [...prev, newConn]);
+    setSelectedConnections((prev) => new Set([...prev, newConn.id]));
+    setConnectionTab("available");
+    setNewConnectionName("");
+    setNewConnectionDescription("");
+    setEnvVars([{ id: crypto.randomUUID(), key: "", value: "" }]);
   };
 
   const handleChangeFlow = () => {
     setRightPanel("versions");
-    setSelectedConnection(null);
+    setSelectedConnections(new Set());
   };
 
   const handleSelectFlow = (flowId: string) => {
     setSelectedFlowId(flowId);
     setPendingVersion(null);
     setRightPanel("versions");
+    setSelectedConnections(new Set());
   };
 
   const handleAddEnvVar = () => {
@@ -226,8 +235,14 @@ export default function StepAttachFlows() {
               connectionTab={connectionTab}
               onTabChange={setConnectionTab}
               connections={connections}
-              selectedConnection={selectedConnection}
-              onSelectConnection={setSelectedConnection}
+              selectedConnections={selectedConnections}
+              onToggleConnection={(id) =>
+                setSelectedConnections((prev) => {
+                  const next = new Set(prev);
+                  next.has(id) ? next.delete(id) : next.add(id);
+                  return next;
+                })
+              }
               newConnectionName={newConnectionName}
               onNameChange={setNewConnectionName}
               newConnectionDescription={newConnectionDescription}
@@ -237,6 +252,7 @@ export default function StepAttachFlows() {
               onAddEnvVar={handleAddEnvVar}
               onChangeFlow={handleChangeFlow}
               onAttachConnection={handleAttachConnection}
+              onCreateConnection={handleCreateConnection}
             />
           )}
         </div>
@@ -351,8 +367,8 @@ function ConnectionPanel({
   connectionTab,
   onTabChange,
   connections,
-  selectedConnection,
-  onSelectConnection,
+  selectedConnections,
+  onToggleConnection,
   newConnectionName,
   onNameChange,
   newConnectionDescription,
@@ -362,12 +378,13 @@ function ConnectionPanel({
   onAddEnvVar,
   onChangeFlow,
   onAttachConnection,
+  onCreateConnection,
 }: {
   connectionTab: ConnectionTab;
   onTabChange: (tab: ConnectionTab) => void;
   connections: ConnectionItem[];
-  selectedConnection: string | null;
-  onSelectConnection: (id: string | null) => void;
+  selectedConnections: Set<string>;
+  onToggleConnection: (id: string) => void;
   newConnectionName: string;
   onNameChange: (v: string) => void;
   newConnectionDescription: string;
@@ -377,12 +394,8 @@ function ConnectionPanel({
   onAddEnvVar: () => void;
   onChangeFlow: () => void;
   onAttachConnection: () => void;
+  onCreateConnection: () => void;
 }) {
-  const canAttachConnection =
-    connectionTab === "available"
-      ? selectedConnection !== null
-      : newConnectionName.trim() !== "";
-
   return (
     <>
       <div className="border-b border-border p-4 text-sm text-muted-foreground">
@@ -415,33 +428,25 @@ function ConnectionPanel({
         {/* Tab content */}
         <div className="mt-4 flex-1 overflow-y-auto">
           {connectionTab === "available" ? (
-            <div
-              className="space-y-3"
-              role="radiogroup"
-              aria-label="Connections"
-            >
-              {connections.map((conn) => {
-                const isSelected = selectedConnection === conn.id;
-                return (
-                  <RadioSelectItem
-                    key={conn.id}
-                    name="connection"
-                    value={conn.id}
-                    selected={isSelected}
-                    onChange={() => onSelectConnection(conn.id)}
-                    data-testid={`connection-item-${conn.id}`}
-                  >
-                    <span className="flex flex-col">
-                      <span className="text-sm font-medium leading-tight">
-                        {conn.name}
-                      </span>
-                      <span className="text-sm leading-tight text-muted-foreground">
-                        {conn.variableCount} variables
-                      </span>
+            <div className="space-y-3" role="group" aria-label="Connections">
+              {connections.map((conn) => (
+                <CheckboxSelectItem
+                  key={conn.id}
+                  value={conn.id}
+                  checked={selectedConnections.has(conn.id)}
+                  onChange={() => onToggleConnection(conn.id)}
+                  data-testid={`connection-item-${conn.id}`}
+                >
+                  <span className="flex flex-col">
+                    <span className="text-sm font-medium leading-tight">
+                      {conn.name}
                     </span>
-                  </RadioSelectItem>
-                );
-              })}
+                    <span className="text-sm leading-tight text-muted-foreground">
+                      {conn.variableCount} variables
+                    </span>
+                  </span>
+                </CheckboxSelectItem>
+              ))}
             </div>
           ) : (
             <div className="flex flex-col gap-4">
@@ -509,13 +514,23 @@ function ConnectionPanel({
           <Button variant="outline" onClick={onChangeFlow}>
             Change Flow
           </Button>
-          <Button
-            className="flex-1"
-            disabled={!canAttachConnection}
-            onClick={onAttachConnection}
-          >
-            Attach Connection to Flow
-          </Button>
+          {connectionTab === "available" ? (
+            <Button
+              className="flex-1"
+              disabled={selectedConnections.size === 0}
+              onClick={onAttachConnection}
+            >
+              Attach Connection to Flow
+            </Button>
+          ) : (
+            <Button
+              className="flex-1"
+              disabled={newConnectionName.trim() === ""}
+              onClick={onCreateConnection}
+            >
+              Create Connection
+            </Button>
+          )}
         </div>
       </div>
     </>

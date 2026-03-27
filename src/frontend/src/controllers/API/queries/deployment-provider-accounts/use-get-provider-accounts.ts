@@ -1,6 +1,7 @@
-import { MOCK_PROVIDER_INSTANCES } from "@/pages/MainPage/pages/deploymentsPage/mock-data";
 import type { ProviderAccount } from "@/pages/MainPage/pages/deploymentsPage/types";
 import type { useQueryFunctionType } from "@/types/api";
+import { api } from "../../api";
+import { getURL } from "../../helpers/constants";
 import { UseRequestProcessor } from "../../services/request-processor";
 
 export interface ProviderAccountListResponse {
@@ -23,18 +24,11 @@ export const useGetProviderAccounts: useQueryFunctionType<
 
   const getProviderAccountsFn =
     async (): Promise<ProviderAccountListResponse> => {
-      // TODO: replace with real API call
-      // const { data } = await api.get<ProviderAccountListResponse>(
-      //   `${getURL("DEPLOYMENT_PROVIDER_ACCOUNTS")}`,
-      //   { params: { page, size } },
-      // );
-      // return data;
-      return {
-        providers: MOCK_PROVIDER_INSTANCES,
-        page,
-        size,
-        total: MOCK_PROVIDER_INSTANCES.length,
-      };
+      const { data } = await api.get<ProviderAccountListResponse>(
+        `${getURL("DEPLOYMENT_PROVIDER_ACCOUNTS")}`,
+        { params: { page, size } },
+      );
+      return data;
     };
 
   return query(

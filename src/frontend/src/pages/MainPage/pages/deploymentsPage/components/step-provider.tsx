@@ -129,13 +129,10 @@ function EnvironmentList({
             >
               <span className="flex flex-col">
                 <span className="text-sm font-medium leading-tight">
-                  {environment.provider_url}
+                  {environment.name}
                 </span>
                 <span className="text-sm leading-tight text-muted-foreground">
-                  {environment.provider_key}
-                  {environment.provider_tenant_id
-                    ? ` · ${environment.provider_tenant_id}`
-                    : ""}
+                  {environment.provider_url}
                 </span>
               </span>
             </RadioSelectItem>
@@ -164,6 +161,23 @@ function NewEnvironmentForm({
         </span>
         .
       </p>
+      <div className="flex flex-col">
+        <span className="pb-2 text-sm font-medium">
+          Name <span className="text-destructive">*</span>
+        </span>
+        <Input
+          type="text"
+          placeholder="e.g. Production"
+          className="bg-muted"
+          value={credentials.name}
+          onChange={(e) =>
+            onCredentialsChange({
+              ...credentials,
+              name: e.target.value,
+            })
+          }
+        />
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col">
           <span className="pb-2 text-sm font-medium">

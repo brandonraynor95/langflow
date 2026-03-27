@@ -1,5 +1,11 @@
 export type DeploymentProviderType = "watsonx" | "kubernetes";
 
+export interface ConnectionItem {
+  id: string;
+  name: string;
+  variableCount: number;
+}
+
 export interface DeploymentProvider {
   id: string;
   type: DeploymentProviderType;
@@ -10,6 +16,7 @@ export interface DeploymentProvider {
 
 export interface ProviderAccount {
   id: string;
+  name: string;
   provider_tenant_id: string | null;
   provider_key: string;
   provider_url: string;
@@ -18,6 +25,7 @@ export interface ProviderAccount {
 }
 
 export interface ProviderCredentials {
+  name: string;
   provider_key: string;
   provider_url: string;
   api_key: string;

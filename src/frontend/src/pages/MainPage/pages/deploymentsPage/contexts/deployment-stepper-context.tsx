@@ -8,7 +8,9 @@ import {
   useMemo,
   useState,
 } from "react";
+import { MOCK_CONNECTIONS } from "../mock-data";
 import type {
+  ConnectionItem,
   DeploymentProvider,
   DeploymentType,
   ProviderAccount,
@@ -39,14 +41,16 @@ interface DeploymentStepperContextType {
   setDeploymentDescription: (description: string) => void;
 
   // Step 3: Attach Flows
+  connections: ConnectionItem[];
+  setConnections: Dispatch<SetStateAction<ConnectionItem[]>>;
   selectedVersionByFlow: Map<string, { versionId: string; versionTag: string }>;
   handleSelectVersion: (
     flowId: string,
     versionId: string,
     versionTag: string,
   ) => void;
-  attachedConnectionByFlow: Map<string, string>;
-  setAttachedConnectionByFlow: Dispatch<SetStateAction<Map<string, string>>>;
+  attachedConnectionByFlow: Map<string, string[]>;
+  setAttachedConnectionByFlow: Dispatch<SetStateAction<Map<string, string[]>>>;
 }
 
 const DeploymentStepperContext =
@@ -63,6 +67,7 @@ export function DeploymentStepperProvider({
   const [selectedInstance, setSelectedInstance] =
     useState<ProviderAccount | null>(null);
   const [credentials, setCredentials] = useState<ProviderCredentials>({
+    name: "",
     provider_key: "",
     provider_url: "",
     api_key: "",
@@ -73,14 +78,16 @@ export function DeploymentStepperProvider({
   const [selectedVersionByFlow, setSelectedVersionByFlow] = useState<
     Map<string, { versionId: string; versionTag: string }>
   >(new Map());
+  const [connections, setConnections] =
+    useState<ConnectionItem[]>(MOCK_CONNECTIONS);
   const [attachedConnectionByFlow, setAttachedConnectionByFlow] = useState<
-    Map<string, string>
+    Map<string, string[]>
   >(new Map());
 
   const canGoNext =
     (currentStep === 1 && selectedProvider !== null) ||
     (currentStep === 2 && deploymentName.trim() !== "") ||
-    (currentStep === 3 && selectedVersionByFlow.size > 0) ||
+    (currentStep === 3 && attachedConnectionByFlow.size > 0) ||
     currentStep === 4;
 
   const handleNext = useCallback(() => {
@@ -94,7 +101,12 @@ export function DeploymentStepperProvider({
   const setSelectedProvider = useCallback((provider: DeploymentProvider) => {
     setSelectedProviderState(provider);
     setSelectedInstance(null);
-    setCredentials({ provider_key: "", provider_url: "", api_key: "" });
+    setCredentials({
+      name: "",
+      provider_key: "",
+      provider_url: "",
+      api_key: "",
+    });
   }, []);
 
   const handleSelectVersion = useCallback(
@@ -126,6 +138,8 @@ export function DeploymentStepperProvider({
       setDeploymentName,
       deploymentDescription,
       setDeploymentDescription,
+      connections,
+      setConnections,
       selectedVersionByFlow,
       handleSelectVersion,
       attachedConnectionByFlow,
@@ -143,6 +157,7 @@ export function DeploymentStepperProvider({
       deploymentType,
       deploymentName,
       deploymentDescription,
+      connections,
       selectedVersionByFlow,
       handleSelectVersion,
       attachedConnectionByFlow,
