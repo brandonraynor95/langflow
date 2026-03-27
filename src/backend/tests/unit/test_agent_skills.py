@@ -148,16 +148,12 @@ class TestSkillDirectoryStructure:
             ("component-refactoring", COMPONENT_REFACTORING_REFERENCES),
         ],
     )
-    def test_referenced_files_exist(
-        self, skill_name: str, references: list[str]
-    ) -> None:
+    def test_referenced_files_exist(self, skill_name: str, references: list[str]) -> None:
         """Files referenced in each skill's checklist/references section must exist."""
         skill_dir = SKILL_DIRS[skill_name]
         for ref_path in references:
             full_path = skill_dir / ref_path
-            assert full_path.exists(), (
-                f"Referenced file missing in {skill_name}: {ref_path}"
-            )
+            assert full_path.exists(), f"Referenced file missing in {skill_name}: {ref_path}"
 
 
 # ---------------------------------------------------------------------------
@@ -172,9 +168,7 @@ class TestFrontmatterValidation:
     def test_skill_has_frontmatter_block(self, skill_name: str) -> None:
         """Skills in SKILLS_WITH_FRONTMATTER must start with a --- frontmatter block."""
         content = read_file(SKILL_DIRS[skill_name] / "SKILL.md")
-        assert content.startswith("---"), (
-            f"{skill_name}/SKILL.md is expected to have YAML frontmatter"
-        )
+        assert content.startswith("---"), f"{skill_name}/SKILL.md is expected to have YAML frontmatter"
 
     @pytest.mark.parametrize("skill_name", sorted(SKILLS_WITH_FRONTMATTER))
     def test_frontmatter_has_name_field(self, skill_name: str) -> None:
@@ -189,12 +183,8 @@ class TestFrontmatterValidation:
         """Frontmatter must include a non-empty 'description' field."""
         content = read_file(SKILL_DIRS[skill_name] / "SKILL.md")
         fm = parse_frontmatter(content)
-        assert "description" in fm, (
-            f"{skill_name}/SKILL.md frontmatter missing 'description' field"
-        )
-        assert fm["description"], (
-            f"{skill_name}/SKILL.md has empty 'description' in frontmatter"
-        )
+        assert "description" in fm, f"{skill_name}/SKILL.md frontmatter missing 'description' field"
+        assert fm["description"], f"{skill_name}/SKILL.md has empty 'description' in frontmatter"
 
     @pytest.mark.parametrize("skill_name", sorted(SKILLS_WITH_FRONTMATTER))
     def test_frontmatter_name_matches_directory(self, skill_name: str) -> None:
@@ -207,14 +197,10 @@ class TestFrontmatterValidation:
         )
 
     @pytest.mark.parametrize("skill_name", sorted(SKILLS_WITHOUT_FRONTMATTER))
-    def test_skills_without_frontmatter_start_with_heading(
-        self, skill_name: str
-    ) -> None:
+    def test_skills_without_frontmatter_start_with_heading(self, skill_name: str) -> None:
         """Skills without frontmatter must start with a markdown level-1 heading."""
         content = read_file(SKILL_DIRS[skill_name] / "SKILL.md")
-        assert not content.startswith("---"), (
-            f"{skill_name}/SKILL.md unexpectedly has frontmatter"
-        )
+        assert not content.startswith("---"), f"{skill_name}/SKILL.md unexpectedly has frontmatter"
         assert content.lstrip().startswith("#"), (
             f"{skill_name}/SKILL.md without frontmatter must start with a # heading"
         )
@@ -223,18 +209,14 @@ class TestFrontmatterValidation:
         """backend-code-review description must mention .py files."""
         content = read_file(SKILL_DIRS["backend-code-review"] / "SKILL.md")
         fm = parse_frontmatter(content)
-        assert ".py" in fm.get("description", ""), (
-            "backend-code-review description should mention .py files"
-        )
+        assert ".py" in fm.get("description", ""), "backend-code-review description should mention .py files"
 
     def test_e2e_testing_frontmatter_description_mentions_playwright(self) -> None:
         """e2e-testing description must mention Playwright or E2E."""
         content = read_file(SKILL_DIRS["e2e-testing"] / "SKILL.md")
         fm = parse_frontmatter(content)
         desc = fm.get("description", "").lower()
-        assert "playwright" in desc or "e2e" in desc, (
-            "e2e-testing description should mention Playwright or E2E"
-        )
+        assert "playwright" in desc or "e2e" in desc, "e2e-testing description should mention Playwright or E2E"
 
 
 # ---------------------------------------------------------------------------
@@ -348,8 +330,7 @@ class TestBackendRuleFiles:
         path = SKILL_DIRS["backend-code-review"] / "references" / ref_file
         content = read_file(path)
         assert re.search(r"[Ss]everity:\s*(critical|suggestion)", content), (
-            f"{ref_file} must contain at least one 'Severity: critical' or "
-            "'Severity: suggestion' annotation"
+            f"{ref_file} must contain at least one 'Severity: critical' or 'Severity: suggestion' annotation"
         )
 
     @pytest.mark.parametrize(
@@ -366,37 +347,27 @@ class TestBackendRuleFiles:
 
     def test_architecture_rule_covers_route_service_model_layering(self) -> None:
         """Architecture rule must cover route/service/model layering."""
-        content = read_file(
-            SKILL_DIRS["backend-code-review"] / "references" / "architecture-rule.md"
-        )
+        content = read_file(SKILL_DIRS["backend-code-review"] / "references" / "architecture-rule.md")
         assert "route" in content.lower() and "service" in content.lower()
 
     def test_db_schema_rule_covers_user_id_scoping(self) -> None:
         """DB schema rule must mention user_id for user-scoped data isolation."""
-        content = read_file(
-            SKILL_DIRS["backend-code-review"] / "references" / "db-schema-rule.md"
-        )
+        content = read_file(SKILL_DIRS["backend-code-review"] / "references" / "db-schema-rule.md")
         assert "user_id" in content
 
     def test_db_schema_rule_covers_dialect_portability(self) -> None:
         """DB schema rule must cover SQLite/PostgreSQL dialect portability."""
-        content = read_file(
-            SKILL_DIRS["backend-code-review"] / "references" / "db-schema-rule.md"
-        )
+        content = read_file(SKILL_DIRS["backend-code-review"] / "references" / "db-schema-rule.md")
         assert "SQLite" in content and "PostgreSQL" in content
 
     def test_sqlalchemy_rule_covers_session_scope(self) -> None:
         """SQLAlchemy rule must mention session_scope context manager."""
-        content = read_file(
-            SKILL_DIRS["backend-code-review"] / "references" / "sqlalchemy-rule.md"
-        )
+        content = read_file(SKILL_DIRS["backend-code-review"] / "references" / "sqlalchemy-rule.md")
         assert "session_scope" in content
 
     def test_repositories_rule_covers_service_factory_pattern(self) -> None:
         """Repositories rule must document the ServiceFactory pattern."""
-        content = read_file(
-            SKILL_DIRS["backend-code-review"] / "references" / "repositories-rule.md"
-        )
+        content = read_file(SKILL_DIRS["backend-code-review"] / "references" / "repositories-rule.md")
         assert "ServiceFactory" in content or "factory" in content.lower()
 
 
@@ -517,9 +488,7 @@ class TestTemplateFileStructure:
         have no mocks — their tests call real functions directly.
         """
         content = read_file(self._get_template_path(template_file))
-        assert "jest.clearAllMocks()" in content, (
-            f"{template_file} must include jest.clearAllMocks() in beforeEach"
-        )
+        assert "jest.clearAllMocks()" in content, f"{template_file} must include jest.clearAllMocks() in beforeEach"
 
     def test_utility_template_does_not_require_beforeEach(self) -> None:
         """Utility templates for pure functions do not need jest.clearAllMocks().
@@ -655,37 +624,27 @@ class TestComponentRefactoringReferences:
 
     def test_complexity_patterns_has_target_metrics(self) -> None:
         """complexity-patterns.md must document target complexity metrics."""
-        content = read_file(
-            SKILL_DIRS["component-refactoring"] / "references" / "complexity-patterns.md"
-        )
+        content = read_file(SKILL_DIRS["component-refactoring"] / "references" / "complexity-patterns.md")
         assert "Target" in content or "target" in content.lower()
 
     def test_complexity_patterns_covers_early_returns(self) -> None:
         """complexity-patterns.md must cover early return pattern."""
-        content = read_file(
-            SKILL_DIRS["component-refactoring"] / "references" / "complexity-patterns.md"
-        )
+        content = read_file(SKILL_DIRS["component-refactoring"] / "references" / "complexity-patterns.md")
         assert "early return" in content.lower() or "Early Return" in content
 
     def test_component_splitting_covers_when_to_split(self) -> None:
         """component-splitting.md must explain when to split components."""
-        content = read_file(
-            SKILL_DIRS["component-refactoring"] / "references" / "component-splitting.md"
-        )
+        content = read_file(SKILL_DIRS["component-refactoring"] / "references" / "component-splitting.md")
         assert "When to Split" in content or "when to split" in content.lower()
 
     def test_hook_extraction_covers_when_to_extract(self) -> None:
         """hook-extraction.md must explain when to extract a hook."""
-        content = read_file(
-            SKILL_DIRS["component-refactoring"] / "references" / "hook-extraction.md"
-        )
+        content = read_file(SKILL_DIRS["component-refactoring"] / "references" / "hook-extraction.md")
         assert "when to" in content.lower() or "When to" in content
 
     def test_component_splitting_covers_file_naming_conventions(self) -> None:
         """component-splitting.md must mention kebab-case naming convention."""
-        content = read_file(
-            SKILL_DIRS["component-refactoring"] / "references" / "component-splitting.md"
-        )
+        content = read_file(SKILL_DIRS["component-refactoring"] / "references" / "component-splitting.md")
         assert "kebab-case" in content or "kebab" in content.lower()
 
 
@@ -703,30 +662,22 @@ class TestFrontendTestingAsyncReference:
 
     def test_async_testing_covers_waitFor(self) -> None:
         """async-testing.md must cover waitFor usage."""
-        content = read_file(
-            SKILL_DIRS["frontend-testing"] / "references" / "async-testing.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-testing"] / "references" / "async-testing.md")
         assert "waitFor" in content
 
     def test_async_testing_covers_findBy_queries(self) -> None:
         """async-testing.md must cover findBy* query patterns."""
-        content = read_file(
-            SKILL_DIRS["frontend-testing"] / "references" / "async-testing.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-testing"] / "references" / "async-testing.md")
         assert "findBy" in content
 
     def test_async_testing_covers_fake_timers(self) -> None:
         """async-testing.md must cover fake timer usage."""
-        content = read_file(
-            SKILL_DIRS["frontend-testing"] / "references" / "async-testing.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-testing"] / "references" / "async-testing.md")
         assert "fake" in content.lower() and "timer" in content.lower()
 
     def test_async_testing_covers_promise_rejection(self) -> None:
         """async-testing.md must cover promise rejection testing."""
-        content = read_file(
-            SKILL_DIRS["frontend-testing"] / "references" / "async-testing.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-testing"] / "references" / "async-testing.md")
         assert "reject" in content.lower() or "rejection" in content.lower()
 
 
@@ -740,30 +691,22 @@ class TestFrontendQueryMutationReferences:
 
     def test_query_patterns_md_covers_useRequestProcessor(self) -> None:
         """query-patterns.md must cover UseRequestProcessor pattern."""
-        content = read_file(
-            SKILL_DIRS["frontend-query-mutation"] / "references" / "query-patterns.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-query-mutation"] / "references" / "query-patterns.md")
         assert "UseRequestProcessor" in content
 
     def test_query_patterns_md_covers_naming_conventions(self) -> None:
         """query-patterns.md must document hook naming conventions."""
-        content = read_file(
-            SKILL_DIRS["frontend-query-mutation"] / "references" / "query-patterns.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-query-mutation"] / "references" / "query-patterns.md")
         assert "naming" in content.lower() or "convention" in content.lower()
 
     def test_runtime_rules_covers_cache_invalidation(self) -> None:
         """runtime-rules.md must cover cache invalidation patterns."""
-        content = read_file(
-            SKILL_DIRS["frontend-query-mutation"] / "references" / "runtime-rules.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-query-mutation"] / "references" / "runtime-rules.md")
         assert "invalidat" in content.lower()
 
     def test_runtime_rules_covers_error_handling(self) -> None:
         """runtime-rules.md must cover error handling."""
-        content = read_file(
-            SKILL_DIRS["frontend-query-mutation"] / "references" / "runtime-rules.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-query-mutation"] / "references" / "runtime-rules.md")
         assert "error" in content.lower()
 
 
@@ -777,30 +720,22 @@ class TestFrontendCodeReviewReferences:
 
     def test_code_quality_md_covers_cn_function(self) -> None:
         """code-quality.md must document the cn() utility for conditional classes."""
-        content = read_file(
-            SKILL_DIRS["frontend-code-review"] / "references" / "code-quality.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-code-review"] / "references" / "code-quality.md")
         assert "cn(" in content or "`cn`" in content
 
     def test_performance_md_covers_memoization(self) -> None:
         """performance.md must cover React.memo or useMemo patterns."""
-        content = read_file(
-            SKILL_DIRS["frontend-code-review"] / "references" / "performance.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-code-review"] / "references" / "performance.md")
         assert "memo" in content.lower() or "useMemo" in content
 
     def test_business_logic_md_covers_custom_nodes(self) -> None:
         """business-logic.md must cover custom node component patterns."""
-        content = read_file(
-            SKILL_DIRS["frontend-code-review"] / "references" / "business-logic.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-code-review"] / "references" / "business-logic.md")
         assert "node" in content.lower() or "custom" in content.lower()
 
     def test_code_quality_md_covers_tailwind(self) -> None:
         """code-quality.md must mention Tailwind CSS styling."""
-        content = read_file(
-            SKILL_DIRS["frontend-code-review"] / "references" / "code-quality.md"
-        )
+        content = read_file(SKILL_DIRS["frontend-code-review"] / "references" / "code-quality.md")
         assert "Tailwind" in content or "tailwind" in content
 
 
@@ -837,9 +772,7 @@ class TestCrossSkillConsistency:
         """Review skills must define an output format."""
         for skill_name in ("backend-code-review", "frontend-code-review"):
             content = read_file(SKILL_DIRS[skill_name] / "SKILL.md")
-            assert "output" in content.lower() or "Output" in content, (
-                f"{skill_name} must define an output format"
-            )
+            assert "output" in content.lower() or "Output" in content, f"{skill_name} must define an output format"
 
     def test_e2e_skill_documents_test_tags(self) -> None:
         """E2E testing skill must document available test tags."""
