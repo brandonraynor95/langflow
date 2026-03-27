@@ -196,6 +196,14 @@ export default function ModelInputComponent({
     ? "No cloud-compatible models"
     : "No models enabled";
 
+  // Reset the ref when the available options change (e.g., cloud mode toggled)
+  // so auto-select can fire again for the new option set.
+  const prevFlatOptionsRef = useRef(flatOptions);
+  if (prevFlatOptionsRef.current !== flatOptions) {
+    prevFlatOptionsRef.current = flatOptions;
+    hasProcessedEmptyRef.current = false;
+  }
+
   useEffect(() => {
     // Only proceed if we have options and haven't selected a value
     if (flatOptions.length > 0 && (!value || value.length === 0)) {

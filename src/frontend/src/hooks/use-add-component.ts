@@ -105,7 +105,7 @@ export function useAddComponent() {
 
       paste({ nodes: [newNode], edges: [] }, pos);
     },
-    [store, paste, filterEdge, cloudOnly],
+    [store, paste, filterEdge, filterType, cloudOnly],
   );
 
   return addComponent;
