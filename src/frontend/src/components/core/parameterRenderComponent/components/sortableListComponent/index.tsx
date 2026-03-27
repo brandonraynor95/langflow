@@ -220,7 +220,9 @@ const SortableListComponent = ({
                 index={index}
                 onRemove={createRemoveHandler(index)}
                 limit={limit}
-                showCloudIncompatibleWarning={isCloudIncompatibleSelection(data)}
+                showCloudIncompatibleWarning={isCloudIncompatibleSelection(
+                  data,
+                )}
               />
             ))}
           </ReactSortable>

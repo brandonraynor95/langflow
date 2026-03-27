@@ -75,8 +75,9 @@ jest.mock("@/controllers/API/queries/models/use-get-model-providers", () => ({
   })),
 }));
 
-let mockEnabledModelsData: { enabled_models: Record<string, Record<string, boolean>> } =
-  { enabled_models: {} };
+let mockEnabledModelsData: {
+  enabled_models: Record<string, Record<string, boolean>>;
+} = { enabled_models: {} };
 
 jest.mock("@/controllers/API/queries/models/use-get-enabled-models", () => ({
   useGetEnabledModels: jest.fn(() => ({

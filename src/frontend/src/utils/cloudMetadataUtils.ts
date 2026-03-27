@@ -15,7 +15,9 @@ function isCloudUiMetadata(value: unknown): value is CloudUiMetadata {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function getCloudUiMetadata(value: unknown): CloudUiMetadata | undefined {
+export function getCloudUiMetadata(
+  value: unknown,
+): CloudUiMetadata | undefined {
   return isCloudUiMetadata(value) ? value : undefined;
 }
 
@@ -32,8 +34,7 @@ export function isCloudIncompatibleOption(
   incompatibleOptions: readonly unknown[] = [],
 ): boolean {
   return incompatibleOptions.some(
-    (incompatibleOption) =>
-      incompatibleOption === getCloudOptionName(option),
+    (incompatibleOption) => incompatibleOption === getCloudOptionName(option),
   );
 }
 
