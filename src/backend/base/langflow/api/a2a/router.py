@@ -10,12 +10,15 @@ A2A endpoints are active. When disabled, all public routes return 404.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 import uuid
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from lfx.log.logger import logger
 from pydantic import BaseModel
 from sqlmodel import select
@@ -23,6 +26,7 @@ from sqlmodel import select
 from langflow.api.a2a.agent_card import generate_agent_card
 from langflow.api.a2a.config import validate_a2a_slug, validate_flow_eligible_for_a2a
 from langflow.api.a2a.flow_adapter import translate_inbound, translate_outbound
+from langflow.api.a2a.streaming import A2AStreamBridge
 from langflow.api.a2a.task_manager import TaskManager
 from langflow.api.utils import CurrentActiveUser, DbSession
 from langflow.services.database.models.flow.model import Flow
@@ -228,6 +232,130 @@ async def _execute_flow(flow: Flow, flow_inputs: dict, session) -> Any:
         flow=flow,
         input_request=input_request,
         stream=False,
+    )
+
+
+# ---------------------------------------------------------------------------
+# message:stream endpoint
+# ---------------------------------------------------------------------------
+
+
+@a2a_router.post("/a2a/{agent_slug}/v1/message:stream")
+async def message_stream(
+    agent_slug: str,
+    body: dict[str, Any],
+    session: DbSession,
+    current_user: CurrentActiveUser,  # noqa: ARG001
+):
+    """Send an A2A message and receive a streaming SSE response.
+
+    Returns a StreamingResponse with A2A-formatted SSE events:
+    - TaskStatusUpdateEvent (working, completed, failed)
+    - TaskArtifactUpdateEvent (partial text tokens)
+
+    The flow executes in a background task while events are streamed
+    to the client in real time.
+    """
+    if not _a2a_is_enabled():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="A2A is not enabled")
+
+    flow = await _get_flow_by_slug(session, agent_slug)
+    if not flow:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+
+    message = body.get("message", {})
+    context_id = message.get("contextId") or str(uuid.uuid4())
+    flow_secret = str(flow.id)
+
+    # Create task
+    task = await _task_manager.create_task(
+        flow_id=str(flow.id),
+        context_id=context_id,
+    )
+    task_id = task["id"]
+
+    # Create the stream bridge
+    bridge = A2AStreamBridge(task_id=task_id, context_id=context_id)
+
+    async def _run_and_stream():
+        """Background: execute flow and feed events to bridge."""
+        try:
+            flow_inputs = await translate_inbound(message, flow_secret=flow_secret)
+            await _task_manager.update_state(task_id, "working")
+
+            # Emit initial WORKING status
+            working_event = {
+                "kind": "status-update",
+                "taskId": task_id,
+                "contextId": context_id,
+                "status": {"state": "working"},
+                "final": False,
+            }
+            await bridge.output_queue.put(working_event)
+
+            # Execute flow (non-streaming for now — streaming bridge
+            # will be enhanced in future to use EventManager)
+            result = await _execute_flow(flow, flow_inputs, session)
+
+            # Translate and emit artifacts
+            artifacts = await translate_outbound(result.outputs or [])
+            for artifact in artifacts:
+                artifact_event = {
+                    "kind": "artifact-update",
+                    "taskId": task_id,
+                    "contextId": context_id,
+                    "artifact": artifact,
+                    "append": False,
+                    "lastChunk": True,
+                }
+                await bridge.output_queue.put(artifact_event)
+
+            # Emit COMPLETED
+            await _task_manager.update_state(task_id, "completed", artifacts=artifacts)
+            completed_event = {
+                "kind": "status-update",
+                "taskId": task_id,
+                "contextId": context_id,
+                "status": {"state": "completed"},
+                "final": True,
+            }
+            await bridge.output_queue.put(completed_event)
+
+        except Exception as e:
+            logger.exception(f"A2A streaming flow execution failed: {e}")
+            await _task_manager.update_state(task_id, "failed", error=str(e))
+            failed_event = {
+                "kind": "status-update",
+                "taskId": task_id,
+                "contextId": context_id,
+                "status": {
+                    "state": "failed",
+                    "message": {
+                        "role": "agent",
+                        "parts": [{"kind": "text", "text": str(e)}],
+                    },
+                },
+                "final": True,
+            }
+            await bridge.output_queue.put(failed_event)
+
+        finally:
+            await bridge.finish()
+
+    async def _event_generator():
+        """Yield SSE-formatted events from the bridge output queue."""
+        while True:
+            event = await bridge.output_queue.get()
+            if event is None:
+                break
+            yield f"data: {json.dumps(event)}\n\n"
+
+    # Start flow execution in background
+    asyncio.create_task(_run_and_stream())
+
+    return StreamingResponse(
+        _event_generator(),
+        media_type="text/event-stream",
     )
 
 
