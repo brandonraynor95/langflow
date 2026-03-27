@@ -13,5 +13,7 @@ def _reset_a2a_task_manager():
     from langflow.api.a2a.router import _task_manager
 
     _task_manager._tasks.clear()
+    _task_manager._pending_inputs.clear()
     yield
     _task_manager._tasks.clear()
+    _task_manager._pending_inputs.clear()

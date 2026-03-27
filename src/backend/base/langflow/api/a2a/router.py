@@ -172,6 +172,18 @@ async def message_send(
     requested_task_id = body.get("taskId")
     context_id = message.get("contextId") or str(uuid.uuid4())
 
+    # Check for INPUT_REQUIRED follow-up: if the client sends a message
+    # with a taskId that's in INPUT_REQUIRED state, resolve the pending input
+    if requested_task_id and _task_manager.has_pending_input(requested_task_id):
+        # Extract text from the follow-up message
+        parts = message.get("parts", [])
+        follow_up_text = " ".join(
+            p.get("text", "") for p in parts if p.get("kind") == "text"
+        )
+        await _task_manager.resolve_input(requested_task_id, follow_up_text)
+        task = await _task_manager.get_task(requested_task_id)
+        return task
+
     # Idempotent retry check
     if requested_task_id:
         existing = await _task_manager.handle_retry(requested_task_id)
