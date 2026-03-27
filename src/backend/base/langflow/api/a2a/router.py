@@ -11,16 +11,24 @@ A2A endpoints are active. When disabled, all public routes return 404.
 from __future__ import annotations
 
 import os
+import uuid
+from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
+from lfx.log.logger import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
 from langflow.api.a2a.agent_card import generate_agent_card
 from langflow.api.a2a.config import validate_a2a_slug, validate_flow_eligible_for_a2a
+from langflow.api.a2a.flow_adapter import translate_inbound, translate_outbound
+from langflow.api.a2a.task_manager import TaskManager
 from langflow.api.utils import CurrentActiveUser, DbSession
 from langflow.services.database.models.flow.model import Flow
+
+# Module-level task manager instance (in-memory for v1)
+_task_manager = TaskManager()
 
 # ---------------------------------------------------------------------------
 # Pydantic models for request/response
@@ -125,6 +133,154 @@ async def get_extended_agent_card(
     # Extended card can include additional details in the future
     card["extended"] = True
     return card
+
+
+# ---------------------------------------------------------------------------
+# message:send endpoint
+# ---------------------------------------------------------------------------
+
+
+@a2a_router.post("/a2a/{agent_slug}/v1/message:send")
+async def message_send(
+    agent_slug: str,
+    body: dict[str, Any],
+    session: DbSession,
+    current_user: CurrentActiveUser,  # noqa: ARG001
+):
+    """Send an A2A message to a Langflow agent (synchronous).
+
+    Executes the flow and returns a completed/failed Task.
+
+    The request body follows the A2A protocol:
+    {
+        "message": { "role": "user", "parts": [...], "contextId": "..." },
+        "taskId": "optional-for-retry"
+    }
+    """
+    if not _a2a_is_enabled():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="A2A is not enabled")
+
+    flow = await _get_flow_by_slug(session, agent_slug)
+    if not flow:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+
+    message = body.get("message", {})
+    requested_task_id = body.get("taskId")
+    context_id = message.get("contextId") or str(uuid.uuid4())
+
+    # Idempotent retry check
+    if requested_task_id:
+        existing = await _task_manager.handle_retry(requested_task_id)
+        if existing is not None:
+            return existing
+
+    # Create task
+    task = await _task_manager.create_task(
+        flow_id=str(flow.id),
+        context_id=context_id,
+        task_id=requested_task_id,
+    )
+    task_id = task["id"]
+
+    try:
+        # Translate A2A message → Langflow inputs
+        flow_secret = str(flow.id)  # Use flow ID as HMAC secret for v1
+        flow_inputs = await translate_inbound(message, flow_secret=flow_secret)
+
+        # Update to WORKING
+        await _task_manager.update_state(task_id, "working")
+
+        # Execute the flow
+        result = await _execute_flow(flow, flow_inputs, session)
+
+        # Translate outputs → A2A artifacts
+        artifacts = await translate_outbound(result.outputs or [])
+
+        # Update to COMPLETED
+        task = await _task_manager.update_state(task_id, "completed", artifacts=artifacts)
+        task["contextId"] = context_id
+        return task
+
+    except Exception as e:
+        logger.exception(f"A2A flow execution failed for task {task_id}: {e}")
+        task = await _task_manager.update_state(task_id, "failed", error=str(e))
+        task["contextId"] = context_id
+        return task
+
+
+async def _execute_flow(flow: Flow, flow_inputs: dict, session) -> Any:
+    """Execute a Langflow flow with the given inputs.
+
+    Wraps simple_run_flow() with the right parameters.
+    """
+    from langflow.api.v1.endpoints import simple_run_flow
+    from langflow.api.v1.schemas import SimplifiedAPIRequest
+
+    input_request = SimplifiedAPIRequest(
+        input_value=flow_inputs["input_value"],
+        input_type=flow_inputs.get("input_type", "chat"),
+        output_type=flow_inputs.get("output_type", "chat"),
+        tweaks=flow_inputs.get("tweaks"),
+        session_id=flow_inputs.get("session_id"),
+    )
+
+    return await simple_run_flow(
+        flow=flow,
+        input_request=input_request,
+        stream=False,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Task endpoints
+# ---------------------------------------------------------------------------
+
+
+@a2a_router.get("/a2a/{agent_slug}/v1/tasks/{task_id}")
+async def get_task(
+    agent_slug: str,  # noqa: ARG001
+    task_id: str,
+    session: DbSession,  # noqa: ARG001
+    current_user: CurrentActiveUser,  # noqa: ARG001
+):
+    """Get the current state of an A2A task.
+
+    Used for polling when the client doesn't have an SSE connection.
+    """
+    task = await _task_manager.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    return task
+
+
+@a2a_router.get("/a2a/{agent_slug}/v1/tasks")
+async def list_tasks(
+    agent_slug: str,  # noqa: ARG001
+    session: DbSession,  # noqa: ARG001
+    current_user: CurrentActiveUser,  # noqa: ARG001
+    contextId: str | None = Query(None),  # noqa: N803
+):
+    """List A2A tasks, optionally filtered by contextId."""
+    return await _task_manager.list_tasks(context_id=contextId)
+
+
+@a2a_router.post("/a2a/{agent_slug}/v1/tasks/{task_id}:cancel")
+async def cancel_task(
+    agent_slug: str,  # noqa: ARG001
+    task_id: str,
+    session: DbSession,  # noqa: ARG001
+    current_user: CurrentActiveUser,  # noqa: ARG001
+):
+    """Cancel an A2A task (best-effort)."""
+    task = await _task_manager.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    try:
+        updated = await _task_manager.update_state(task_id, "canceled")
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")  # noqa: B904
+    return updated
 
 
 # ---------------------------------------------------------------------------
