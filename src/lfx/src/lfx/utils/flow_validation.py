@@ -233,7 +233,8 @@ async def ensure_component_hash_lookups_loaded() -> dict[str, str] | None:
     if not settings_service.settings.allow_custom_components and component_cache.type_to_current_hash is None:
         try:
             await get_and_cache_all_types_dict(settings_service)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("Failed to populate component template hash lookups", exc_info=exc)
+            raise
 
     return component_cache.type_to_current_hash

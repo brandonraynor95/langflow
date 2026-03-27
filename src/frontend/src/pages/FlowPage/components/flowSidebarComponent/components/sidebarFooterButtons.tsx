@@ -2,13 +2,10 @@ import { useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
 import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar";
-import {
-  useGetConfig,
-  isFullConfig,
-} from "@/controllers/API/queries/config/use-get-config";
 import { ENABLE_NEW_SIDEBAR } from "@/customization/feature-flags";
 import { useCustomNavigate } from "@/customization/hooks/use-custom-navigate";
 import AddMcpServerModal from "@/modals/addMcpServerModal";
+import { useUtilityStore } from "@/stores/utilityStore";
 
 const SidebarMenuButtons = ({
   customComponent,
@@ -18,8 +15,9 @@ const SidebarMenuButtons = ({
   const { activeSection } = useSidebar();
   const [addMcpOpen, setAddMcpOpen] = useState(false);
   const navigate = useCustomNavigate();
-  const { data: config } = useGetConfig();
-  const allowCustomComponents = config?.allow_custom_components ?? true;
+  const allowCustomComponents = useUtilityStore(
+    (state) => state.allowCustomComponents,
+  );
 
   const handleAddMcpServerClick = () => {
     setAddMcpOpen(true);

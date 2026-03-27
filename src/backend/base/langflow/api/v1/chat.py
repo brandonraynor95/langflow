@@ -187,7 +187,7 @@ async def build_flow(
     try:
         if data:
             validate_flow_for_current_settings(data.model_dump())
-        if flow and flow.data:
+        elif flow and flow.data:
             validate_flow_for_current_settings(flow.data)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -645,16 +645,16 @@ async def build_public_tmp(
         Dict with job_id that can be used to poll for build status
     """
     try:
-        # Validate the stored flow data (don't execute unvalidated code from DB)
-        # Note: public flows don't accept client-side data — always load from DB.
+        # Verify this is a public flow and get the associated user
+        client_id = request.cookies.get("client_id")
+        owner_user, new_flow_id = await verify_public_flow_and_get_user(flow_id=flow_id, client_id=client_id)
+
+        # Validate the stored flow data only after the public-access boundary
+        # has been enforced. Public flows never accept client-supplied data.
         async with session_scope() as session:
             flow = await session.get(Flow, flow_id)
             if flow and flow.data:
                 validate_flow_for_current_settings(flow.data)
-
-        # Verify this is a public flow and get the associated user
-        client_id = request.cookies.get("client_id")
-        owner_user, new_flow_id = await verify_public_flow_and_get_user(flow_id=flow_id, client_id=client_id)
 
         # Start the flow build using the new flow ID
         # data is always None for public flows - they load from database only

@@ -1,6 +1,6 @@
-import { useGetConfig } from "@/controllers/API/queries/config/use-get-config";
 import { usePostValidateCode } from "@/controllers/API/queries/nodes/use-post-validate-code";
 import { usePostValidateComponentCode } from "@/controllers/API/queries/nodes/use-post-validate-component-code";
+import { useUtilityStore } from "@/stores/utilityStore";
 import { clearHandlesFromAdvancedFields } from "@/utils/reactflowUtils";
 import "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/ext-language_tools";
@@ -45,8 +45,10 @@ export default function CodeAreaModal({
   setOpen: mySetOpen,
   componentId,
 }: codeAreaModalPropsType): JSX.Element {
-  const { data: config } = useGetConfig();
-  const isBlocked = !(config?.allow_custom_components ?? true);
+  const allowCustomComponents = useUtilityStore(
+    (state) => state.allowCustomComponents,
+  );
+  const isBlocked = !allowCustomComponents;
 
   const [code, setCode] = useState(value);
   const [open, setOpen] =

@@ -36,6 +36,23 @@ async def test_ensure_component_hash_lookups_loaded_requires_settings_service(mo
         await ensure_component_hash_lookups_loaded()
 
 
+@pytest.mark.asyncio
+async def test_ensure_component_hash_lookups_loaded_surfaces_loader_failures(mocker):
+    """Loader failures should not be masked as a transient initialization state."""
+    settings_service = SimpleNamespace(
+        settings=SimpleNamespace(allow_custom_components=False),
+    )
+    mocker.patch("lfx.services.deps.get_settings_service", return_value=settings_service)
+    mocker.patch("lfx.interface.components.component_cache.type_to_current_hash", None)
+    mocker.patch(
+        "lfx.interface.components.get_and_cache_all_types_dict",
+        side_effect=RuntimeError("component import failed"),
+    )
+
+    with pytest.raises(RuntimeError, match="component import failed"):
+        await ensure_component_hash_lookups_loaded()
+
+
 def test_validate_flow_for_current_settings_requires_settings_service(mocker):
     """Unified validation should also require the settings service."""
     mocker.patch("lfx.services.deps.get_settings_service", return_value=None)

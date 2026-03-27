@@ -1,4 +1,5 @@
 import { ENABLE_KNOWLEDGE_BASES } from "@/customization/feature-flags";
+import useFlowStore from "@/stores/flowStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import { useTypesStore } from "@/stores/typesStore";
 import type {
@@ -37,6 +38,9 @@ export const useGetTypes: useQueryFunctionType<
       }
 
       setTypes(data);
+      useFlowStore
+        .getState()
+        .updateComponentsToUpdate(useFlowStore.getState().nodes);
       return data;
     } catch (error) {
       console.error("[Types] Error fetching types:", error);

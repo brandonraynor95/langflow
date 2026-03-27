@@ -1,6 +1,6 @@
 import { GRADIENT_CLASS } from "@/constants/constants";
-import { useGetConfig } from "@/controllers/API/queries/config/use-get-config";
 import CodeAreaModal from "@/modals/codeAreaModal";
+import { useUtilityStore } from "@/stores/utilityStore";
 import { cn } from "../../../../../utils/utils";
 import IconComponent from "../../../../common/genericIconComponent";
 import { Button } from "../../../../ui/button";
@@ -55,8 +55,10 @@ export default function CodeAreaComponent({
   placeholder,
   showParameter = true,
 }: InputProps<string>): JSX.Element | null {
-  const { data: config } = useGetConfig();
-  const isBlocked = !(config?.allow_custom_components ?? true);
+  const allowCustomComponents = useUtilityStore(
+    (state) => state.allowCustomComponents,
+  );
+  const isBlocked = !allowCustomComponents;
 
   const renderCodeText = () => (
     <span

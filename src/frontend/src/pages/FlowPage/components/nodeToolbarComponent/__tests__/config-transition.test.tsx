@@ -1,11 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import { useUtilityStore } from "@/stores/utilityStore";
 import NodeToolbarComponent from "../index";
-
-let mockConfig:
-  | {
-      allow_custom_components: boolean;
-    }
-  | undefined;
 
 const mockFreezeAllVertices = jest.fn();
 const mockAddFlow = jest.fn();
@@ -61,12 +56,6 @@ jest.mock("@/components/ui/button", () => ({
       {children}
     </button>
   ),
-}));
-
-jest.mock("@/controllers/API/queries/config/use-get-config", () => ({
-  useGetConfig: () => ({
-    data: mockConfig,
-  }),
 }));
 
 jest.mock("@/controllers/API/queries/nodes/use-post-template-value", () => ({
@@ -247,16 +236,27 @@ const getProps = () => ({
 describe("NodeToolbarComponent config transitions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    act(() => {
+      useUtilityStore.setState({ allowCustomComponents: false });
+    });
   });
 
-  it("removes the Code entrypoint when config resolves to disabled without remount", () => {
-    mockConfig = undefined;
-
+  it("keeps the Code entrypoint hidden until config enables custom components", () => {
     const { rerender } = render(<NodeToolbarComponent {...getProps()} />);
+
+    expect(screen.queryByTestId("code-button-modal")).not.toBeInTheDocument();
+
+    act(() => {
+      useUtilityStore.setState({ allowCustomComponents: true });
+    });
+
+    rerender(<NodeToolbarComponent {...getProps()} />);
 
     expect(screen.getByTestId("code-button-modal")).toBeInTheDocument();
 
-    mockConfig = { allow_custom_components: false };
+    act(() => {
+      useUtilityStore.setState({ allowCustomComponents: false });
+    });
 
     rerender(<NodeToolbarComponent {...getProps()} />);
 

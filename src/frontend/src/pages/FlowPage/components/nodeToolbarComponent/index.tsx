@@ -7,7 +7,6 @@ import useHandleNodeClass from "@/CustomNodes/hooks/use-handle-node-class";
 import ShadTooltip from "@/components/common/shadTooltipComponent";
 import ToggleShadComponent from "@/components/core/parameterRenderComponent/components/toggleShadComponent";
 import { Button } from "@/components/ui/button";
-import { useGetConfig } from "@/controllers/API/queries/config/use-get-config";
 import { usePostTemplateValue } from "@/controllers/API/queries/nodes/use-post-template-value";
 import { usePostRetrieveVertexOrder } from "@/controllers/API/queries/vertex";
 import { customOpenNewTab } from "@/customization/utils/custom-open-new-tab";
@@ -26,6 +25,7 @@ import useFlowStore from "../../../../stores/flowStore";
 import useFlowsManagerStore from "../../../../stores/flowsManagerStore";
 import { useShortcutsStore } from "../../../../stores/shortcuts";
 import { useStoreStore } from "../../../../stores/storeStore";
+import { useUtilityStore } from "../../../../stores/utilityStore";
 import type { nodeToolbarPropsType } from "../../../../types/components";
 import type { FlowType } from "../../../../types/flow";
 import {
@@ -108,8 +108,9 @@ const NodeToolbarComponent = memo(
       Object.values(flow).includes(data.node?.display_name!),
     );
 
-    const { data: config } = useGetConfig();
-    const allowCustomComponents = config?.allow_custom_components ?? true;
+    const allowCustomComponents = useUtilityStore(
+      (state) => state.allowCustomComponents,
+    );
 
     const nodeLength = useMemo(() => getNodeLength(data), [data]);
     const hasCode = useMemo(
