@@ -1,14 +1,13 @@
 const mockApiGet = jest.fn();
 const mockSetTypes = jest.fn();
 const mockUpdateComponentsToUpdate = jest.fn();
-const mockNodes = [{ id: "node-1" }];
+let mockNodes = [{ id: "node-1" }];
 
 const mockUseTypesStore = Object.assign(
-  jest.fn(
-    (selector: (state: { setTypes: typeof mockSetTypes }) => unknown) =>
-      selector({
-        setTypes: mockSetTypes,
-      }),
+  jest.fn((selector: (state: { setTypes: typeof mockSetTypes }) => unknown) =>
+    selector({
+      setTypes: mockSetTypes,
+    }),
   ),
   {
     getState: () => ({
@@ -61,9 +60,7 @@ jest.mock("@/stores/flowStore", () => ({
 
 jest.mock("@/stores/flowsManagerStore", () => ({
   __esModule: true,
-  default: (
-    selector: (state: { setIsLoading: jest.Mock }) => unknown,
-  ) =>
+  default: (selector: (state: { setIsLoading: jest.Mock }) => unknown) =>
     selector({
       setIsLoading: jest.fn(),
     }),
@@ -78,6 +75,7 @@ import { useGetTypes } from "../use-get-types";
 describe("useGetTypes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockNodes = [{ id: "node-1" }];
   });
 
   it("recomputes componentsToUpdate after templates load", async () => {
@@ -96,5 +94,24 @@ describe("useGetTypes", () => {
 
     expect(mockSetTypes).toHaveBeenCalledWith(responseData);
     expect(mockUpdateComponentsToUpdate).toHaveBeenCalledWith(mockNodes);
+  });
+
+  it("skips componentsToUpdate recompute when no nodes are present", async () => {
+    const responseData = {
+      test_category: {
+        TestComponent: {
+          template: {},
+        },
+      },
+    };
+    mockNodes = [];
+    mockApiGet.mockResolvedValue({ data: responseData });
+
+    useGetTypes();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockSetTypes).toHaveBeenCalledWith(responseData);
+    expect(mockUpdateComponentsToUpdate).not.toHaveBeenCalled();
   });
 });

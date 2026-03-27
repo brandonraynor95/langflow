@@ -104,9 +104,10 @@ export const useGetConfig: useQueryFunctionType<
       setEventDelivery(data.event_delivery ?? EventDeliveryType.POLLING);
       const allowCustomComponents = data.allow_custom_components ?? true;
       setAllowCustomComponents(allowCustomComponents);
-      useFlowStore
-        .getState()
-        .updateComponentsToUpdate(useFlowStore.getState().nodes);
+      const { nodes, updateComponentsToUpdate } = useFlowStore.getState();
+      if (nodes.length > 0) {
+        updateComponentsToUpdate(nodes);
+      }
 
       // Set authenticated-only fields if present (full config)
       if (isFullConfig(data)) {

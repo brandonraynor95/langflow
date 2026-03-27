@@ -38,9 +38,10 @@ export const useGetTypes: useQueryFunctionType<
       }
 
       setTypes(data);
-      useFlowStore
-        .getState()
-        .updateComponentsToUpdate(useFlowStore.getState().nodes);
+      const { nodes, updateComponentsToUpdate } = useFlowStore.getState();
+      if (nodes.length > 0) {
+        updateComponentsToUpdate(nodes);
+      }
       return data;
     } catch (error) {
       console.error("[Types] Error fetching types:", error);
