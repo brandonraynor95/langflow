@@ -47,59 +47,34 @@ export const MOCK_PROVIDER_INSTANCES: ProviderAccount[] = [
 ];
 
 export const MOCK_CONNECTIONS: ConnectionItem[] = [
-  { id: "conn-1", name: "Production Connection A", variableCount: 12 },
-  { id: "conn-2", name: "Production Connection B", variableCount: 8 },
-  { id: "conn-3", name: "Staging Connection A", variableCount: 10 },
-  { id: "conn-4", name: "Development Connection", variableCount: 6 },
+  {
+    id: "conn-1",
+    name: "Production Connection A",
+    variableCount: 12,
+    isNew: false,
+    environmentVariables: {},
+  },
+  {
+    id: "conn-2",
+    name: "Production Connection B",
+    variableCount: 8,
+    isNew: false,
+    environmentVariables: {},
+  },
+  {
+    id: "conn-3",
+    name: "Staging Connection A",
+    variableCount: 10,
+    isNew: false,
+    environmentVariables: {},
+  },
+  {
+    id: "conn-4",
+    name: "Development Connection",
+    variableCount: 6,
+    isNew: false,
+    environmentVariables: {},
+  },
 ];
 
-export const MOCK_DEPLOYMENTS: Deployment[] = [
-  {
-    id: "1",
-    name: "Staging Environment",
-    url: "https://api.dev.example.com",
-    type: "agent",
-    status: "draft",
-    health: "pending",
-    attachedCount: 2,
-    provider: "Langflow Cloud",
-    lastModified: "2026-02-10",
-    lastModifiedBy: "Sarah Han",
-  },
-  {
-    id: "2",
-    name: "Production Main Deployment",
-    url: "https://api.production.example.com",
-    type: "agent",
-    status: "production",
-    health: "healthy",
-    attachedCount: 1,
-    provider: "Langflow Cloud",
-    lastModified: "2026-02-09",
-    lastModifiedBy: "Sarah Han",
-  },
-  {
-    id: "3",
-    name: "Test Environment A",
-    url: "https://api.staging.example.com",
-    type: "agent",
-    status: "draft",
-    health: "healthy",
-    attachedCount: 1,
-    provider: "watsonx Orchestrate",
-    lastModified: "2026-02-08",
-    lastModifiedBy: "Sarah Han",
-  },
-  {
-    id: "4",
-    name: "Development Instance",
-    url: "https://api.dev.example.com",
-    type: "mcp",
-    status: "draft",
-    health: "unhealthy",
-    attachedCount: 2,
-    provider: "AWS Cloud Deploy",
-    lastModified: "2026-02-06",
-    lastModifiedBy: "Sarah Han",
-  },
-];
+export const MOCK_DEPLOYMENTS: Deployment[] = [];

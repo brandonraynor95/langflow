@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Button } from "@/components/ui/button";
+import { useGetProviderAccounts } from "@/controllers/API/queries/deployment-provider-accounts";
 import { useGetDeployments } from "@/controllers/API/queries/deployments";
 import DeploymentStepperModal from "./components/deployment-stepper-modal";
 import DeploymentsEmptyState from "./components/deployments-empty-state";
@@ -15,12 +16,16 @@ export default function DeploymentsPage() {
     useState<DeploymentSubTab>("deployments");
   const [stepperOpen, setStepperOpen] = useState(false);
 
-  // TODO: replace "mock-provider-id" with a real selected provider_id
-  const { data, isLoading } = useGetDeployments({
-    provider_id: "mock-provider-id",
-  });
+  const { data: providersData } = useGetProviderAccounts({});
+  const providers = providersData?.providers ?? [];
+  const firstProviderId = providers[0]?.id ?? "";
+
+  const { data, isLoading } = useGetDeployments(
+    { provider_id: firstProviderId },
+    { enabled: !!firstProviderId },
+  );
   const deployments = data?.deployments ?? [];
-  const isEmpty = deployments.length === 0;
+  const isEmpty = !firstProviderId || deployments.length === 0;
 
   return (
     <div className="flex flex-col gap-4 pt-4">
@@ -43,7 +48,10 @@ export default function DeploymentsPage() {
             onCreateDeployment={() => setStepperOpen(true)}
           />
         ) : (
-          <DeploymentsTable deployments={deployments} />
+          <DeploymentsTable
+            deployments={deployments}
+            providerName={providers[0]?.name ?? ""}
+          />
         ))}
 
       {activeSubTab === "providers" && (

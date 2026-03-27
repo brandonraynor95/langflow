@@ -8,6 +8,8 @@ import {
   useMemo,
   useState,
 } from "react";
+import type { ProviderAccountCreateRequest } from "@/controllers/API/queries/deployment-provider-accounts/use-post-provider-account";
+import type { DeploymentCreateRequest } from "@/controllers/API/queries/deployments/use-post-deployment";
 import { MOCK_CONNECTIONS } from "../mock-data";
 import type {
   ConnectionItem,
@@ -16,6 +18,7 @@ import type {
   ProviderAccount,
   ProviderCredentials,
 } from "../types";
+import { toResourceNamePrefix } from "../types";
 
 interface DeploymentStepperContextType {
   // Navigation
@@ -51,6 +54,11 @@ interface DeploymentStepperContextType {
   ) => void;
   attachedConnectionByFlow: Map<string, string[]>;
   setAttachedConnectionByFlow: Dispatch<SetStateAction<Map<string, string[]>>>;
+
+  // Deploy
+  needsProviderAccountCreation: boolean;
+  buildProviderAccountPayload: () => ProviderAccountCreateRequest | null;
+  buildDeploymentPayload: (providerId: string) => DeploymentCreateRequest;
 }
 
 const DeploymentStepperContext =
@@ -84,8 +92,15 @@ export function DeploymentStepperProvider({
     Map<string, string[]>
   >(new Map());
 
+  const hasValidCredentials =
+    credentials.name.trim() !== "" &&
+    credentials.api_key.trim() !== "" &&
+    credentials.provider_url.trim() !== "";
+
   const canGoNext =
-    (currentStep === 1 && selectedProvider !== null) ||
+    (currentStep === 1 &&
+      selectedProvider !== null &&
+      (selectedInstance !== null || hasValidCredentials)) ||
     (currentStep === 2 && deploymentName.trim() !== "") ||
     (currentStep === 3 && attachedConnectionByFlow.size > 0) ||
     currentStep === 4;
@@ -120,6 +135,94 @@ export function DeploymentStepperProvider({
     [],
   );
 
+  const needsProviderAccountCreation =
+    selectedInstance === null && hasValidCredentials;
+
+  const buildProviderAccountPayload =
+    useCallback((): ProviderAccountCreateRequest | null => {
+      if (!hasValidCredentials) return null;
+      return {
+        name: credentials.name.trim(),
+        provider_key: "watsonx-orchestrate",
+        provider_url: credentials.provider_url.trim(),
+        provider_data: { api_key: credentials.api_key.trim() },
+      };
+    }, [credentials, hasValidCredentials]);
+
+  const buildDeploymentPayload = useCallback(
+    (providerId: string): DeploymentCreateRequest => {
+      // Collect all unique connection IDs referenced across all flows
+      const allConnectionIds = new Set<string>();
+      Array.from(attachedConnectionByFlow.values()).forEach((ids) => {
+        ids.forEach((id) => allConnectionIds.add(id));
+      });
+
+      const existingAppIds: string[] = [];
+      const rawPayloads: Array<{
+        app_id: string;
+        environment_variables: Record<string, { value: string; source: "raw" }>;
+      }> = [];
+
+      Array.from(allConnectionIds).forEach((id) => {
+        const conn = connections.find((c) => c.id === id);
+        if (conn?.isNew) {
+          const envVarsWrapped: Record<
+            string,
+            { value: string; source: "raw" }
+          > = {};
+          Object.entries(conn.environmentVariables).forEach(([k, v]) => {
+            envVarsWrapped[k] = { value: v, source: "raw" };
+          });
+          rawPayloads.push({
+            app_id: id,
+            environment_variables: envVarsWrapped,
+          });
+        } else {
+          existingAppIds.push(id);
+        }
+      });
+
+      const operations: DeploymentCreateRequest["provider_data"]["operations"] =
+        [];
+      for (const [flowId, connectionIds] of Array.from(
+        attachedConnectionByFlow,
+      )) {
+        const versionEntry = selectedVersionByFlow.get(flowId);
+        if (!versionEntry || connectionIds.length === 0) continue;
+        operations.push({
+          op: "bind",
+          flow_version_id: versionEntry.versionId,
+          app_ids: connectionIds,
+        });
+      }
+
+      return {
+        provider_id: providerId,
+        spec: {
+          name: deploymentName,
+          description: deploymentDescription,
+          type: deploymentType,
+        },
+        provider_data: {
+          resource_name_prefix: toResourceNamePrefix(deploymentName),
+          operations,
+          connections: {
+            existing_app_ids: existingAppIds,
+            raw_payloads: rawPayloads,
+          },
+        },
+      };
+    },
+    [
+      attachedConnectionByFlow,
+      connections,
+      deploymentDescription,
+      deploymentName,
+      deploymentType,
+      selectedVersionByFlow,
+    ],
+  );
+
   const value = useMemo<DeploymentStepperContextType>(
     () => ({
       currentStep,
@@ -144,6 +247,9 @@ export function DeploymentStepperProvider({
       handleSelectVersion,
       attachedConnectionByFlow,
       setAttachedConnectionByFlow,
+      needsProviderAccountCreation,
+      buildProviderAccountPayload,
+      buildDeploymentPayload,
     }),
     [
       currentStep,
@@ -161,6 +267,9 @@ export function DeploymentStepperProvider({
       selectedVersionByFlow,
       handleSelectVersion,
       attachedConnectionByFlow,
+      needsProviderAccountCreation,
+      buildProviderAccountPayload,
+      buildDeploymentPayload,
     ],
   );
 

@@ -4,6 +4,8 @@ export interface ConnectionItem {
   id: string;
   name: string;
   variableCount: number;
+  isNew: boolean;
+  environmentVariables: Record<string, string>;
 }
 
 export interface DeploymentProvider {
@@ -31,21 +33,24 @@ export interface ProviderCredentials {
   api_key: string;
 }
 
+export function toResourceNamePrefix(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50);
+}
+
 export type DeploymentType = "agent" | "mcp";
-
-export type DeploymentStatus = "draft" | "production";
-
-export type DeploymentHealth = "healthy" | "unhealthy" | "pending";
 
 export interface Deployment {
   id: string;
   name: string;
-  url: string;
+  description: string | null;
   type: DeploymentType;
-  status: DeploymentStatus;
-  health: DeploymentHealth;
-  attachedCount: number;
-  provider: string;
-  lastModified: string;
-  lastModifiedBy: string;
+  created_at: string;
+  updated_at: string;
+  provider_data: Record<string, unknown> | null;
+  resource_key: string;
+  attached_count: number;
 }

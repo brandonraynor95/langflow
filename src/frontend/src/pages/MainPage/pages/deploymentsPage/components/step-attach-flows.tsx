@@ -105,13 +105,22 @@ export default function StepAttachFlows() {
   };
 
   const handleCreateConnection = () => {
+    const filteredVars = envVars.filter((v) => v.key.trim());
+    const environmentVariables: Record<string, string> = {};
+    for (const v of filteredVars) {
+      environmentVariables[v.key.trim()] = v.value;
+    }
     const newConn: ConnectionItem = {
-      id: crypto.randomUUID(),
+      id: `conn_${crypto.randomUUID().replace(/-/g, "_")}`,
       name: newConnectionName.trim(),
-      variableCount: envVars.filter((v) => v.key.trim()).length,
+      variableCount: filteredVars.length,
+      isNew: true,
+      environmentVariables,
     };
     setConnections((prev) => [...prev, newConn]);
-    setSelectedConnections((prev) => new Set([...prev, newConn.id]));
+    setSelectedConnections(
+      (prev) => new Set([...Array.from(prev), newConn.id]),
+    );
     setConnectionTab("available");
     setNewConnectionName("");
     setNewConnectionDescription("");
@@ -278,7 +287,7 @@ function VersionPanel({
   isLoadingVersions: boolean;
   pendingVersion: string | null;
   selectedVersionByFlow: Map<string, { versionId: string; versionTag: string }>;
-  attachedConnectionByFlow: Map<string, string>;
+  attachedConnectionByFlow: Map<string, string[]>;
   onSelectPending: (id: string) => void;
   onAttach: () => void;
 }) {

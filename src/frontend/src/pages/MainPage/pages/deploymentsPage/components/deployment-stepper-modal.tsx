@@ -6,6 +6,9 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { usePostProviderAccount } from "@/controllers/API/queries/deployment-provider-accounts/use-post-provider-account";
+import { usePostDeployment } from "@/controllers/API/queries/deployments/use-post-deployment";
+import useAlertStore from "@/stores/alertStore";
 import {
   DeploymentStepperProvider,
   useDeploymentStepper,
@@ -44,8 +47,52 @@ function DeploymentStepperModalContent({
 }: {
   setOpen: (open: boolean) => void;
 }) {
-  const { currentStep, canGoNext, handleNext, handleBack } =
-    useDeploymentStepper();
+  const {
+    currentStep,
+    canGoNext,
+    handleNext,
+    handleBack,
+    selectedInstance,
+    setSelectedInstance,
+    needsProviderAccountCreation,
+    buildProviderAccountPayload,
+    buildDeploymentPayload,
+  } = useDeploymentStepper();
+
+  const setErrorData = useAlertStore((state) => state.setErrorData);
+  const setSuccessData = useAlertStore((state) => state.setSuccessData);
+
+  const { mutateAsync: createProviderAccount, isPending: isCreatingProvider } =
+    usePostProviderAccount();
+  const { mutateAsync: createDeployment, isPending: isCreatingDeployment } =
+    usePostDeployment();
+
+  const isDeploying = isCreatingProvider || isCreatingDeployment;
+
+  const handleDeploy = async () => {
+    try {
+      let providerId = selectedInstance?.id;
+
+      if (needsProviderAccountCreation) {
+        const accountPayload = buildProviderAccountPayload();
+        if (!accountPayload) return;
+        const newAccount = await createProviderAccount(accountPayload);
+        setSelectedInstance(newAccount);
+        providerId = newAccount.id;
+      }
+
+      if (!providerId) return;
+
+      const payload = buildDeploymentPayload(providerId);
+      await createDeployment(payload);
+      setSuccessData({ title: "Deployment created successfully" });
+      setOpen(false);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+      setErrorData({ title: "Failed to create deployment", list: [message] });
+    }
+  };
 
   return (
     <>
@@ -86,14 +133,14 @@ function DeploymentStepperModalContent({
               Cancel
             </Button>
             <Button
-              onClick={handleNext}
-              disabled={!canGoNext}
+              onClick={currentStep === 4 ? handleDeploy : handleNext}
+              disabled={!canGoNext || isDeploying}
               data-testid="deployment-stepper-next"
             >
               {currentStep === 4 ? (
                 <>
                   <ForwardedIconComponent name="Rocket" className="h-4 w-4" />
-                  Deploy
+                  {isDeploying ? "Deploying..." : "Deploy"}
                 </>
               ) : (
                 "Next"

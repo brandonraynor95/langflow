@@ -10,29 +10,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/utils/utils";
-import type { Deployment, DeploymentHealth, DeploymentType } from "../types";
+import type { Deployment, DeploymentType } from "../types";
 
 interface DeploymentsTableProps {
   deployments: Deployment[];
+  providerName: string;
 }
 
-const TYPE_CONFIG: Record<DeploymentType, { color: string; dotColor: string }> =
-  {
-    agent: { color: "border-l-error", dotColor: "" },
-    mcp: { color: "border-l-accent-emerald", dotColor: "" },
-  };
-
-const HEALTH_CONFIG: Record<
-  DeploymentHealth,
-  { color: string; label: string }
-> = {
-  healthy: { color: "text-accent-emerald", label: "Healthy" },
-  unhealthy: { color: "text-error", label: "Unhealthy" },
-  pending: { color: "text-warning", label: "Pending" },
+const TYPE_CONFIG: Record<DeploymentType, { color: string }> = {
+  agent: { color: "border-l-error" },
+  mcp: { color: "border-l-accent-emerald" },
 };
 
 function TypeBadge({ type }: { type: DeploymentType }) {
-  const config = TYPE_CONFIG[type];
+  const config = TYPE_CONFIG[type] ?? TYPE_CONFIG["agent"];
   return (
     <Badge
       variant="secondaryStatic"
@@ -44,34 +35,17 @@ function TypeBadge({ type }: { type: DeploymentType }) {
   );
 }
 
-function StatusBadge({ status }: { status: Deployment["status"] }) {
-  return (
-    <Badge
-      variant="secondaryStatic"
-      size="tag"
-      className={
-        status === "production"
-          ? "bg-accent-blue-muted text-accent-blue-muted-foreground"
-          : ""
-      }
-    >
-      {status === "production" ? "Production" : "Draft"}
-    </Badge>
-  );
-}
-
-function HealthIndicator({ health }: { health: DeploymentHealth }) {
-  const config = HEALTH_CONFIG[health];
-  return (
-    <div className="flex items-center gap-2">
-      <span className={cn("text-lg leading-none", config.color)}>&bull;</span>
-      <span className="text-sm">{config.label}</span>
-    </div>
-  );
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default function DeploymentsTable({
   deployments,
+  providerName,
 }: DeploymentsTableProps) {
   return (
     <Table>
@@ -79,8 +53,6 @@ export default function DeploymentsTable({
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Type</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Health</TableHead>
           <TableHead>Attached</TableHead>
           <TableHead>Provider</TableHead>
           <TableHead>Last Modified</TableHead>
@@ -97,36 +69,29 @@ export default function DeploymentsTable({
             <TableCell>
               <div className="flex flex-col">
                 <span className="font-medium">{deployment.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {deployment.url}
-                </span>
+                {deployment.description && (
+                  <span className="text-xs text-muted-foreground">
+                    {deployment.description}
+                  </span>
+                )}
               </div>
             </TableCell>
             <TableCell>
               <TypeBadge type={deployment.type} />
             </TableCell>
             <TableCell>
-              <StatusBadge status={deployment.status} />
-            </TableCell>
-            <TableCell>
-              <HealthIndicator health={deployment.health} />
-            </TableCell>
-            <TableCell>
               <span className="text-sm">
-                {deployment.attachedCount}{" "}
-                {deployment.attachedCount === 1 ? "item" : "items"}
+                {deployment.attached_count}{" "}
+                {deployment.attached_count === 1 ? "item" : "items"}
               </span>
             </TableCell>
             <TableCell>
-              <span className="text-sm">{deployment.provider}</span>
+              <span className="text-sm">{providerName}</span>
             </TableCell>
             <TableCell>
-              <div className="flex flex-col">
-                <span className="text-sm">{deployment.lastModified}</span>
-                <span className="text-xs text-muted-foreground">
-                  by {deployment.lastModifiedBy}
-                </span>
-              </div>
+              <span className="text-sm">
+                {formatDate(deployment.updated_at)}
+              </span>
             </TableCell>
             <TableCell>
               <Button

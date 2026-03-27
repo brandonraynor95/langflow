@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { useGetRefreshFlowsQuery } from "@/controllers/API/queries/flows/use-get-refresh-flows-query";
 import { useFolderStore } from "@/stores/foldersStore";
 import { useDeploymentStepper } from "../contexts/deployment-stepper-context";
-import { MOCK_CONNECTIONS } from "../mock-data";
 
 function ReviewField({ label, value }: { label: string; value: string }) {
   return (
@@ -26,6 +25,7 @@ export default function StepReview() {
     deploymentType,
     deploymentName,
     deploymentDescription,
+    connections,
     selectedVersionByFlow,
     attachedConnectionByFlow,
   } = useDeploymentStepper();
@@ -44,21 +44,19 @@ export default function StepReview() {
   const allFlows = (Array.isArray(flowsData) ? flowsData : []).filter(
     (f) => f.folder_id === currentFolderId,
   );
-  // TODO: replace with real API data
-  const connections = MOCK_CONNECTIONS;
-
   const reviewFlows = Array.from(selectedVersionByFlow.entries()).map(
     ([flowId, { versionId, versionTag }]) => {
       const flow = allFlows.find((f) => f.id === flowId);
-      const connectionId = attachedConnectionByFlow.get(flowId);
-      const connection = connectionId
-        ? connections.find((c) => c.id === connectionId)
-        : null;
+      const connectionIds = attachedConnectionByFlow.get(flowId) ?? [];
+      const connectionNames = connectionIds
+        .map((cid) => connections.find((c) => c.id === cid)?.name)
+        .filter(Boolean)
+        .join(", ");
       return {
         flowId,
         flowName: flow?.name ?? "Unknown",
         versionLabel: versionTag || versionId,
-        connectionName: connection?.name ?? "Not configured",
+        connectionNames: connectionNames || "Not configured",
       };
     },
   );
@@ -114,9 +112,9 @@ export default function StepReview() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Connection</span>
+                      <span className="text-muted-foreground">Connections</span>
                       <span className="text-foreground">
-                        {item.connectionName}
+                        {item.connectionNames}
                       </span>
                     </div>
                   </div>

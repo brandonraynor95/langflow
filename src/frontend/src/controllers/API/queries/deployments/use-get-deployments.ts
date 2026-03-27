@@ -1,6 +1,7 @@
-import { MOCK_DEPLOYMENTS } from "@/pages/MainPage/pages/deploymentsPage/mock-data";
 import type { Deployment } from "@/pages/MainPage/pages/deploymentsPage/types";
 import type { useQueryFunctionType } from "@/types/api";
+import { api } from "../../api";
+import { getURL } from "../../helpers/constants";
 import { UseRequestProcessor } from "../../services/request-processor";
 
 export interface DeploymentListResponse {
@@ -23,18 +24,11 @@ export const useGetDeployments: useQueryFunctionType<
   const { query } = UseRequestProcessor();
 
   const getDeploymentsFn = async (): Promise<DeploymentListResponse> => {
-    // TODO: replace with real API call
-    // const { data } = await api.get<DeploymentListResponse>(
-    //   `${getURL("DEPLOYMENTS")}`,
-    //   { params: { provider_id, page, size } },
-    // );
-    // return data;
-    return {
-      deployments: MOCK_DEPLOYMENTS,
-      page,
-      size,
-      total: MOCK_DEPLOYMENTS.length,
-    };
+    const { data } = await api.get<DeploymentListResponse>(
+      `${getURL("DEPLOYMENTS")}`,
+      { params: { provider_id, page, size } },
+    );
+    return data;
   };
 
   return query(
