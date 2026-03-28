@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from langflow.api.a2a.agent_card import generate_agent_card
-from langflow.api.a2a.config import validate_a2a_slug, validate_flow_eligible_for_a2a
+from langflow.api.a2a.config import validate_a2a_slug
 from langflow.api.a2a.flow_adapter import translate_inbound, translate_outbound
 from langflow.api.a2a.streaming import A2AStreamBridge
 from langflow.api.a2a.task_manager import TaskManager
@@ -528,14 +528,6 @@ async def update_a2a_config(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Agent slug '{config.a2a_agent_slug}' is already in use by another flow.",
-            )
-
-    # Validate flow eligibility if enabling
-    if config.a2a_enabled:
-        if not validate_flow_eligible_for_a2a(flow.data):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="This flow is not eligible for A2A exposure. It must contain an Agent or LLM component.",
             )
 
     # Apply updates

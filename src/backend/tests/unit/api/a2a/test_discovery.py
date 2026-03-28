@@ -283,11 +283,12 @@ class TestA2AConfigManagement:
         )
         assert response.status_code == 422  # Validation error
 
-    async def test_ineligible_flow_rejected(self, client: AsyncClient, logged_in_headers):
-        """A flow without Agent/LLM components cannot be A2A-enabled.
+    async def test_any_flow_can_be_a2a_enabled(self, client: AsyncClient, logged_in_headers):
+        """Any flow can be A2A-enabled, not just agent/LLM flows.
 
-        This prevents exposing data-processing-only flows as A2A agents,
-        which would be misleading to external callers.
+        A pure data pipeline is a valid A2A endpoint — it behaves as
+        a single-turn service. Only INPUT_REQUIRED requires an Agent
+        component (for the request_input tool).
         """
         flow = await _create_flow_via_api(
             client,
@@ -297,7 +298,7 @@ class TestA2AConfigManagement:
         )
 
         response = await _enable_a2a_on_flow(client, logged_in_headers, flow["id"], slug="pipeline")
-        assert response.status_code == 422  # Not eligible
+        assert response.status_code == 200
 
 
 # ---------------------------------------------------------------------------
