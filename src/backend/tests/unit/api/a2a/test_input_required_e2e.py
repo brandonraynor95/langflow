@@ -95,9 +95,7 @@ class TestInputRequiredE2E:
     3. Verifies the final response includes the resolved answer
     """
 
-    async def test_input_required_resolved_via_follow_up(
-        self, client: AsyncClient, logged_in_headers
-    ):
+    async def test_input_required_resolved_via_follow_up(self, client: AsyncClient, logged_in_headers):
         """Full round-trip: send → INPUT_REQUIRED → follow-up → COMPLETED.
 
         This tests:
@@ -113,9 +111,16 @@ class TestInputRequiredE2E:
         tool_event = asyncio.Event()
         tool_response_holder: dict = {}
 
-        async def mock_simple_run_flow(*, flow=None, input_request=None, stream=False,
-                                       api_key_user=None, event_manager=None,
-                                       context=None, run_id=None):
+        async def mock_simple_run_flow(
+            *,
+            flow=None,
+            input_request=None,
+            stream=False,
+            api_key_user=None,
+            event_manager=None,
+            context=None,
+            run_id=None,
+        ):
             """Simulate an agent that calls request_input mid-execution.
 
             1. Signals INPUT_REQUIRED via task_manager
@@ -208,9 +213,7 @@ class TestInputRequiredE2E:
             artifact_text = body["artifacts"][0]["parts"][0]["text"]
             assert "prod-us" in artifact_text
 
-    async def test_poll_shows_input_required_with_question(
-        self, client: AsyncClient, logged_in_headers
-    ):
+    async def test_poll_shows_input_required_with_question(self, client: AsyncClient, logged_in_headers):
         """GET /tasks/{id} shows INPUT_REQUIRED state with the agent's question.
 
         This is how a non-streaming client discovers that the agent
@@ -223,9 +226,16 @@ class TestInputRequiredE2E:
         tool_event = asyncio.Event()
         tool_response_holder: dict = {}
 
-        async def mock_simple_run_flow(*, flow=None, input_request=None, stream=False,
-                                       api_key_user=None, event_manager=None,
-                                       context=None, run_id=None):
+        async def mock_simple_run_flow(
+            *,
+            flow=None,
+            input_request=None,
+            stream=False,
+            api_key_user=None,
+            event_manager=None,
+            context=None,
+            run_id=None,
+        ):
             all_tasks = await _task_manager.list_tasks()
             current_task = all_tasks[-1]
             await _task_manager.request_input(

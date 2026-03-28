@@ -87,9 +87,7 @@ class TestTokenStreaming:
         bridge = A2AStreamBridge(task_id="task-1", context_id="ctx-1")
 
         for token in ["Hello", " world", "!"]:
-            await bridge.process_langflow_event(
-                _make_langflow_event("token", {"chunk": token})
-            )
+            await bridge.process_langflow_event(_make_langflow_event("token", {"chunk": token}))
 
         events = await _collect_a2a_events(bridge, 3)
         assert len(events) == 3
@@ -113,9 +111,7 @@ class TestStatusTransitions:
         bridge = A2AStreamBridge(task_id="task-1", context_id="ctx-1")
 
         end_data = {"result": {"outputs": [{"inputs": {}, "outputs": []}]}}
-        await bridge.process_langflow_event(
-            _make_langflow_event("end", end_data)
-        )
+        await bridge.process_langflow_event(_make_langflow_event("end", end_data))
 
         events = await _collect_a2a_events(bridge, 1)
         assert len(events) >= 1
@@ -132,9 +128,7 @@ class TestStatusTransitions:
         """
         bridge = A2AStreamBridge(task_id="task-1", context_id="ctx-1")
 
-        await bridge.process_langflow_event(
-            _make_langflow_event("error", {"error": "LLM rate limit exceeded"})
-        )
+        await bridge.process_langflow_event(_make_langflow_event("error", {"error": "LLM rate limit exceeded"}))
 
         events = await _collect_a2a_events(bridge, 1)
         assert len(events) == 1
@@ -149,9 +143,7 @@ class TestStatusTransitions:
         """
         bridge = A2AStreamBridge(task_id="task-1", context_id="ctx-1")
 
-        await bridge.process_langflow_event(
-            _make_langflow_event("end_vertex", {"build_data": "vertex-abc"})
-        )
+        await bridge.process_langflow_event(_make_langflow_event("end_vertex", {"build_data": "vertex-abc"}))
 
         events = await _collect_a2a_events(bridge, 1)
         assert len(events) == 1
@@ -184,17 +176,11 @@ class TestStreamLifecycle:
         bridge = A2AStreamBridge(task_id="task-1", context_id="ctx-1")
 
         # Tokens
-        await bridge.process_langflow_event(
-            _make_langflow_event("token", {"chunk": "Hello"})
-        )
-        await bridge.process_langflow_event(
-            _make_langflow_event("token", {"chunk": " world"})
-        )
+        await bridge.process_langflow_event(_make_langflow_event("token", {"chunk": "Hello"}))
+        await bridge.process_langflow_event(_make_langflow_event("token", {"chunk": " world"}))
 
         # End
-        await bridge.process_langflow_event(
-            _make_langflow_event("end", {"result": {}})
-        )
+        await bridge.process_langflow_event(_make_langflow_event("end", {"result": {}}))
 
         events = await _collect_a2a_events(bridge, 10)
 
@@ -213,9 +199,7 @@ class TestStreamLifecycle:
         """
         bridge = A2AStreamBridge(task_id="task-1", context_id="ctx-1")
 
-        await bridge.process_langflow_event(
-            _make_langflow_event("build_start", {"vertex_id": "v1"})
-        )
+        await bridge.process_langflow_event(_make_langflow_event("build_start", {"vertex_id": "v1"}))
 
         # Should produce no output events
         events = await _collect_a2a_events(bridge, 1, timeout=0.1)

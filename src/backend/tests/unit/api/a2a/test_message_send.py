@@ -111,9 +111,7 @@ class TestMessageSendHappyPath:
     """
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_send_text_message_returns_completed_task(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_send_text_message_returns_completed_task(self, mock_run, client: AsyncClient, logged_in_headers):
         """Sending a text message executes the flow and returns a COMPLETED task.
 
         This is the core happy path:
@@ -145,9 +143,7 @@ class TestMessageSendHappyPath:
         assert "Hello from the agent!" in first_artifact["parts"][0]["text"]
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_task_has_context_id(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_task_has_context_id(self, mock_run, client: AsyncClient, logged_in_headers):
         """The returned task preserves the contextId from the request.
 
         This is essential for multi-turn conversations — the client
@@ -168,9 +164,7 @@ class TestMessageSendHappyPath:
         assert body["contextId"] == "ctx-my-conversation"
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_idempotent_retry_returns_cached_result(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_idempotent_retry_returns_cached_result(self, mock_run, client: AsyncClient, logged_in_headers):
         """Sending the same taskId twice returns the cached result.
 
         The flow should NOT execute a second time. This prevents
@@ -211,9 +205,7 @@ class TestMessageSendHappyPath:
 class TestMessageSendAuth:
     """Tests for authentication on the message:send endpoint."""
 
-    async def test_unauthenticated_request_rejected(
-        self, client: AsyncClient, logged_in_headers
-    ):
+    async def test_unauthenticated_request_rejected(self, client: AsyncClient, logged_in_headers):
         """message:send requires authentication.
 
         Unlike the public AgentCard, message:send handles actual
@@ -238,9 +230,7 @@ class TestMessageSendAuth:
 class TestMessageSendErrors:
     """Tests for error handling in message:send."""
 
-    async def test_disabled_flow_returns_404(
-        self, client: AsyncClient, logged_in_headers
-    ):
+    async def test_disabled_flow_returns_404(self, client: AsyncClient, logged_in_headers):
         """Sending to a slug that exists but has A2A disabled returns 404."""
         # Create flow but don't enable A2A
         flow = FlowCreate(name="Disabled", data=_make_agent_flow_data())
@@ -255,9 +245,7 @@ class TestMessageSendErrors:
         assert response.status_code == 404
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_flow_execution_error_returns_failed_task(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_flow_execution_error_returns_failed_task(self, mock_run, client: AsyncClient, logged_in_headers):
         """When the flow execution raises an exception, the task becomes FAILED.
 
         The error message is included in the task status so the caller
@@ -287,9 +275,7 @@ class TestTaskEndpoints:
     """Tests for task polling and cancellation endpoints."""
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_get_task_returns_current_state(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_get_task_returns_current_state(self, mock_run, client: AsyncClient, logged_in_headers):
         """GET /tasks/{task_id} returns the current task state.
 
         This is the polling endpoint for clients that lost their
@@ -316,9 +302,7 @@ class TestTaskEndpoints:
         assert get_response.json()["id"] == task_id
         assert get_response.json()["status"]["state"] == "completed"
 
-    async def test_get_nonexistent_task_returns_404(
-        self, client: AsyncClient, logged_in_headers
-    ):
+    async def test_get_nonexistent_task_returns_404(self, client: AsyncClient, logged_in_headers):
         """Polling a task that doesn't exist returns 404."""
         await _create_a2a_enabled_flow(client, logged_in_headers, slug="poll-agent-2")
 
@@ -329,9 +313,7 @@ class TestTaskEndpoints:
         assert response.status_code == 404
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_cancel_task(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_cancel_task(self, mock_run, client: AsyncClient, logged_in_headers):
         """POST /tasks/{task_id}:cancel sets the task to CANCELED.
 
         Cancellation is best-effort — the flow may have already completed.
@@ -357,9 +339,7 @@ class TestTaskEndpoints:
         assert cancel_response.json()["status"]["state"] == "canceled"
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_list_tasks_by_context(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_list_tasks_by_context(self, mock_run, client: AsyncClient, logged_in_headers):
         """GET /tasks?contextId=... returns tasks for that conversation."""
         mock_run.return_value = _mock_run_response("Response")
         await _create_a2a_enabled_flow(client, logged_in_headers, slug="list-agent")

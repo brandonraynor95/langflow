@@ -41,9 +41,7 @@ def task_manager():
 @pytest.fixture
 async def task_with_tool(task_manager):
     """Create a task and its associated request_input tool."""
-    task = await task_manager.create_task(
-        flow_id="flow-1", context_id="ctx-1", task_id="task-input-1"
-    )
+    task = await task_manager.create_task(flow_id="flow-1", context_id="ctx-1", task_id="task-input-1")
     tool_info = create_request_input_tool(
         task_id=task["id"],
         task_manager=task_manager,
@@ -183,9 +181,7 @@ class TestTimeout:
 
         The Agent can then decide to proceed without the info or fail.
         """
-        task = await task_manager.create_task(
-            flow_id="f", context_id="c", task_id="timeout-task"
-        )
+        task = await task_manager.create_task(flow_id="f", context_id="c", task_id="timeout-task")
         tool_info = create_request_input_tool(
             task_id=task["id"],
             task_manager=task_manager,
@@ -216,13 +212,12 @@ class TestMultipleRounds:
         Round 1: "Which env?" → "staging"
         Round 2: "Which region?" → "us-west-2"
         """
-        task = await task_manager.create_task(
-            flow_id="f", context_id="c", task_id="multi-q"
-        )
+        task = await task_manager.create_task(flow_id="f", context_id="c", task_id="multi-q")
 
         # Round 1
         tool_info_1 = create_request_input_tool(
-            task_id=task["id"], task_manager=task_manager,
+            task_id=task["id"],
+            task_manager=task_manager,
         )
         handler_1 = tool_info_1["handler"]
         future_1 = asyncio.create_task(handler_1(question="Which env?"))
@@ -234,7 +229,8 @@ class TestMultipleRounds:
 
         # Round 2 — new tool instance (agent creates a new call)
         tool_info_2 = create_request_input_tool(
-            task_id=task["id"], task_manager=task_manager,
+            task_id=task["id"],
+            task_manager=task_manager,
         )
         handler_2 = tool_info_2["handler"]
         future_2 = asyncio.create_task(handler_2(question="Which region?"))

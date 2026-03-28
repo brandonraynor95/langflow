@@ -98,9 +98,7 @@ class TestStateTransitions:
         await task_manager.update_state(task["id"], "working")
 
         artifacts = [{"parts": [{"kind": "text", "text": "Result"}]}]
-        updated = await task_manager.update_state(
-            task["id"], "completed", artifacts=artifacts
-        )
+        updated = await task_manager.update_state(task["id"], "completed", artifacts=artifacts)
 
         assert updated["status"]["state"] == "completed"
         assert updated["artifacts"] == artifacts
@@ -110,9 +108,7 @@ class TestStateTransitions:
         task = await task_manager.create_task(flow_id="f", context_id="c")
         await task_manager.update_state(task["id"], "working")
 
-        updated = await task_manager.update_state(
-            task["id"], "failed", error="Flow execution failed: division by zero"
-        )
+        updated = await task_manager.update_state(task["id"], "failed", error="Flow execution failed: division by zero")
 
         assert updated["status"]["state"] == "failed"
         assert "division by zero" in updated["status"]["message"]["parts"][0]["text"]
@@ -192,9 +188,7 @@ class TestIdempotentRetry:
         This prevents duplicate execution when a client retries after
         a network timeout (the original request may have succeeded).
         """
-        task = await task_manager.create_task(
-            flow_id="f", context_id="c", task_id="retry-me"
-        )
+        task = await task_manager.create_task(flow_id="f", context_id="c", task_id="retry-me")
         await task_manager.update_state(task["id"], "working")
         artifacts = [{"parts": [{"kind": "text", "text": "Original result"}]}]
         await task_manager.update_state(task["id"], "completed", artifacts=artifacts)
@@ -211,9 +205,7 @@ class TestIdempotentRetry:
         Failed tasks should be retried — the failure may have been
         transient (network error, rate limit, etc.).
         """
-        task = await task_manager.create_task(
-            flow_id="f", context_id="c", task_id="retry-failed"
-        )
+        task = await task_manager.create_task(flow_id="f", context_id="c", task_id="retry-failed")
         await task_manager.update_state(task["id"], "working")
         await task_manager.update_state(task["id"], "failed", error="Timeout")
 
@@ -226,9 +218,7 @@ class TestIdempotentRetry:
         The client should see that the task is still in progress
         rather than starting a duplicate execution.
         """
-        task = await task_manager.create_task(
-            flow_id="f", context_id="c", task_id="in-progress"
-        )
+        task = await task_manager.create_task(flow_id="f", context_id="c", task_id="in-progress")
         await task_manager.update_state(task["id"], "working")
 
         existing = await task_manager.handle_retry("in-progress")

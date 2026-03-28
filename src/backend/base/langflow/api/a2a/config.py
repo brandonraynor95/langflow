@@ -10,26 +10,28 @@ import re
 
 # Component types that indicate conversational / agentic capability.
 # A flow must contain at least one of these to be eligible for A2A exposure.
-_ELIGIBLE_COMPONENT_TYPES = frozenset({
-    # Agent components (primary use case)
-    "Agent",
-    "AgentComponent",
-    # LLM / Chat model components
-    "OpenAIModel",
-    "ChatOpenAI",
-    "AnthropicModel",
-    "ChatAnthropic",
-    "GoogleGenerativeAIModel",
-    "AzureChatOpenAI",
-    "OllamaModel",
-    "ChatOllama",
-    "GroqModel",
-    "HuggingFaceModel",
-    # Generic markers
-    "LLMModel",
-    "ChatModel",
-    "LanguageModel",
-})
+_ELIGIBLE_COMPONENT_TYPES = frozenset(
+    {
+        # Agent components (primary use case)
+        "Agent",
+        "AgentComponent",
+        # LLM / Chat model components
+        "OpenAIModel",
+        "ChatOpenAI",
+        "AnthropicModel",
+        "ChatAnthropic",
+        "GoogleGenerativeAIModel",
+        "AzureChatOpenAI",
+        "OllamaModel",
+        "ChatOllama",
+        "GroqModel",
+        "HuggingFaceModel",
+        # Generic markers
+        "LLMModel",
+        "ChatModel",
+        "LanguageModel",
+    }
+)
 
 # Slug format: lowercase alphanumeric + hyphens, 3-64 chars,
 # must start/end with alphanumeric, no consecutive hyphens.

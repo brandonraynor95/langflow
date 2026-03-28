@@ -177,9 +177,7 @@ async def message_send(
     if requested_task_id and _task_manager.has_pending_input(requested_task_id):
         # Extract text from the follow-up message
         parts = message.get("parts", [])
-        follow_up_text = " ".join(
-            p.get("text", "") for p in parts if p.get("kind") == "text"
-        )
+        follow_up_text = " ".join(p.get("text", "") for p in parts if p.get("kind") == "text")
         await _task_manager.resolve_input(requested_task_id, follow_up_text)
         task = await _task_manager.get_task(requested_task_id)
         return task
@@ -347,9 +345,7 @@ async def message_stream(
                 "task_manager": _task_manager,
                 "stream_bridge": bridge,
             }
-            result = await _execute_flow(
-                flow, flow_inputs, session, a2a_context=a2a_context
-            )
+            result = await _execute_flow(flow, flow_inputs, session, a2a_context=a2a_context)
 
             # Check if the task entered INPUT_REQUIRED during execution
             # (this would be set by the request_input tool handler)
@@ -539,8 +535,7 @@ async def update_a2a_config(
         if not validate_flow_eligible_for_a2a(flow.data):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="This flow is not eligible for A2A exposure. "
-                "It must contain an Agent or LLM component.",
+                detail="This flow is not eligible for A2A exposure. It must contain an Agent or LLM component.",
             )
 
     # Apply updates

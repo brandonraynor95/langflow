@@ -41,9 +41,7 @@ def _make_agent_flow_data() -> dict:
     }
 
 
-async def _create_a2a_enabled_flow(
-    client: AsyncClient, headers: dict, slug: str
-) -> dict:
+async def _create_a2a_enabled_flow(client: AsyncClient, headers: dict, slug: str) -> dict:
     flow = FlowCreate(name=f"Flow {slug}", description="Test", data=_make_agent_flow_data())
     response = await client.post("api/v1/flows/", json=flow.model_dump(), headers=headers)
     assert response.status_code == 201
@@ -112,9 +110,7 @@ class TestMessageStreamHappyPath:
     """Tests for successful streaming flow execution."""
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_stream_returns_sse_response(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_stream_returns_sse_response(self, mock_run, client: AsyncClient, logged_in_headers):
         """message:stream returns a streaming response with SSE media type.
 
         The response should be text/event-stream, not application/json.
@@ -132,9 +128,7 @@ class TestMessageStreamHappyPath:
         assert "text/event-stream" in response.headers.get("content-type", "")
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_stream_contains_completed_event(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_stream_contains_completed_event(self, mock_run, client: AsyncClient, logged_in_headers):
         """The stream must end with a COMPLETED status event.
 
         This tells the client the task is done and no more events
@@ -155,9 +149,7 @@ class TestMessageStreamHappyPath:
         assert any(e["status"]["state"] == "completed" for e in status_events)
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_stream_contains_working_event(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_stream_contains_working_event(self, mock_run, client: AsyncClient, logged_in_headers):
         """The stream should include a WORKING status event at the start.
 
         This tells the client the flow has started executing.
@@ -176,9 +168,7 @@ class TestMessageStreamHappyPath:
         assert any(e["status"]["state"] == "working" for e in status_events)
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_stream_preserves_task_and_context_ids(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_stream_preserves_task_and_context_ids(self, mock_run, client: AsyncClient, logged_in_headers):
         """Every SSE event carries the taskId and contextId.
 
         This lets clients correlate events with the right task
@@ -208,9 +198,7 @@ class TestMessageStreamErrors:
     """Tests for error handling during streaming."""
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_stream_error_produces_failed_event(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_stream_error_produces_failed_event(self, mock_run, client: AsyncClient, logged_in_headers):
         """When flow execution fails, the stream includes a FAILED event.
 
         The client should see the error without the connection just dying.
@@ -229,9 +217,7 @@ class TestMessageStreamErrors:
         status_events = [e for e in events if e.get("kind") == "status-update"]
         assert any(e["status"]["state"] == "failed" for e in status_events)
 
-    async def test_stream_disabled_flow_returns_404(
-        self, client: AsyncClient, logged_in_headers
-    ):
+    async def test_stream_disabled_flow_returns_404(self, client: AsyncClient, logged_in_headers):
         """Streaming to a non-existent slug returns 404."""
         response = await client.post(
             "/a2a/nonexistent/v1/message:stream",
@@ -240,9 +226,7 @@ class TestMessageStreamErrors:
         )
         assert response.status_code == 404
 
-    async def test_stream_requires_auth(
-        self, client: AsyncClient, logged_in_headers
-    ):
+    async def test_stream_requires_auth(self, client: AsyncClient, logged_in_headers):
         """message:stream requires authentication."""
         await _create_a2a_enabled_flow(client, logged_in_headers, slug="auth-stream")
 

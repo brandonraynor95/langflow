@@ -72,6 +72,7 @@ def _make_a2a_message(text: str, context_id: str | None = None, task_id: str | N
 
 def _mock_run_response(text: str = "Final answer"):
     from unittest.mock import MagicMock
+
     run_output = MagicMock()
     run_output.inputs = {}
     result_data = MagicMock()
@@ -101,9 +102,7 @@ class TestInputRequiredFollowUp:
     """
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_follow_up_to_input_required_task(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_follow_up_to_input_required_task(self, mock_run, client: AsyncClient, logged_in_headers):
         """Send initial message, simulate INPUT_REQUIRED, send follow-up,
         verify the task completes.
 
@@ -154,9 +153,7 @@ class TestInputRequiredFollowUp:
         assert body["id"] == task_id
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_get_input_required_task_shows_question(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_get_input_required_task_shows_question(self, mock_run, client: AsyncClient, logged_in_headers):
         """Polling an INPUT_REQUIRED task shows the agent's question.
 
         The client uses GET /tasks/{id} to see what the agent is asking.
@@ -211,7 +208,8 @@ class TestRequestInputTaskManagerIntegration:
         await tm.update_state(task["id"], "working")
 
         tool_info = create_request_input_tool(
-            task_id=task["id"], task_manager=tm,
+            task_id=task["id"],
+            task_manager=tm,
         )
 
         # Start the handler (will suspend and register pending input)
@@ -235,7 +233,8 @@ class TestRequestInputTaskManagerIntegration:
         await tm.update_state(task["id"], "working")
 
         tool_info = create_request_input_tool(
-            task_id=task["id"], task_manager=tm,
+            task_id=task["id"],
+            task_manager=tm,
         )
         handler = tool_info["handler"]
         future = asyncio.create_task(handler(question="Pick one"))

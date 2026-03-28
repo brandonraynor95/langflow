@@ -181,9 +181,7 @@ class TestTranslateOutbound:
 
         This is the most common case — the agent produces a text response.
         """
-        run_outputs = [
-            _make_run_output(message_text="Here is your analysis of the codebase.")
-        ]
+        run_outputs = [_make_run_output(message_text="Here is your analysis of the codebase.")]
         artifacts = await translate_outbound(run_outputs)
 
         assert len(artifacts) == 1
@@ -192,9 +190,7 @@ class TestTranslateOutbound:
 
     async def test_structured_result_becomes_data_artifact(self):
         """When the flow returns structured data (dict), it becomes a data Part."""
-        run_outputs = [
-            _make_run_output(result_data={"score": 0.95, "labels": ["positive"]})
-        ]
+        run_outputs = [_make_run_output(result_data={"score": 0.95, "labels": ["positive"]})]
         artifacts = await translate_outbound(run_outputs)
 
         assert len(artifacts) == 1
@@ -242,14 +238,18 @@ def _make_run_output(
     """
     outputs = []
     if message_text is not None:
-        outputs.append({
-            "results": {"message": {"text": message_text}},
-            "messages": [{"message": message_text}],
-        })
+        outputs.append(
+            {
+                "results": {"message": {"text": message_text}},
+                "messages": [{"message": message_text}],
+            }
+        )
     if result_data is not None:
-        outputs.append({
-            "results": {"data": result_data},
-        })
+        outputs.append(
+            {
+                "results": {"data": result_data},
+            }
+        )
     return {
         "inputs": {},
         "outputs": outputs,

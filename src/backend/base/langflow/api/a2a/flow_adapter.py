@@ -129,30 +129,38 @@ def _result_to_artifact(result, index: int = 0) -> dict | None:
     if isinstance(results, dict):
         message = results.get("message")
         if isinstance(message, dict) and "text" in message:
-            parts.append({
-                "kind": "text",
-                "text": message["text"],
-            })
+            parts.append(
+                {
+                    "kind": "text",
+                    "text": message["text"],
+                }
+            )
         elif isinstance(message, str):
-            parts.append({
-                "kind": "text",
-                "text": message,
-            })
+            parts.append(
+                {
+                    "kind": "text",
+                    "text": message,
+                }
+            )
 
         # Check for structured data output
         data = results.get("data")
         if isinstance(data, dict):
-            parts.append({
-                "kind": "data",
-                "data": data,
-            })
+            parts.append(
+                {
+                    "kind": "data",
+                    "data": data,
+                }
+            )
 
     if not parts:
         # Fallback: serialize the entire result as data
-        parts.append({
-            "kind": "data",
-            "data": results if isinstance(results, dict) else {"result": str(results)},
-        })
+        parts.append(
+            {
+                "kind": "data",
+                "data": results if isinstance(results, dict) else {"result": str(results)},
+            }
+        )
 
     return {
         "artifactId": f"artifact-{index}",

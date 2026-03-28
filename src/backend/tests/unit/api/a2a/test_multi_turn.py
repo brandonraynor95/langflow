@@ -44,9 +44,7 @@ def _make_agent_flow_data() -> dict:
     }
 
 
-async def _create_a2a_enabled_flow(
-    client: AsyncClient, headers: dict, slug: str
-) -> dict:
+async def _create_a2a_enabled_flow(client: AsyncClient, headers: dict, slug: str) -> dict:
     flow = FlowCreate(name=f"Flow {slug}", description="Test", data=_make_agent_flow_data())
     response = await client.post("api/v1/flows/", json=flow.model_dump(), headers=headers)
     assert response.status_code == 201
@@ -103,9 +101,7 @@ class TestSessionContinuity:
     """
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_same_context_id_uses_same_session(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_same_context_id_uses_same_session(self, mock_run, client: AsyncClient, logged_in_headers):
         """Two messages with the same contextId pass the same session_id
         to simple_run_flow.
 
@@ -143,9 +139,7 @@ class TestSessionContinuity:
             assert session1.session_id.startswith("a2a-")
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_different_context_ids_use_different_sessions(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_different_context_ids_use_different_sessions(self, mock_run, client: AsyncClient, logged_in_headers):
         """Two messages with different contextIds use different session_ids.
 
         This ensures conversation isolation — one caller's context
@@ -193,9 +187,7 @@ class TestTaskLinkage:
     """
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_each_turn_creates_separate_task(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_each_turn_creates_separate_task(self, mock_run, client: AsyncClient, logged_in_headers):
         """Each message in a conversation produces a new Task.
 
         Tasks are the unit of work in A2A — each has its own lifecycle
@@ -219,9 +211,7 @@ class TestTaskLinkage:
         assert len(set(task_ids)) == 3
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_list_tasks_returns_all_turns(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_list_tasks_returns_all_turns(self, mock_run, client: AsyncClient, logged_in_headers):
         """Listing tasks by contextId returns all turns in the conversation.
 
         This is how a client retrieves the full conversation history
@@ -256,9 +246,7 @@ class TestTaskLinkage:
         assert len(tasks_b) == 1
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_all_tasks_share_context_id(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_all_tasks_share_context_id(self, mock_run, client: AsyncClient, logged_in_headers):
         """Every task in a conversation carries the same contextId.
 
         The contextId is the conversation thread identifier — it must
@@ -280,9 +268,7 @@ class TestTaskLinkage:
             assert task["contextId"] == "ctx-preserved"
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_all_turns_complete_independently(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_all_turns_complete_independently(self, mock_run, client: AsyncClient, logged_in_headers):
         """Each turn completes independently — Turn 2 doesn't wait for Turn 1.
 
         In v1, turns are independent flow executions. The only continuity
@@ -314,9 +300,7 @@ class TestSingleTurn:
     """
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_no_context_id_generates_unique_sessions(
-        self, mock_run, client: AsyncClient, logged_in_headers
-    ):
+    async def test_no_context_id_generates_unique_sessions(self, mock_run, client: AsyncClient, logged_in_headers):
         """Two messages without contextId get different session_ids.
 
         Without an explicit contextId, each message is a standalone

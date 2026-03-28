@@ -143,10 +143,72 @@ class LCAgentComponent(Component):
 
         return messages
 
+    def _inject_a2a_tools(self) -> None:
+        """Inject the request_input tool when running under A2A execution.
+
+        Checks graph.context for an "a2a" key set by the A2A router.
+        If present, creates and appends a request_input tool that allows
+        the LLM to ask the calling agent for clarification mid-execution.
+
+        This method is called from build_agent() and run_agent() before
+        the AgentExecutor is created. It's a no-op when not running
+        under A2A (normal playground execution).
+        """
+        # Check if we have a graph context with A2A execution info
+        if not hasattr(self, "graph") or self.graph is None:
+            return
+
+        a2a_ctx = self.graph.context.get("a2a") if hasattr(self.graph, "context") else None
+        if not a2a_ctx:
+            return
+
+        task_id = a2a_ctx.get("task_id")
+        task_manager = a2a_ctx.get("task_manager")
+        if not task_id or not task_manager:
+            return
+
+        try:
+            from langflow.api.a2a.request_input_tool import create_request_input_tool
+
+            tool_info = create_request_input_tool(
+                task_id=task_id,
+                task_manager=task_manager,
+            )
+
+            # Store the tool info on the context so the router can access
+            # the event and response_holder for follow-up resolution
+            a2a_ctx["request_input_tool_info"] = tool_info
+
+            # Create a LangChain StructuredTool from our tool info
+            from langchain_core.tools import StructuredTool
+            from pydantic import BaseModel, Field
+
+            class RequestInputSchema(BaseModel):
+                question: str = Field(description="The question to ask the calling agent")
+
+            lc_tool = StructuredTool(
+                name=tool_info["name"],
+                description=tool_info["description"],
+                coroutine=tool_info["handler"],
+                args_schema=RequestInputSchema,
+            )
+
+            if self.tools is None:
+                self.tools = []
+            self.tools.append(lc_tool)
+
+            logger.info(f"A2A: Injected request_input tool for task {task_id}")
+
+        except ImportError:
+            logger.debug("A2A request_input_tool not available — skipping injection")
+        except Exception:
+            logger.exception("Failed to inject A2A request_input tool")
+
     async def run_agent(
         self,
         agent: Runnable | BaseSingleActionAgent | BaseMultiActionAgent | AgentExecutor,
     ) -> Message:
+        self._inject_a2a_tools()
         if isinstance(agent, AgentExecutor):
             runnable = agent
         else:
@@ -322,6 +384,7 @@ class LCToolsAgentComponent(LCAgentComponent):
 
     def build_agent(self) -> AgentExecutor:
         self.validate_tool_names()
+        self._inject_a2a_tools()
         agent = self.create_agent_runnable()
         return AgentExecutor.from_agent_and_tools(
             agent=RunnableAgent(runnable=agent, input_keys_arg=["input"], return_keys_arg=["output"]),

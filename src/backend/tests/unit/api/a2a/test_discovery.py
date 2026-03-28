@@ -200,9 +200,7 @@ class TestA2AConfigManagement:
         """
         flow = await _create_flow_via_api(client, logged_in_headers)
 
-        response = await _enable_a2a_on_flow(
-            client, logged_in_headers, flow["id"], slug="config-test"
-        )
+        response = await _enable_a2a_on_flow(client, logged_in_headers, flow["id"], slug="config-test")
         assert response.status_code == 200
 
         # Verify the config was persisted
@@ -263,23 +261,15 @@ class TestA2AConfigManagement:
         The slug is used in the public URL, so collisions would cause
         routing ambiguity.
         """
-        flow1 = await _create_flow_via_api(
-            client, logged_in_headers, name="Flow One"
-        )
-        flow2 = await _create_flow_via_api(
-            client, logged_in_headers, name="Flow Two"
-        )
+        flow1 = await _create_flow_via_api(client, logged_in_headers, name="Flow One")
+        flow2 = await _create_flow_via_api(client, logged_in_headers, name="Flow Two")
 
         # Enable first flow with slug
-        response1 = await _enable_a2a_on_flow(
-            client, logged_in_headers, flow1["id"], slug="unique-slug"
-        )
+        response1 = await _enable_a2a_on_flow(client, logged_in_headers, flow1["id"], slug="unique-slug")
         assert response1.status_code == 200
 
         # Try same slug on second flow → should fail
-        response2 = await _enable_a2a_on_flow(
-            client, logged_in_headers, flow2["id"], slug="unique-slug"
-        )
+        response2 = await _enable_a2a_on_flow(client, logged_in_headers, flow2["id"], slug="unique-slug")
         assert response2.status_code == 409  # Conflict
 
     async def test_invalid_slug_rejected(self, client: AsyncClient, logged_in_headers):
@@ -306,9 +296,7 @@ class TestA2AConfigManagement:
             data=_make_non_agent_flow_data(),
         )
 
-        response = await _enable_a2a_on_flow(
-            client, logged_in_headers, flow["id"], slug="pipeline"
-        )
+        response = await _enable_a2a_on_flow(client, logged_in_headers, flow["id"], slug="pipeline")
         assert response.status_code == 422  # Not eligible
 
 

@@ -79,9 +79,7 @@ class TestA2ASmoke:
             description="An agent for the A2A smoke test",
             data=_make_agent_flow_data(),
         )
-        create_resp = await client.post(
-            "api/v1/flows/", json=flow.model_dump(), headers=logged_in_headers
-        )
+        create_resp = await client.post("api/v1/flows/", json=flow.model_dump(), headers=logged_in_headers)
         assert create_resp.status_code == 201
         flow_id = create_resp.json()["id"]
 
@@ -104,9 +102,7 @@ class TestA2ASmoke:
         assert config["a2a_agent_slug"] == "smoke-agent"
 
         # Verify config readback
-        config_get = await client.get(
-            f"api/v1/flows/{flow_id}/a2a-config", headers=logged_in_headers
-        )
+        config_get = await client.get(f"api/v1/flows/{flow_id}/a2a-config", headers=logged_in_headers)
         assert config_get.status_code == 200
         assert config_get.json()["a2a_name"] == "Smoke Agent"
 

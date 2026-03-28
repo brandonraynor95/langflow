@@ -42,11 +42,7 @@ def generate_agent_card(flow: Flow, base_url: str) -> dict:
     agent_name = getattr(flow, "a2a_name", None) or flow.name
 
     # Resolve description: a2a_description > flow.description > default
-    agent_description = (
-        getattr(flow, "a2a_description", None)
-        or flow.description
-        or _DEFAULT_DESCRIPTION
-    )
+    agent_description = getattr(flow, "a2a_description", None) or flow.description or _DEFAULT_DESCRIPTION
 
     # Resolve tags
     tags = getattr(flow, "tags", None) or []

@@ -37,9 +37,7 @@ class TestTaskCleanup:
         await task_manager.update_state(task["id"], "completed")
 
         # Backdate the task
-        task_manager._tasks["old-done"]["_updated_at"] = (
-            datetime.now(timezone.utc) - timedelta(hours=25)
-        ).isoformat()
+        task_manager._tasks["old-done"]["_updated_at"] = (datetime.now(timezone.utc) - timedelta(hours=25)).isoformat()
 
         pruned = await task_manager.cleanup_expired_tasks(ttl_seconds=86400)  # 24h
 
@@ -52,9 +50,7 @@ class TestTaskCleanup:
         await task_manager.update_state(task["id"], "working")
         await task_manager.update_state(task["id"], "failed", error="boom")
 
-        task_manager._tasks["old-fail"]["_updated_at"] = (
-            datetime.now(timezone.utc) - timedelta(hours=25)
-        ).isoformat()
+        task_manager._tasks["old-fail"]["_updated_at"] = (datetime.now(timezone.utc) - timedelta(hours=25)).isoformat()
 
         pruned = await task_manager.cleanup_expired_tasks(ttl_seconds=86400)
         assert pruned == 1
@@ -97,9 +93,7 @@ class TestTaskCleanup:
         task = await task_manager.create_task(flow_id="f", context_id="c", task_id="old-ir")
         await task_manager.update_state(task["id"], "input-required")
 
-        task_manager._tasks["old-ir"]["_updated_at"] = (
-            datetime.now(timezone.utc) - timedelta(hours=48)
-        ).isoformat()
+        task_manager._tasks["old-ir"]["_updated_at"] = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
 
         pruned = await task_manager.cleanup_expired_tasks(ttl_seconds=86400)
         assert pruned == 0
@@ -113,9 +107,7 @@ class TestTaskCleanup:
         # Old completed → prune
         t1 = await task_manager.create_task(flow_id="f", context_id="c", task_id="t1")
         await task_manager.update_state(t1["id"], "completed")
-        task_manager._tasks["t1"]["_updated_at"] = (
-            datetime.now(timezone.utc) - timedelta(hours=25)
-        ).isoformat()
+        task_manager._tasks["t1"]["_updated_at"] = (datetime.now(timezone.utc) - timedelta(hours=25)).isoformat()
 
         # New completed → keep
         t2 = await task_manager.create_task(flow_id="f", context_id="c", task_id="t2")
@@ -124,16 +116,12 @@ class TestTaskCleanup:
         # Old working → keep (active)
         t3 = await task_manager.create_task(flow_id="f", context_id="c", task_id="t3")
         await task_manager.update_state(t3["id"], "working")
-        task_manager._tasks["t3"]["_updated_at"] = (
-            datetime.now(timezone.utc) - timedelta(hours=25)
-        ).isoformat()
+        task_manager._tasks["t3"]["_updated_at"] = (datetime.now(timezone.utc) - timedelta(hours=25)).isoformat()
 
         # Old canceled → prune
         t4 = await task_manager.create_task(flow_id="f", context_id="c", task_id="t4")
         await task_manager.update_state(t4["id"], "canceled")
-        task_manager._tasks["t4"]["_updated_at"] = (
-            datetime.now(timezone.utc) - timedelta(hours=25)
-        ).isoformat()
+        task_manager._tasks["t4"]["_updated_at"] = (datetime.now(timezone.utc) - timedelta(hours=25)).isoformat()
 
         pruned = await task_manager.cleanup_expired_tasks(ttl_seconds=86400)
         assert pruned == 2  # t1 and t4
