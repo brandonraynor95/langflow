@@ -113,7 +113,13 @@ def _context_id_to_session_id(context_id: str, flow_secret: str) -> str:
 
 
 def _result_to_artifact(result, index: int = 0) -> dict | None:
-    """Convert a single ResultData into an A2A Artifact."""
+    """Convert a single ResultData into an A2A Artifact.
+
+    Handles multiple result formats from Langflow:
+    - ResultData object with .results dict containing a Message object
+    - ResultData object with .results dict containing {"message": {...}}
+    - Plain dict with results key
+    """
     # Handle both dict and object access patterns
     if hasattr(result, "results"):
         results = result.results
@@ -124,46 +130,63 @@ def _result_to_artifact(result, index: int = 0) -> dict | None:
         return None
 
     parts = []
+    text = _extract_text(results)
 
-    # Check for text message output
-    if isinstance(results, dict):
-        message = results.get("message")
-        if isinstance(message, dict) and "text" in message:
-            parts.append(
-                {
-                    "kind": "text",
-                    "text": message["text"],
-                }
-            )
-        elif isinstance(message, str):
-            parts.append(
-                {
-                    "kind": "text",
-                    "text": message,
-                }
-            )
-
-        # Check for structured data output
-        data = results.get("data")
-        if isinstance(data, dict):
-            parts.append(
-                {
-                    "kind": "data",
-                    "data": data,
-                }
-            )
-
-    if not parts:
-        # Fallback: serialize the entire result as data
-        parts.append(
-            {
-                "kind": "data",
-                "data": results if isinstance(results, dict) else {"result": str(results)},
-            }
-        )
+    if text:
+        parts.append({"kind": "text", "text": text})
+    elif isinstance(results, dict) and "data" in results and isinstance(results["data"], dict):
+        # Structured data output — unwrap the "data" key
+        parts.append({"kind": "data", "data": results["data"]})
+    else:
+        # Fallback: serialize as data
+        try:
+            if hasattr(results, "model_dump"):
+                data = results.model_dump()
+            elif isinstance(results, dict):
+                data = results
+            else:
+                data = {"result": str(results)}
+        except Exception:
+            data = {"result": str(results)}
+        parts.append({"kind": "data", "data": data})
 
     return {
         "artifactId": f"artifact-{index}",
         "name": f"output-{index}",
         "parts": parts,
     }
+
+
+def _extract_text(results) -> str | None:
+    """Extract text from various Langflow result formats.
+
+    Langflow results come in several shapes:
+    1. A Message object with .text attribute
+    2. A dict with "message" key containing a Message object
+    3. A dict with "message" key containing a dict with "text"
+    4. A dict with "text" key directly
+    """
+    if results is None:
+        return None
+
+    # Case: results is a Message object (has .text attribute)
+    if hasattr(results, "text") and isinstance(getattr(results, "text", None), str):
+        return results.text
+
+    # Case: results is a dict
+    if isinstance(results, dict):
+        # Direct text key
+        if "text" in results and isinstance(results["text"], str):
+            return results["text"]
+
+        # Message key containing an object with .text
+        message = results.get("message")
+        if message is not None:
+            if hasattr(message, "text") and isinstance(getattr(message, "text", None), str):
+                return message.text
+            if isinstance(message, dict) and "text" in message:
+                return message["text"]
+            if isinstance(message, str):
+                return message
+
+    return None
