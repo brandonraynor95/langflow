@@ -63,7 +63,7 @@ from langflow.helpers.flow import get_flow_by_id_or_endpoint_name
 from langflow.processing.process import process_tweaks, run_graph_internal
 from langflow.services.auth.utils import api_key_security
 from langflow.services.database.models.flow.model import FlowRead
-from langflow.services.database.models.jobs.model import JobType
+from langflow.services.database.models.jobs.model import Job, JobType
 from langflow.services.database.models.user.model import UserRead
 from langflow.services.deps import get_job_service, get_task_service
 
@@ -378,7 +378,7 @@ async def execute_sync_workflow(
 
     # Execute graph - component errors are caught and returned in response body
     job_service = get_job_service()
-    await job_service.create_job(job_id=job_id, flow_id=flow_id_str)
+    await job_service.create_job(job_id=job_id, flow_id=flow_id_str, user_id=api_key_user.id)
     try:
         task_result, execution_session_id = await job_service.execute_with_status(
             job_id=job_id,
@@ -467,6 +467,7 @@ async def execute_workflow_background(
         await job_service.create_job(
             job_id=job_id,
             flow_id=flow_id_str,
+            user_id=api_key_user.id,
         )
 
         await task_service.fire_and_forget_task(
@@ -488,6 +489,23 @@ async def execute_workflow_background(
         raise
     except MemoryError as exc:
         raise WorkflowResourceError from exc
+
+
+def _assert_job_owner(job: Job, api_key_user: UserRead, job_id: UUID) -> None:
+    """Raise 403 if the authenticated user does not own the job.
+
+    Legacy rows with user_id=None are allowed through to preserve backwards compatibility.
+    """
+    if job.user_id is not None and job.user_id != api_key_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Forbidden",
+                "code": "FORBIDDEN",
+                "message": "You do not have permission to access this job.",
+                "job_id": str(job_id),
+            },
+        )
 
 
 @router.get(
@@ -566,6 +584,9 @@ async def get_workflow_status(
                 "job_id": str(job_id),
             },
         )
+
+    # Ownership check — raises 403 if the requesting user does not own the job
+    _assert_job_owner(job, api_key_user, job_id)
 
     # Store context for exception handling scope
     flow_id_str = str(job.flow_id)
@@ -646,7 +667,7 @@ async def get_workflow_status(
 )
 async def stop_workflow(
     request: WorkflowStopRequest,
-    api_key_user: Annotated[UserRead, Depends(api_key_security)],  # noqa: ARG001
+    api_key_user: Annotated[UserRead, Depends(api_key_security)],
 ) -> WorkflowStopResponse:
     """Stop a running workflow execution by job_id.
 
@@ -689,6 +710,21 @@ async def stop_workflow(
                 "error": "Job not found",
                 "code": "JOB_NOT_FOUND",
                 "message": f"Job {job_id} not found",
+                "job_id": str(job_id),
+            },
+        )
+
+    # Ownership check — must run before type check to avoid leaking job.type to non-owners
+    _assert_job_owner(job, api_key_user, job_id)
+
+    # Verify this is a workflow job
+    if job.type != JobType.WORKFLOW:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "Job not found",
+                "code": "JOB_NOT_FOUND",
+                "message": f"Job {job_id} is not a workflow job (type: {job.type})",
                 "job_id": str(job_id),
             },
         )

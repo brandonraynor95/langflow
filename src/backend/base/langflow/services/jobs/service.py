@@ -69,6 +69,7 @@ class JobService(Service):
         job_type: JobType = JobType.WORKFLOW,
         asset_id: UUID | None = None,
         asset_type: str | None = None,
+        user_id: UUID | None = None,
     ) -> Job:
         """Create a new job record with QUEUED status.
 
@@ -78,6 +79,7 @@ class JobService(Service):
             job_type: The job type
             asset_id: The asset ID
             asset_type: The asset type
+            user_id: The user ID who owns this job
 
         Returns:
             Created Job object
@@ -96,6 +98,7 @@ class JobService(Service):
                 type=job_type,
                 asset_id=asset_id,
                 asset_type=asset_type,
+                user_id=user_id,
             )
             session.add(job)
             await session.flush()
