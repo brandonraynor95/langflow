@@ -163,64 +163,49 @@ class TaskManager:
         # Failed → allow re-execution
         return None
 
-    async def request_input(
-        self,
-        task_id: str,
-        question: str,
-        event: asyncio.Event,
-        response_holder: dict,
-    ) -> None:
-        """Signal that the agent needs input from the client.
+    async def set_input_required(self, task_id: str, question: str) -> None:
+        """Transition a task to INPUT_REQUIRED with a question.
 
-        Sets the task to INPUT_REQUIRED and registers the asyncio.Event
-        so the router can resolve it when the client sends a follow-up.
+        Called by the request_input tool or detected from flow output.
+        The task state is updated and the question is stored so the
+        client can see what the agent is asking.
+
+        No execution suspension — the flow completes normally. When
+        the client responds, a new flow execution starts.
 
         Args:
             task_id: The task requesting input.
             question: The question to present to the client.
-            event: The asyncio.Event to set when input arrives.
-            response_holder: Mutable dict to store the response in.
         """
         await self.update_state(task_id, "input-required")
         self._tasks[task_id]["status"]["message"] = {
             "role": "agent",
             "parts": [{"kind": "text", "text": question}],
         }
-        self._pending_inputs[task_id] = {
-            "event": event,
-            "response_holder": response_holder,
-        }
+        self._pending_inputs[task_id] = {"question": question}
 
-    async def resolve_input(self, task_id: str, response: str) -> None:
-        """Resolve a pending INPUT_REQUIRED request with the client's response.
-
-        Sets the response on the holder and triggers the asyncio.Event,
-        which unblocks the suspended request_input handler.
-
-        Args:
-            task_id: The task to resolve.
-            response: The client's response text.
-
-        Raises:
-            KeyError: If no pending input request exists for this task.
-        """
-        pending = self._pending_inputs.get(task_id)
-        if pending is None:
-            msg = f"No pending input request for task {task_id}"
-            raise KeyError(msg)
-
-        pending["response_holder"]["response"] = response
-        pending["event"].set()
-
-        # Clean up
-        del self._pending_inputs[task_id]
-
-        # Transition back to WORKING
-        await self.update_state(task_id, "working")
+    def is_input_required(self, task_id: str) -> bool:
+        """Check if a task is in INPUT_REQUIRED state."""
+        task = self._tasks.get(task_id)
+        if not task:
+            return False
+        return task["status"]["state"] == "input-required"
 
     def has_pending_input(self, task_id: str) -> bool:
         """Check if a task has a pending INPUT_REQUIRED request."""
         return task_id in self._pending_inputs
+
+    async def resolve_input(self, task_id: str) -> None:
+        """Mark an INPUT_REQUIRED task as resumed (WORKING).
+
+        Called when the client sends a follow-up. The router will
+        start a new flow execution with the response.
+
+        Args:
+            task_id: The task to resume.
+        """
+        self._pending_inputs.pop(task_id, None)
+        await self.update_state(task_id, "working")
 
     async def cleanup_expired_tasks(self, ttl_seconds: int = 86400) -> int:
         """Remove expired terminal tasks older than the TTL.

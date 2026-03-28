@@ -1,30 +1,23 @@
 """Integration tests for the INPUT_REQUIRED flow via HTTP endpoints.
 
-Tests the end-to-end flow:
-1. Client sends message:send → flow starts executing
-2. Agent calls request_input → task transitions to INPUT_REQUIRED
-3. Client sends follow-up message:send with same taskId
-4. Agent receives client's response and continues → COMPLETED
+Tests the redesigned stateless pattern:
+1. Client sends message:send → flow executes
+2. If the agent called request_input, the task is INPUT_REQUIRED
+3. Client sends follow-up message:send → new execution with same session
+4. Flow completes → COMPLETED
 
-Since we mock simple_run_flow, we simulate INPUT_REQUIRED by having
-the mock interact with the task manager directly.
+No asyncio.Event, no suspension. The follow-up triggers a fresh
+flow execution with the same contextId (same session/history).
 """
 
-import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
 
-from langflow.api.a2a.request_input_tool import create_request_input_tool, resolve_input_request
 from langflow.services.database.models.flow.model import FlowCreate
 
 pytestmark = pytest.mark.asyncio
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 
 def _make_agent_flow_data() -> dict:
@@ -55,21 +48,6 @@ async def _create_a2a_enabled_flow(client: AsyncClient, headers: dict, slug: str
     return flow_json
 
 
-def _make_a2a_message(text: str, context_id: str | None = None, task_id: str | None = None) -> dict:
-    msg = {
-        "message": {
-            "role": "user",
-            "parts": [{"kind": "text", "text": text}],
-            "messageId": "msg-ir-test",
-        },
-    }
-    if context_id:
-        msg["message"]["contextId"] = context_id
-    if task_id:
-        msg["taskId"] = task_id
-    return msg
-
-
 def _mock_run_response(text: str = "Final answer"):
     from unittest.mock import MagicMock
 
@@ -85,166 +63,140 @@ def _mock_run_response(text: str = "Final answer"):
     return response
 
 
-# ---------------------------------------------------------------------------
-# Tests: Follow-up message resolves INPUT_REQUIRED
-# ---------------------------------------------------------------------------
+class TestInputRequiredStateless:
+    """Tests the stateless INPUT_REQUIRED pattern.
 
-
-class TestInputRequiredFollowUp:
-    """Tests that a follow-up message to an INPUT_REQUIRED task resolves it.
-
-    This is the core INPUT_REQUIRED flow:
-    1. Initial request creates a task and starts execution
-    2. Execution suspends (agent needs clarification)
-    3. Task is marked INPUT_REQUIRED with the question
-    4. Client sends follow-up with same taskId
-    5. Execution resumes with client's answer
+    When the task_manager is marked as input-required (by the request_input
+    tool during execution), the router returns the task in that state.
+    The client then sends a follow-up which starts a new execution.
     """
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_follow_up_to_input_required_task(self, mock_run, client: AsyncClient, logged_in_headers):
-        """Send initial message, simulate INPUT_REQUIRED, send follow-up,
-        verify the task completes.
-
-        We simulate INPUT_REQUIRED by:
-        1. Having the initial mock hang (simulating suspended execution)
-        2. Manually setting the task to INPUT_REQUIRED via task manager
-        3. Sending the follow-up message
-        4. Verifying the follow-up is acknowledged
+    async def test_input_required_task_returned_when_marked(
+        self, mock_run, client: AsyncClient, logged_in_headers
+    ):
+        """When the flow sets input-required on the task during execution,
+        the response has state=input-required instead of completed.
         """
         from langflow.api.a2a.router import _task_manager
 
-        await _create_a2a_enabled_flow(client, logged_in_headers, slug="ir-agent")
+        # Mock that sets input-required during execution (simulating
+        # the request_input tool being called by the LLM)
+        async def mock_with_input_required(*, flow=None, input_request=None, **kwargs):
+            tasks = await _task_manager.list_tasks()
+            if tasks:
+                await _task_manager.set_input_required(tasks[-1]["id"], "Which env?")
+            return _mock_run_response("__a2a_input_required__:Which env?")
 
-        # Make the first call create a task that we'll manually set to INPUT_REQUIRED
-        mock_run.return_value = _mock_run_response("After clarification")
+        mock_run.side_effect = mock_with_input_required
+        await _create_a2a_enabled_flow(client, logged_in_headers, slug="ir-stateless")
 
-        # First call — creates the task normally
-        response1 = await client.post(
-            "/a2a/ir-agent/v1/message:send",
-            json=_make_a2a_message("Deploy something", context_id="ctx-ir"),
-            headers=logged_in_headers,
-        )
-        assert response1.status_code == 200
-        task_id = response1.json()["id"]
-
-        # Manually set task to INPUT_REQUIRED (simulating agent suspension)
-        await _task_manager.update_state(task_id, "input-required")
-        _task_manager._tasks[task_id]["status"]["message"] = {
-            "role": "agent",
-            "parts": [{"kind": "text", "text": "Which environment?"}],
-        }
-        # Register a pending input request
-        _task_manager._pending_inputs[task_id] = {
-            "event": asyncio.Event(),
-            "response_holder": {},
-        }
-
-        # Send follow-up with same taskId
-        response2 = await client.post(
-            "/a2a/ir-agent/v1/message:send",
-            json=_make_a2a_message("prod-us", task_id=task_id),
+        response = await client.post(
+            "/a2a/ir-stateless/v1/message:send",
+            json={
+                "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "Deploy my app"}],
+                    "contextId": "ctx-ir",
+                },
+            },
             headers=logged_in_headers,
         )
 
-        assert response2.status_code == 200
-        body = response2.json()
-        # The follow-up should acknowledge the input was received
-        assert body["id"] == task_id
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"]["state"] == "input-required"
 
     @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
-    async def test_get_input_required_task_shows_question(self, mock_run, client: AsyncClient, logged_in_headers):
-        """Polling an INPUT_REQUIRED task shows the agent's question.
-
-        The client uses GET /tasks/{id} to see what the agent is asking.
+    async def test_follow_up_starts_new_execution(
+        self, mock_run, client: AsyncClient, logged_in_headers
+    ):
+        """When the client sends a follow-up to an input-required task,
+        a new execution starts (not a resume of the old one).
         """
         from langflow.api.a2a.router import _task_manager
 
-        await _create_a2a_enabled_flow(client, logged_in_headers, slug="poll-ir-agent")
-        mock_run.return_value = _mock_run_response()
+        call_count = 0
 
-        # Create a task
-        response = await client.post(
-            "/a2a/poll-ir-agent/v1/message:send",
-            json=_make_a2a_message("Do work"),
+        async def mock_execution(*, flow=None, input_request=None, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                # First call: mark input-required
+                tasks = await _task_manager.list_tasks()
+                if tasks:
+                    await _task_manager.set_input_required(tasks[-1]["id"], "Which env?")
+                return _mock_run_response("__a2a_input_required__:Which env?")
+            # Second call: complete normally
+            return _mock_run_response("Deployed to prod-us")
+
+        mock_run.side_effect = mock_execution
+        await _create_a2a_enabled_flow(client, logged_in_headers, slug="ir-followup")
+
+        # First message → input-required
+        r1 = await client.post(
+            "/a2a/ir-followup/v1/message:send",
+            json={
+                "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "Deploy my app"}],
+                    "contextId": "ctx-followup",
+                },
+            },
             headers=logged_in_headers,
         )
-        task_id = response.json()["id"]
+        assert r1.json()["status"]["state"] == "input-required"
+        task_id = r1.json()["id"]
 
-        # Manually set to INPUT_REQUIRED with a question
-        await _task_manager.update_state(task_id, "input-required")
-        _task_manager._tasks[task_id]["status"]["message"] = {
-            "role": "agent",
-            "parts": [{"kind": "text", "text": "Which database should I use?"}],
-        }
-
-        # Poll the task
-        poll_response = await client.get(
-            f"/a2a/poll-ir-agent/v1/tasks/{task_id}",
+        # Follow-up → new execution → completed
+        r2 = await client.post(
+            "/a2a/ir-followup/v1/message:send",
+            json={
+                "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "prod-us"}],
+                    "contextId": "ctx-followup",
+                },
+                "taskId": task_id,
+            },
             headers=logged_in_headers,
         )
-        assert poll_response.status_code == 200
-        task = poll_response.json()
-        assert task["status"]["state"] == "input-required"
-        assert "Which database" in task["status"]["message"]["parts"][0]["text"]
+        assert r2.json()["status"]["state"] == "completed"
+        # Two separate flow executions happened
+        assert call_count == 2
 
+    @patch("langflow.api.v1.endpoints.simple_run_flow", new_callable=AsyncMock)
+    async def test_poll_shows_input_required_with_question(
+        self, mock_run, client: AsyncClient, logged_in_headers
+    ):
+        """GET /tasks/{id} shows input-required state with the agent's question."""
+        from langflow.api.a2a.router import _task_manager
 
-# ---------------------------------------------------------------------------
-# Tests: request_input tool with task manager integration
-# ---------------------------------------------------------------------------
+        async def mock_with_ir(*, flow=None, input_request=None, **kwargs):
+            tasks = await _task_manager.list_tasks()
+            if tasks:
+                await _task_manager.set_input_required(tasks[-1]["id"], "What database?")
+            return _mock_run_response("__a2a_input_required__:What database?")
 
+        mock_run.side_effect = mock_with_ir
+        await _create_a2a_enabled_flow(client, logged_in_headers, slug="ir-poll")
 
-class TestRequestInputTaskManagerIntegration:
-    """Tests that request_input tool correctly interacts with TaskManager."""
-
-    async def test_tool_sets_pending_input_on_task_manager(self):
-        """Creating a tool and calling it registers a pending input request
-        on the task manager, so the router knows to route follow-ups.
-        """
-        from langflow.api.a2a.task_manager import TaskManager
-
-        tm = TaskManager()
-        task = await tm.create_task(flow_id="f", context_id="c", task_id="pending-test")
-        await tm.update_state(task["id"], "working")
-
-        tool_info = create_request_input_tool(
-            task_id=task["id"],
-            task_manager=tm,
+        r = await client.post(
+            "/a2a/ir-poll/v1/message:send",
+            json={
+                "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "Set up DB"}],
+                    "contextId": "ctx-poll",
+                },
+            },
+            headers=logged_in_headers,
         )
+        task_id = r.json()["id"]
 
-        # Start the handler (will suspend and register pending input)
-        handler = tool_info["handler"]
-        future = asyncio.create_task(handler(question="What color?"))
-        await asyncio.sleep(0.05)
-
-        # Check that the task manager has a pending input
-        assert task["id"] in tm._pending_inputs
-
-        # Clean up
-        resolve_input_request(tool_info["event"], tool_info["response_holder"], "red")
-        await asyncio.wait_for(future, timeout=1.0)
-
-    async def test_resolve_clears_pending_input(self):
-        """After resolution, the pending input is cleared from task manager."""
-        from langflow.api.a2a.task_manager import TaskManager
-
-        tm = TaskManager()
-        task = await tm.create_task(flow_id="f", context_id="c", task_id="clear-test")
-        await tm.update_state(task["id"], "working")
-
-        tool_info = create_request_input_tool(
-            task_id=task["id"],
-            task_manager=tm,
+        poll = await client.get(
+            f"/a2a/ir-poll/v1/tasks/{task_id}",
+            headers=logged_in_headers,
         )
-        handler = tool_info["handler"]
-        future = asyncio.create_task(handler(question="Pick one"))
-        await asyncio.sleep(0.05)
-
-        assert "clear-test" in tm._pending_inputs
-
-        # Resolve via task manager's resolve method
-        await tm.resolve_input("clear-test", "option-a")
-        result = await asyncio.wait_for(future, timeout=1.0)
-
-        assert result == "option-a"
-        assert "clear-test" not in tm._pending_inputs
+        assert poll.json()["status"]["state"] == "input-required"
+        assert "database" in poll.json()["status"]["message"]["parts"][0]["text"].lower()

@@ -173,17 +173,16 @@ async def message_send(
     context_id = message.get("contextId") or str(uuid.uuid4())
 
     # Check for INPUT_REQUIRED follow-up: if the client sends a message
-    # with a taskId that's in INPUT_REQUIRED state, resolve the pending input
-    if requested_task_id and _task_manager.has_pending_input(requested_task_id):
-        # Extract text from the follow-up message
-        parts = message.get("parts", [])
-        follow_up_text = " ".join(p.get("text", "") for p in parts if p.get("kind") == "text")
-        await _task_manager.resolve_input(requested_task_id, follow_up_text)
-        task = await _task_manager.get_task(requested_task_id)
-        return task
+    # with a taskId that's in INPUT_REQUIRED state, start a new execution
+    # with the follow-up text (same session for conversation continuity).
+    if requested_task_id and _task_manager.is_input_required(requested_task_id):
+        await _task_manager.resolve_input(requested_task_id)
+        # Fall through to create a new task and execute — the same
+        # contextId means the same session_id, so the Agent sees
+        # prior conversation history including the question it asked.
 
-    # Idempotent retry check
-    if requested_task_id:
+    # Idempotent retry check (skip if we just resolved an input-required)
+    elif requested_task_id:
         existing = await _task_manager.handle_retry(requested_task_id)
         if existing is not None:
             return existing
@@ -215,6 +214,14 @@ async def message_send(
 
         # Translate outputs → A2A artifacts
         artifacts = await translate_outbound(result.outputs or [])
+
+        # Check if the flow signaled input-required (via request_input tool
+        # or a RequestInput component). The task_manager tracks this.
+        if _task_manager.is_input_required(task_id):
+            task = await _task_manager.get_task(task_id)
+            task["contextId"] = context_id
+            task["artifacts"] = artifacts
+            return task
 
         # Update to COMPLETED
         task = await _task_manager.update_state(task_id, "completed", artifacts=artifacts)

@@ -148,13 +148,20 @@ class LCAgentComponent(Component):
 
         Checks graph.context for an "a2a" key set by the A2A router.
         If present, creates and appends a request_input tool that allows
-        the LLM to ask the calling agent for clarification mid-execution.
+        the LLM to ask the calling agent for clarification.
+
+        The tool returns immediately with a pending marker (no execution
+        suspension). The A2A adapter detects this after the flow completes
+        and transitions the task to input-required.
+
+        This is a best-effort mechanism — LLMs may choose not to call
+        the tool. The primary INPUT_REQUIRED mechanism for Langflow will
+        be a dedicated RequestInput canvas component (future work).
 
         This method is called from build_agent() and run_agent() before
         the AgentExecutor is created. It's a no-op when not running
         under A2A (normal playground execution).
         """
-        # Check if we have a graph context with A2A execution info
         if not hasattr(self, "graph") or self.graph is None:
             return
 
@@ -175,16 +182,11 @@ class LCAgentComponent(Component):
                 task_manager=task_manager,
             )
 
-            # Store the tool info on the context so the router can access
-            # the event and response_holder for follow-up resolution
-            a2a_ctx["request_input_tool_info"] = tool_info
-
-            # Create a LangChain StructuredTool from our tool info
             from langchain_core.tools import StructuredTool
             from pydantic import BaseModel, Field
 
             class RequestInputSchema(BaseModel):
-                question: str = Field(description="The question to ask the calling agent")
+                question: str = Field(description="The question to ask the calling agent or user")
 
             lc_tool = StructuredTool(
                 name=tool_info["name"],
