@@ -221,3 +221,47 @@ class TaskManager:
     def has_pending_input(self, task_id: str) -> bool:
         """Check if a task has a pending INPUT_REQUIRED request."""
         return task_id in self._pending_inputs
+
+    async def cleanup_expired_tasks(self, ttl_seconds: int = 86400) -> int:
+        """Remove expired terminal tasks older than the TTL.
+
+        Rules:
+        - Completed/Failed/Canceled tasks older than ttl_seconds → pruned
+        - Working/Input-Required tasks → NEVER pruned (still active)
+        - Submitted tasks older than TTL → pruned (likely abandoned)
+
+        Args:
+            ttl_seconds: Maximum age in seconds before pruning (default 24h).
+
+        Returns:
+            Number of tasks pruned.
+        """
+        now = datetime.now(timezone.utc)
+        to_prune = []
+
+        for task_id, task in self._tasks.items():
+            state = task["status"]["state"]
+
+            # Never prune active tasks
+            if state in ("working", "input-required"):
+                continue
+
+            # Check age
+            updated_at_str = task.get("_updated_at", "")
+            try:
+                updated_at = datetime.fromisoformat(updated_at_str)
+                if updated_at.tzinfo is None:
+                    updated_at = updated_at.replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                continue
+
+            age = (now - updated_at).total_seconds()
+            if age > ttl_seconds:
+                to_prune.append(task_id)
+
+        for task_id in to_prune:
+            del self._tasks[task_id]
+            # Also clean up any stale pending inputs
+            self._pending_inputs.pop(task_id, None)
+
+        return len(to_prune)
