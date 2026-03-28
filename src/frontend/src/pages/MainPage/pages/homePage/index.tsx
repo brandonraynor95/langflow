@@ -6,6 +6,7 @@ import { IS_MAC } from "@/constants/constants";
 import { useGetFolderQuery } from "@/controllers/API/queries/folders/use-get-folder";
 import { CustomBanner } from "@/customization/components/custom-banner";
 import { CustomMcpServerTab } from "@/customization/components/custom-McpServerTab";
+import A2AServerTab from "./components/A2AServerTab";
 import {
   ENABLE_DATASTAX_LANGFLOW,
   ENABLE_MCP,
@@ -21,7 +22,7 @@ import ModalsComponent from "../../components/modalsComponent";
 import useFileDrop from "../../hooks/use-on-file-drop";
 import EmptyFolder from "../emptyFolder";
 
-const HomePage = ({ type }: { type: "flows" | "components" | "mcp" }) => {
+const HomePage = ({ type }: { type: "flows" | "components" | "mcp" | "a2a" }) => {
   const [view, setView] = useState<"grid" | "list">(() => {
     const savedView = localStorage.getItem("view");
     return savedView === "grid" || savedView === "list" ? savedView : "list";
@@ -34,7 +35,7 @@ const HomePage = ({ type }: { type: "flows" | "components" | "mcp" }) => {
   const [isEmptyFolder, setIsEmptyFolder] = useState(true);
   const navigate = useCustomNavigate();
 
-  const [flowType, setFlowType] = useState<"flows" | "components" | "mcp">(
+  const [flowType, setFlowType] = useState<"flows" | "components" | "mcp" | "a2a">(
     type,
   );
   const myCollectionId = useFolderStore((state) => state.myCollectionId);
@@ -247,7 +248,7 @@ const HomePage = ({ type }: { type: "flows" | "components" | "mcp" }) => {
 
   return (
     <CardsWrapComponent
-      onFileDrop={flowType === "mcp" ? undefined : handleFileDrop}
+      onFileDrop={flowType === "mcp" || flowType === "a2a" ? undefined : handleFileDrop}
       dragMessage={`Drop your ${isEmptyFolder ? "flows or components" : flowType} here`}
     >
       <div
@@ -285,6 +286,8 @@ const HomePage = ({ type }: { type: "flows" | "components" | "mcp" }) => {
                         <ListSkeleton />
                       </div>
                     )
+                  ) : flowType === "a2a" ? (
+                    <A2AServerTab folderName={folderName} />
                   ) : flowType === "mcp" ? (
                     <CustomMcpServerTab folderName={folderName} />
                   ) : (flowType === "flows" || flowType === "components") &&

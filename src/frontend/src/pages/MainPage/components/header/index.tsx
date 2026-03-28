@@ -14,8 +14,8 @@ import useFlowsManagerStore from "@/stores/flowsManagerStore";
 import { cn } from "@/utils/utils";
 
 interface HeaderComponentProps {
-  flowType: "flows" | "components" | "mcp";
-  setFlowType: (flowType: "flows" | "components" | "mcp") => void;
+  flowType: "flows" | "components" | "mcp" | "a2a";
+  setFlowType: (flowType: "flows" | "components" | "mcp" | "a2a") => void;
   view: "list" | "grid";
   setView: (view: "list" | "grid") => void;
   setNewProjectModal: (newProjectModal: boolean) => void;
@@ -74,7 +74,9 @@ const HeaderComponent = ({
   };
 
   // Determine which tabs to show based on feature flag
-  const tabTypes = isMCPEnabled ? ["mcp", "flows"] : ["components", "flows"];
+  const tabTypes = isMCPEnabled
+    ? ["a2a", "mcp", "flows"]
+    : ["a2a", "components", "flows"];
 
   const handleDownload = () => {
     downloadFlows({ ids: selectedFlows });
@@ -130,7 +132,7 @@ const HeaderComponent = ({
                 id={`${type}-btn`}
                 data-testid={`${type}-btn`}
                 onClick={() => {
-                  setFlowType(type as "flows" | "components" | "mcp");
+                  setFlowType(type as "flows" | "components" | "mcp" | "a2a");
                 }}
                 className={`border-b ${
                   flowType === type
@@ -141,13 +143,15 @@ const HeaderComponent = ({
                 <div className={flowType === type ? "-mb-px" : ""}>
                   {type === "mcp"
                     ? "MCP Server"
-                    : type.charAt(0).toUpperCase() + type.slice(1)}
+                    : type === "a2a"
+                      ? "A2A Agents"
+                      : type.charAt(0).toUpperCase() + type.slice(1)}
                 </div>
               </Button>
             ))}
           </div>
           {/* Search and filters */}
-          {flowType !== "mcp" && (
+          {flowType !== "mcp" && flowType !== "a2a" && (
             <div className="flex justify-between">
               <div className="flex w-full xl:w-5/12">
                 <Input
