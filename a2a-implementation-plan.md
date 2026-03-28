@@ -459,6 +459,60 @@ On timeout:
 - [ ] Non-agent flows unaffected
 - [ ] All tests pass
 
+### Phase 5 audit: gaps identified during implementation (2026-03-27)
+
+The following gaps were identified during Phase 5 implementation review.
+The low-level mechanics (asyncio.Event suspension, task manager state
+transitions, follow-up routing) are implemented and tested, but wiring
+into the actual execution path is incomplete.
+
+**Gap 1: Tool not injected into Agent component**
+
+The `create_request_input_tool()` function exists and works, but nothing
+calls it during flow execution. The plan calls for modifying
+`LCToolsAgentComponent._get_tools()` to detect A2A execution context and
+inject the tool. This requires:
+- Passing A2A execution context (task_id, task_manager ref) through the
+  graph metadata / session context
+- A hook in the Agent component to check for A2A context and add the tool
+- The context must be set by the router before calling `simple_run_flow()`
+
+**Gap 2: INPUT_REQUIRED incompatible with synchronous message:send**
+
+The `message:send` endpoint awaits `_execute_flow()` which awaits
+`simple_run_flow()`. If the Agent calls `request_input` during execution,
+the entire chain is blocked — the HTTP response never returns, so the
+client never sees INPUT_REQUIRED and can't send a follow-up.
+
+INPUT_REQUIRED only works with `message:stream` where the SSE connection
+stays open and can emit INPUT_REQUIRED while the flow is suspended.
+
+Resolution options:
+- A: Only support INPUT_REQUIRED via `message:stream` (natural fit)
+- B: Make `message:send` return early with WORKING/INPUT_REQUIRED state,
+  client then polls or uses streaming
+- C: Run flow in background task for message:send, return task immediately
+
+**Gap 3: Streaming endpoint doesn't wire INPUT_REQUIRED events**
+
+The `message:stream` endpoint executes the flow in a background task but
+uses a simple try/complete/fail pattern. It doesn't wire the stream bridge
+to emit INPUT_REQUIRED events when the tool is called, or WORKING events
+when the input is resolved.
+
+**Gap 4: Integration tests simulate INPUT_REQUIRED manually**
+
+The integration tests set task state to INPUT_REQUIRED by directly poking
+`_task_manager` rather than testing actual flow execution triggering the
+tool. This was necessary because of Gap 1 (tool not injected), but means
+the full end-to-end path is untested.
+
+**Resolution plan:**
+- Fix Gap 1: Pass A2A context through graph metadata, inject tool
+- Fix Gap 2: Adopt Option A — INPUT_REQUIRED only via message:stream
+- Fix Gap 3: Wire stream bridge to receive INPUT_REQUIRED events from tool
+- Fix Gap 4: Add end-to-end test with mock LLM that calls request_input
+
 ---
 
 ## Phase 6: Auth, Visibility & Hardening

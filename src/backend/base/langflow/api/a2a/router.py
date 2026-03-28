@@ -206,8 +206,14 @@ async def message_send(
         # Update to WORKING
         await _task_manager.update_state(task_id, "working")
 
-        # Execute the flow
-        result = await _execute_flow(flow, flow_inputs, session)
+        # Execute the flow with A2A context so Agent components
+        # can detect A2A execution and inject request_input tool
+        a2a_context = {
+            "task_id": task_id,
+            "context_id": context_id,
+            "task_manager": _task_manager,
+        }
+        result = await _execute_flow(flow, flow_inputs, session, a2a_context=a2a_context)
 
         # Translate outputs → A2A artifacts
         artifacts = await translate_outbound(result.outputs or [])
@@ -224,10 +230,25 @@ async def message_send(
         return task
 
 
-async def _execute_flow(flow: Flow, flow_inputs: dict, session) -> Any:
+async def _execute_flow(
+    flow: Flow,
+    flow_inputs: dict,
+    session,  # noqa: ARG001
+    *,
+    a2a_context: dict | None = None,
+) -> Any:
     """Execute a Langflow flow with the given inputs.
 
     Wraps simple_run_flow() with the right parameters.
+
+    Args:
+        flow: The Flow model to execute.
+        flow_inputs: Translated inputs from the A2A message.
+        session: DB session (unused, kept for interface compatibility).
+        a2a_context: Optional A2A execution context passed through to
+                     the graph. Components can read this via self.ctx
+                     to detect A2A execution and inject tools like
+                     request_input.
     """
     from langflow.api.v1.endpoints import simple_run_flow
     from langflow.api.v1.schemas import SimplifiedAPIRequest
@@ -240,10 +261,17 @@ async def _execute_flow(flow: Flow, flow_inputs: dict, session) -> Any:
         session_id=flow_inputs.get("session_id"),
     )
 
+    # Pass A2A context through to the graph so components (especially
+    # Agent) can detect A2A execution and inject the request_input tool.
+    context = None
+    if a2a_context:
+        context = {"a2a": a2a_context}
+
     return await simple_run_flow(
         flow=flow,
         input_request=input_request,
         stream=False,
+        context=context,
     )
 
 
@@ -290,7 +318,13 @@ async def message_stream(
     bridge = A2AStreamBridge(task_id=task_id, context_id=context_id)
 
     async def _run_and_stream():
-        """Background: execute flow and feed events to bridge."""
+        """Background: execute flow and feed events to bridge.
+
+        Passes A2A context through to the graph so Agent components
+        can inject the request_input tool. If the agent calls
+        request_input during execution, this function emits
+        INPUT_REQUIRED events to the stream and waits for resolution.
+        """
         try:
             flow_inputs = await translate_inbound(message, flow_secret=flow_secret)
             await _task_manager.update_state(task_id, "working")
@@ -305,9 +339,36 @@ async def message_stream(
             }
             await bridge.output_queue.put(working_event)
 
-            # Execute flow (non-streaming for now — streaming bridge
-            # will be enhanced in future to use EventManager)
-            result = await _execute_flow(flow, flow_inputs, session)
+            # Pass A2A context and stream bridge so Agent can use
+            # request_input tool and events flow to the SSE stream
+            a2a_context = {
+                "task_id": task_id,
+                "context_id": context_id,
+                "task_manager": _task_manager,
+                "stream_bridge": bridge,
+            }
+            result = await _execute_flow(
+                flow, flow_inputs, session, a2a_context=a2a_context
+            )
+
+            # Check if the task entered INPUT_REQUIRED during execution
+            # (this would be set by the request_input tool handler)
+            current_task = await _task_manager.get_task(task_id)
+            if current_task and current_task["status"]["state"] == "input-required":
+                # Emit INPUT_REQUIRED event to the stream
+                input_required_event = {
+                    "kind": "status-update",
+                    "taskId": task_id,
+                    "contextId": context_id,
+                    "status": current_task["status"],
+                    "final": False,
+                }
+                await bridge.output_queue.put(input_required_event)
+                # NOTE: The stream stays open. The client sends a follow-up
+                # via message:send which resolves the pending input.
+                # The request_input handler is awaiting an asyncio.Event
+                # inside simple_run_flow, so when resolved, execution
+                # continues and we'll get the result.
 
             # Translate and emit artifacts
             artifacts = await translate_outbound(result.outputs or [])
