@@ -8,43 +8,41 @@
       "type": "shell",
       "command": "make init"
     },
-    // make backend
     {
       "label": "Backend",
       "type": "shell",
       "command": "make backend"
     },
-    // make frontend
     {
       "label": "Frontend",
       "type": "shell",
       "command": "make frontend"
     },
-    // make test
     {
       "label": "Test",
       "type": "shell",
-      "command": "make unit_tests"
+      "command": "make unit_tests",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     },
-    // make lint
     {
       "label": "Lint",
       "type": "shell",
       "command": "make lint"
     },
-    // make format
     {
       "label": "Format",
       "type": "shell",
       "command": "make format"
     },
-    // make install
     {
       "label": "Install",
       "type": "shell",
       "command": "make install_backend && make install_frontend"
     },
-    // install backend
     {
       "label": "Install Backend",
       "type": "shell",
